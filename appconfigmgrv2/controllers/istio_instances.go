@@ -11,22 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-/*
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package controllers
 
 import (
@@ -46,29 +30,39 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileIstioInstances(
 	ctx context.Context,
 	in *appconfig.AppEnvConfigTemplateV2,
 ) error {
-	istInst, err := istioInstance(in)
+	appLabelInst, err := istioAppLabelInstance(in)
 	if err != nil {
 		return fmt.Errorf("building: %v", err)
+	}
+	if err := controllerutil.SetControllerReference(in, appLabelInst, r.Scheme); err != nil {
+		return err
+	}
+
+	nsInst, err := istioNamespaceInstance(in)
+	if err != nil {
+		return fmt.Errorf("building: %v", err)
+	}
+	if err := controllerutil.SetControllerReference(in, nsInst, r.Scheme); err != nil {
+		return err
 	}
 
 	gvr := istioInstanceGVR()
 
-	if err := controllerutil.SetControllerReference(in, istInst, r.Scheme); err != nil {
-		return err
+	if err := r.reconcileUnstructured(ctx, appLabelInst, gvr); err != nil {
+		return fmt.Errorf("reconciling app label instance: %v", err)
 	}
-
-	if err := r.reconcileUnstructured(ctx, istInst, gvr); err != nil {
-		return fmt.Errorf("reconciling: %v", err)
+	if err := r.reconcileUnstructured(ctx, nsInst, gvr); err != nil {
+		return fmt.Errorf("reconciling namespace instance: %v", err)
 	}
 
 	return nil
 }
 
-func istioInstance(t *appconfig.AppEnvConfigTemplateV2) (*unstructured.Unstructured, error) {
+func istioAppLabelInstance(t *appconfig.AppEnvConfigTemplateV2) (*unstructured.Unstructured, error) {
 	var (
 		gvk  = istioInstanceGVK()
 		meta = map[string]interface{}{
-			"name":      istioInstanceName(t),
+			"name":      istioAppLabelInstanceName(t),
 			"namespace": t.Namespace,
 		}
 		spec = &v1beta1.Instance{
@@ -84,8 +78,32 @@ func istioInstance(t *appconfig.AppEnvConfigTemplateV2) (*unstructured.Unstructu
 	return unstructuredFromProto(gvk, meta, spec)
 }
 
-func istioInstanceName(t *appconfig.AppEnvConfigTemplateV2) string {
+func istioNamespaceInstance(t *appconfig.AppEnvConfigTemplateV2) (*unstructured.Unstructured, error) {
+	var (
+		gvk  = istioInstanceGVK()
+		meta = map[string]interface{}{
+			"name":      istioNamespaceInstanceName(t),
+			"namespace": t.Namespace,
+		}
+		spec = &v1beta1.Instance{
+			CompiledTemplate: "listentry",
+			Params: &types.Struct{
+				Fields: map[string]*types.Value{
+					"value": {Kind: &types.Value_StringValue{StringValue: `source.namespace`}},
+				},
+			},
+		}
+	)
+
+	return unstructuredFromProto(gvk, meta, spec)
+}
+
+func istioAppLabelInstanceName(t *appconfig.AppEnvConfigTemplateV2) string {
 	return fmt.Sprintf("%v-applabel", t.Name)
+}
+
+func istioNamespaceInstanceName(t *appconfig.AppEnvConfigTemplateV2) string {
+	return fmt.Sprintf("%v-namespace", t.Name)
 }
 
 func istioInstanceGVK() schema.GroupVersionKind {

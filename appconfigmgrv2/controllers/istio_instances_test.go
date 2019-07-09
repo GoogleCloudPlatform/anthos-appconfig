@@ -41,8 +41,17 @@ func TestIstioInstances(t *testing.T) {
 	in, cleanup := createTestInstance(t, r.Client, true)
 	defer cleanup()
 
-	istInst, err := istioInstance(in)
+	gvr := istioInstanceGVR()
+
+	// App-label instance.
+	appLabelInst, err := istioAppLabelInstance(in)
 	require.NoError(t, err)
 
-	unstructuredShouldExist(t, r.Dynamic, istioInstanceGVR(), istInst)
+	unstructuredShouldExist(t, r.Dynamic, gvr, appLabelInst)
+
+	// Namespace instance.
+	nsInst, err := istioNamespaceInstance(in)
+	require.NoError(t, err)
+
+	unstructuredShouldExist(t, r.Dynamic, gvr, nsInst)
 }
