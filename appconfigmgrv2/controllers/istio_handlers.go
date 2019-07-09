@@ -11,22 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-/*
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package controllers
 
 import (
@@ -74,42 +58,86 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileIstioHandlers(
 
 func istioHandlers(cfg Config, t *appconfig.AppEnvConfigTemplateV2) ([]*unstructured.Unstructured, error) {
 	list := make([]*unstructured.Unstructured, 0, len(t.Spec.Services))
-	gvk := istioHandlerGVK()
-
 	for i := range t.Spec.Services {
-		var allowedClients types.ListValue
-		for _, allowed := range t.Spec.Services[i].AllowedClients {
-			allowedClients.Values = append(allowedClients.Values, &types.Value{Kind: &types.Value_StringValue{StringValue: allowed.Name}})
+		appWhitelist, err := istioAppWhitelistHandler(cfg, t, i)
+		if err != nil {
+			return nil, fmt.Errorf("new app whitelist: %v", err)
+		}
+		nsWhitelist, err := istioNamespaceWhitelistHandler(cfg, t, i)
+		if err != nil {
+			return nil, fmt.Errorf("new namespace whitelist: %v", err)
 		}
 
-		var (
-			meta = map[string]interface{}{
-				"name":      istioHandlerName(t, i),
-				"namespace": t.Namespace,
-			}
-			spec = &istiopolicy.Handler{
-				CompiledAdapter: "listchecker",
-				Params: &types.Struct{
-					Fields: map[string]*types.Value{
-						"overrides":       {Kind: &types.Value_ListValue{ListValue: &allowedClients}},
-						"blacklist":       {Kind: &types.Value_BoolValue{BoolValue: false}},
-						"cachingInterval": {Kind: &types.Value_StringValue{StringValue: cfg.PolicyCachingInterval}},
-					},
-				},
-			}
-		)
-		unst, err := unstructuredFromProto(gvk, meta, spec)
-		if err != nil {
-			return nil, fmt.Errorf("unstructured from proto: %v", err)
-		}
-		list = append(list, unst)
+		list = append(list, appWhitelist, nsWhitelist)
 	}
 
 	return list, nil
 }
 
-func istioHandlerName(t *appconfig.AppEnvConfigTemplateV2, i int) string {
-	return fmt.Sprintf("%v-whitelist--%v",
+func istioAppWhitelistHandler(
+	cfg Config,
+	t *appconfig.AppEnvConfigTemplateV2,
+	i int,
+) (*unstructured.Unstructured, error) {
+	var allowedClients types.ListValue
+	for _, allowed := range t.Spec.Services[i].AllowedClients {
+		allowedClients.Values = append(allowedClients.Values, &types.Value{Kind: &types.Value_StringValue{StringValue: allowed.Name}})
+	}
+
+	meta := map[string]interface{}{
+		"name":      istioAppWhitelistHandlerName(t, i),
+		"namespace": t.Namespace,
+	}
+	spec := &istiopolicy.Handler{
+		CompiledAdapter: "listchecker",
+		Params: &types.Struct{
+			Fields: map[string]*types.Value{
+				"overrides":       {Kind: &types.Value_ListValue{ListValue: &allowedClients}},
+				"blacklist":       {Kind: &types.Value_BoolValue{BoolValue: false}},
+				"cachingInterval": {Kind: &types.Value_StringValue{StringValue: cfg.PolicyCachingInterval}},
+			},
+		},
+	}
+
+	return unstructuredFromProto(istioHandlerGVK(), meta, spec)
+}
+
+func istioNamespaceWhitelistHandler(
+	cfg Config,
+	t *appconfig.AppEnvConfigTemplateV2,
+	i int,
+) (*unstructured.Unstructured, error) {
+	allowedNamespaces := &types.ListValue{
+		Values: []*types.Value{&types.Value{Kind: &types.Value_StringValue{StringValue: t.Namespace}}},
+	}
+
+	meta := map[string]interface{}{
+		"name":      istioNamespaceWhitelistHandlerName(t, i),
+		"namespace": t.Namespace,
+	}
+	spec := &istiopolicy.Handler{
+		CompiledAdapter: "listchecker",
+		Params: &types.Struct{
+			Fields: map[string]*types.Value{
+				"overrides":       {Kind: &types.Value_ListValue{ListValue: allowedNamespaces}},
+				"blacklist":       {Kind: &types.Value_BoolValue{BoolValue: false}},
+				"cachingInterval": {Kind: &types.Value_StringValue{StringValue: cfg.PolicyCachingInterval}},
+			},
+		},
+	}
+
+	return unstructuredFromProto(istioHandlerGVK(), meta, spec)
+}
+
+func istioAppWhitelistHandlerName(t *appconfig.AppEnvConfigTemplateV2, i int) string {
+	return fmt.Sprintf("%v-app-whitelist--%v",
+		t.Name,
+		t.Spec.Services[i].Name,
+	)
+}
+
+func istioNamespaceWhitelistHandlerName(t *appconfig.AppEnvConfigTemplateV2, i int) string {
+	return fmt.Sprintf("%v-namespace-whitelist--%v",
 		t.Name,
 		t.Spec.Services[i].Name,
 	)
