@@ -28,7 +28,9 @@ deploy: manifests
 	kubectl apply -f config/crd/bases
 	kustomize build config/default | kubectl apply -f -
 
+
 kustomize:
+	mkdir -p config/generated
 	kustomize build config/default > config/generated/all.yaml
 
 # Generate manifests e.g. CRD, RBAC etc.
