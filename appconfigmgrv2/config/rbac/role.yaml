@@ -1,0 +1,210 @@
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - appconfigmgr.cft.dev
+  resources:
+  - appenvconfigtemplatev2s
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - appconfigmgr.cft.dev
+  resources:
+  - appenvconfigtemplatev2s/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - list
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - secrets/status
+  verbs:
+  - list
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - services/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - authentication.istio.io
+  resources:
+  - policies
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - authentication.istio.io
+  resources:
+  - policies/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - config.istio.io
+  resources:
+  - handlers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - config.istio.io
+  resources:
+  - handlers/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - config.istio.io
+  resources:
+  - instances
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - config.istio.io
+  resources:
+  - instances/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - config.istio.io
+  resources:
+  - rules
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - config.istio.io
+  resources:
+  - rules/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - networking.istio.io
+  resources:
+  - virtualservices
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - networking.istio.io
+  resources:
+  - virtualservices/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - networking.istio.io
+  resources:
+  - serviceentries
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - networking.istio.io
+  resources:
+  - serviceentries/status
+  verbs:
+  - get
+  - update
+  - patch

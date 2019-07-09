@@ -1,0 +1,242 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/*
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package controllers
+
+import (
+	"context"
+	"fmt"
+	"reflect"
+
+	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/dynamic"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
+	appconfigmgrv1alpha1 "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
+)
+
+var log = ctrl.Log.WithName("controller")
+
+// AppEnvConfigTemplateV2Reconciler reconciles a AppEnvConfigTemplateV2 object
+type AppEnvConfigTemplateV2Reconciler struct {
+	client.Client
+
+	Dynamic dynamic.Interface
+	Log     logr.Logger
+	Scheme  *runtime.Scheme
+}
+
+func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	ctx := context.Background()
+	log = r.Log.WithValues("appenvconfigtemplatev2", req.NamespacedName)
+
+	log.Info("Starting reconcile")
+	defer log.Info("Reconcile complete")
+
+	instance := &appconfigmgrv1alpha1.AppEnvConfigTemplateV2{}
+	err := r.Get(ctx, req.NamespacedName, instance)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Object not found, return.  Created objects are automatically garbage collected.
+			// For additional cleanup logic use finalizers.
+			return ctrl.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		return ctrl.Result{}, err
+	}
+
+	istioEnabled, err := r.istioAutoInjectEnabled(ctx, instance.Namespace)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("checking for istio auto-inject label: %v", err)
+	}
+
+	cfg, err := r.getConfig()
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("getting config: %v", err)
+	}
+
+	log.Info("Reconciling", "resource", "services")
+	if err := r.reconcileServices(ctx, instance); err != nil {
+		return ctrl.Result{}, fmt.Errorf("reconciling services: %v", err)
+	}
+
+	if istioEnabled {
+		log.Info("Reconciling", "resource", "virtualservices")
+		if err := r.reconcileIstioVirtualServices(ctx, instance); err != nil {
+			return ctrl.Result{}, fmt.Errorf("reconciling istio virtual services: %v", err)
+		}
+
+		log.Info("Reconciling", "resource", "policies")
+		if err := r.reconcileIstioPolicies(ctx, instance); err != nil {
+			return ctrl.Result{}, fmt.Errorf("reconciling istio policies: %v", err)
+		}
+
+		log.Info("Reconciling", "resource", "serviceentries")
+		if err := r.reconcileIstioServiceEntries(ctx, cfg, instance); err != nil {
+			return ctrl.Result{}, fmt.Errorf("reconciling istio service entries: %v", err)
+		}
+
+		log.Info("Reconciling", "resource", "instances")
+		if err := r.reconcileIstioInstances(ctx, instance); err != nil {
+			return ctrl.Result{}, fmt.Errorf("reconciling istio instances: %v", err)
+		}
+
+		log.Info("Reconciling", "resource", "handlers")
+		if err := r.reconcileIstioHandlers(ctx, cfg, instance); err != nil {
+			return ctrl.Result{}, fmt.Errorf("reconciling istio handlers: %v", err)
+		}
+
+		log.Info("Reconciling", "resource", "rules")
+		if err := r.reconcileIstioRules(ctx, cfg, instance); err != nil {
+			return ctrl.Result{}, fmt.Errorf("reconciling istio rules: %v", err)
+		}
+	} else {
+		log.Info("Reconciling", "resource", "networkpolicies")
+		if err := r.reconcileNetworkPolicies(ctx, instance); err != nil {
+			return ctrl.Result{}, fmt.Errorf("reconciling network policies: %v", err)
+		}
+	}
+
+	// TODO: Reconcile istio/non-istio resources on namespace istio injection label update?
+	// i.e. NetworkPolicies vs istio Rules
+
+	return ctrl.Result{}, nil
+}
+
+func (r *AppEnvConfigTemplateV2Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// TODO: Watch created resources.
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&appconfigmgrv1alpha1.AppEnvConfigTemplateV2{}).
+		Owns(&corev1.Service{}).
+		Owns(&netv1.NetworkPolicy{}).
+		Owns(gvkObject(istioHandlerGVK())).
+		Owns(gvkObject(istioInstanceGVK())).
+		Owns(gvkObject(istioPolicyGVK())).
+		Owns(gvkObject(istioRuleGVK())).
+		Owns(gvkObject(istioServiceEntryGVK())).
+		Owns(gvkObject(istioVirtualServiceGVK())).
+		Complete(r)
+}
+
+// gvkObject returns an empty object with its GroupVersionKind set.
+func gvkObject(gvk schema.GroupVersionKind) runtime.Object {
+	unst := &unstructured.Unstructured{}
+	unst.SetGroupVersionKind(gvk)
+	return unst
+}
+
+func (r *AppEnvConfigTemplateV2Reconciler) getConfig() (Config, error) {
+	// TODO: Pull from kube config map.
+	return defaultConfig, nil
+}
+
+func (r *AppEnvConfigTemplateV2Reconciler) istioAutoInjectEnabled(ctx context.Context, namespace string) (bool, error) {
+	name := types.NamespacedName{Name: namespace}
+	ns := &corev1.Namespace{}
+	if err := r.Client.Get(ctx, name, ns); err != nil {
+		return false, err
+	}
+	return ns.Labels["istio-injection"] == "enabled", nil
+}
+
+// reconcileUnstructured is a generic reconciler of unstructured objects based on spec
+// comparisons.
+func (r *AppEnvConfigTemplateV2Reconciler) reconcileUnstructured(
+	ctx context.Context,
+	desired *unstructured.Unstructured,
+	gvr schema.GroupVersionResource,
+) error {
+	client := r.Dynamic.Resource(gvr).Namespace(desired.GetNamespace())
+
+	found, err := client.Get(desired.GetName(), metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			log.Info("Creating", "resource", gvr.Resource, "name", desired.GetName())
+			if _, err := client.Create(desired, metav1.CreateOptions{}); err != nil {
+				return fmt.Errorf("creating: %v", err)
+			}
+			return nil
+		}
+
+		return fmt.Errorf("getting: %v", err)
+	}
+
+	if !reflect.DeepEqual(desired.Object["spec"], found.Object["spec"]) {
+		found.Object["spec"] = desired.Object["spec"]
+		log.Info("Updating", "resource", gvr.Resource, "name", desired.GetName())
+		if _, err := client.Update(found, metav1.UpdateOptions{}); err != nil {
+			return fmt.Errorf("updating: %v", err)
+		}
+		return nil
+	}
+
+	return nil
+}
+
+// garbageCollect removes objects that are not contained within the
+// provided map.
+func (r *AppEnvConfigTemplateV2Reconciler) garbageCollect(
+	t *appconfig.AppEnvConfigTemplateV2,
+	names map[types.NamespacedName]bool,
+	gvr schema.GroupVersionResource,
+) error {
+	list, err := r.Dynamic.Resource(gvr).List(metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("listing: %v", err)
+	}
+
+	for _, item := range list.Items {
+		if !metav1.IsControlledBy(&item, t) {
+			continue
+		}
+
+		nn := types.NamespacedName{Name: item.GetName(), Namespace: item.GetNamespace()}
+		if !names[nn] {
+			log.Info("Deleting", "resource", gvr.Resource, "name", nn.Name)
+			if err := r.Dynamic.Resource(gvr).
+				Namespace(nn.Namespace).
+				Delete(nn.Name, &metav1.DeleteOptions{}); err != nil {
+				return fmt.Errorf("deleting: %v", err)
+			}
+		}
+	}
+
+	return nil
+}

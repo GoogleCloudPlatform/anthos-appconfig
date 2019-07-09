@@ -1,0 +1,7 @@
+version: "2"
+domain: cft.dev
+repo: appconfigv2-cft-dev
+resources:
+- group: appconfigmgr
+  version: v1alpha1
+  kind: AppEnvConfigTemplateV2
