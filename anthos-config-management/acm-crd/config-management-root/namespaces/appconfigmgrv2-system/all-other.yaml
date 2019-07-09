@@ -1,0 +1,157 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: appconfigmgrv2-mutating-webhook-configuration
+data:
+  webhook.yaml: YXBpVmVyc2lvbjogYWRtaXNzaW9ucmVnaXN0cmF0aW9uLms4cy5pby92MWJldGExCmtpbmQ6IE11dGF0aW5nV2ViaG9va0NvbmZpZ3VyYXRpb24KbWV0YWRhdGE6CiAgY3JlYXRpb25UaW1lc3RhbXA6IG51bGwKICBuYW1lOiBhcHBjb25maWdtZ3J2Mi1tdXRhdGluZy13ZWJob29rLWNvbmZpZ3VyYXRpb24Kd2ViaG9va3M6Ci0gY2xpZW50Q29uZmlnOgogICAgY2FCdW5kbGU6ICIiCiAgICBzZXJ2aWNlOgogICAgICBuYW1lOiBhcHBjb25maWdtZ3J2Mi13ZWJob29rLXNlcnZpY2UKICAgICAgbmFtZXNwYWNlOiBhcHBjb25maWdtZ3J2Mi1zeXN0ZW0KICAgICAgcGF0aDogL211dGF0ZS12MS1wb2QKICBmYWlsdXJlUG9saWN5OiBGYWlsCiAgbmFtZTogdXBvZC5hcHBjb25maWdtZ3IuY2Z0LmRldgogIG5hbWVzcGFjZVNlbGVjdG9yOgogICAgbWF0Y2hMYWJlbHM6CiAgICAgIG11dGF0aW5nLWNyZWF0ZS11cGRhdGUtcG9kLWFwcGNvbmZpZy1jZnQtZGV2OiBlbmFibGVkCiAgcnVsZXM6CiAgLSBhcGlHcm91cHM6CiAgICAtICIiCiAgICBhcGlWZXJzaW9uczoKICAgIC0gdjEKICAgIG9wZXJhdGlvbnM6CiAgICAtIENSRUFURQogICAgLSBVUERBVEUKICAgIHJlc291cmNlczoKICAgIC0gcG9kcwo=
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: appconfigmgrv2-leader-election-role
+  namespace: appconfigmgrv2-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - configmaps/status
+  verbs:
+  - get
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: appconfigmgrv2-leader-election-rolebinding
+  namespace: appconfigmgrv2-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: appconfigmgrv2-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: appconfigmgrv2-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/port: "8443"
+    prometheus.io/scheme: https
+    prometheus.io/scrape: "true"
+  labels:
+    control-plane: controller-manager
+  name: appconfigmgrv2-controller-manager-metrics-service
+  namespace: appconfigmgrv2-system
+spec:
+  ports:
+  - name: https
+    port: 8443
+    targetPort: https
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: appconfigmgrv2-webhook-service
+  namespace: appconfigmgrv2-system
+spec:
+  ports:
+  - port: 443
+    targetPort: 443
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: appconfigmgrv2-controller-manager
+  namespace: appconfigmgrv2-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+    spec:
+      containers:
+      - args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8080/
+        - --logtostderr=true
+        - --v=10
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.4.0
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+      - args:
+        - --metrics-addr=127.0.0.1:8080
+        command:
+        - /manager
+        image: us.gcr.io/anthos-crd-v1-dev-t2/appconfigtemplatev2_controller:v2.0.0-20190705-231123
+        name: manager
+        ports:
+        - containerPort: 443
+          name: webhook-server
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 30Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+        tty: true
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-server-cert
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: appconfigmgrv2-validating-webhook-configuration
+data:
+  webhook.yaml: YXBpVmVyc2lvbjogYWRtaXNzaW9ucmVnaXN0cmF0aW9uLms4cy5pby92MWJldGExCmtpbmQ6IFZhbGlkYXRpbmdXZWJob29rQ29uZmlndXJhdGlvbgptZXRhZGF0YToKICBjcmVhdGlvblRpbWVzdGFtcDogbnVsbAogIG5hbWU6IGFwcGNvbmZpZ21ncnYyLXZhbGlkYXRpbmctd2ViaG9vay1jb25maWd1cmF0aW9uCndlYmhvb2tzOgotIGNsaWVudENvbmZpZzoKICAgIGNhQnVuZGxlOiAiIgogICAgc2VydmljZToKICAgICAgbmFtZTogYXBwY29uZmlnbWdydjItd2ViaG9vay1zZXJ2aWNlCiAgICAgIG5hbWVzcGFjZTogYXBwY29uZmlnbWdydjItc3lzdGVtCiAgICAgIHBhdGg6IC92YWxpZGF0ZS12MS1wb2QKICBmYWlsdXJlUG9saWN5OiBGYWlsCiAgbmFtZTogdnBvZC5hcHBjb25maWdtZ3IuY2Z0LmRldgogIG5hbWVzcGFjZVNlbGVjdG9yOgogICAgbWF0Y2hMYWJlbHM6CiAgICAgIG11dGF0aW5nLWNyZWF0ZS11cGRhdGUtcG9kLWFwcGNvbmZpZy1jZnQtZGV2OiBlbmFibGVkCiAgcnVsZXM6CiAgLSBhcGlHcm91cHM6CiAgICAtICIiCiAgICBhcGlWZXJzaW9uczoKICAgIC0gdjEKICAgIG9wZXJhdGlvbnM6CiAgICAtIENSRUFURQogICAgLSBVUERBVEUKICAgIHJlc291cmNlczoKICAgIC0gcG9kcwo=

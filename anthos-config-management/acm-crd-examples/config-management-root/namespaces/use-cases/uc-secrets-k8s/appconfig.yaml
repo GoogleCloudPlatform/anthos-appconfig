@@ -1,0 +1,63 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: appconfigmgr.cft.dev/v1alpha1
+kind: AppEnvConfigTemplateV2
+metadata:
+  name: "app-secrets-k8s"
+spec:
+  auth:
+    gcpAccess:
+      accessType: "secret"
+      secretInfo:
+        name: "appconfigcrd-demo-sa1-secret"
+  services:
+  - name: "appconfigv2-service-sm-1"
+    deploymentApp: "hello-app-sm-py-1"
+    deploymentPort: 8080
+    servicePort: 80
+    deploymentPortProtocol: "TCP"
+    allowedClients:
+    - name: "hello-app-sm-py-2"
+  - name: "appconfigv2-service-sm-2"
+    deploymentApp: "hello-app-sm-py-2"
+    deploymentPort: 8080
+    servicePort: 80
+    deploymentPortProtocol: "TCP"
+    allowedClients:
+      - name: "hello-app-sm-py-4"
+  - name: "appconfigv2-service-sm-3"
+    deploymentApp: "hello-app-sm-py-3"
+    deploymentPort: 8080
+    servicePort: 80
+    deploymentPortProtocol: "TCP"
+    allowedClients:
+    - name: "hello-app-sm-py-4"
+  - name: "appconfigv2-service-sm-4"
+    deploymentApp: "hello-app-sm-py-4"
+    deploymentPort: 8080
+    servicePort: 80
+    deploymentPortProtocol: "TCP"
+    allowedClients:
+    - name: "hello-app-sm-py-1"
+    - name: "hello-app-sm-py-2"
+  - name: "appconfigv2-service-pubsub"
+    deploymentApp: "hello-app-pubsub"
+    deploymentPort: 8000
+    servicePort: 80
+    deploymentPortProtocol: "TCP"
+    allowedClients:
+    - name: "hello-app-sm-py-1"
+
+

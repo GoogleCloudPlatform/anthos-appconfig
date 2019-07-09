@@ -1,0 +1,59 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tasks
+  namespace: uc-firebase
+  labels:
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tasks
+  template:
+    metadata:
+      labels:
+        app: tasks
+        version: v1
+    spec:
+      containers:
+      - name: main
+        image: gcr.io/anthos-crd-v1-dev-t2/firebase-tasks-api
+        resources:
+          requests:
+            cpu: "50m"
+        ports:
+        - containerPort: 8000
+        imagePullPolicy: IfNotPresent
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: firebase-app-svc
+  namespace: uc-firebase
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - devtest-istio/mygateway-http
+  http:
+  - match:
+    - uri:
+        prefix: /api
+    route:
+    - destination:
+        host: firebase-tasks
