@@ -26,7 +26,7 @@ spec:
     deploymentPortProtocol: "TCP"
     allowedClients:
     - name: "appconfigv2-service-sm-2"
-    - name: "hello-app-drv-py-1"
+    - name: "devtest-istio/hello-app-drv-py-1"
   - name: "appconfigv2-service-sm-2"
     deploymentApp: "appconfigv2-service-sm-2"
     deploymentPort: 8080

@@ -111,9 +111,15 @@ steps:
     args: ['rm', '-R',
            "gs://${PROJECT_ID}_public/acm/anthos-config-management/${_BRANCH_NAME}/*"]
     dir: "build-source"
+  - name: gcr.io/cloud-builders/gsutil
+    args: ['cp', '-R',
+           'anthos-config-management/*',
+           "gs://${PROJECT_ID}_public/acm/anthos-config-management/${_BRANCH_NAME}/"]
+    dir: "build-source"
   - name: google/cloud-sdk
     entrypoint: "bash"
+    args:
       - '-c'
       - |
-        ls -r  use-cases/*/deploy-apps.yaml | xargs -I '{}'  gsutil cp '{}' gs://anthos-appconfig_public/deploy/${_BRANCH_NAME}/'{}'
+        ls -r  examples/use-cases/*/deploy-apps.yaml | xargs -I '{}'  gsutil cp '{}' gs://anthos-appconfig_public/deploy/${_BRANCH_NAME}/'{}'
     dir: "build-source"
