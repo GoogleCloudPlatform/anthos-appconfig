@@ -26,6 +26,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// reconcileIstioHandlers reconciles istio Instance resources to support allowedClients
+// functionality.
 func (r *AppEnvConfigTemplateV2Reconciler) reconcileIstioInstances(
 	ctx context.Context,
 	in *appconfig.AppEnvConfigTemplateV2,
@@ -48,10 +50,10 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileIstioInstances(
 
 	gvr := istioInstanceGVR()
 
-	if err := r.reconcileUnstructured(ctx, appLabelInst, gvr); err != nil {
+	if err := r.upsertUnstructured(ctx, appLabelInst, gvr); err != nil {
 		return fmt.Errorf("reconciling app label instance: %v", err)
 	}
-	if err := r.reconcileUnstructured(ctx, nsInst, gvr); err != nil {
+	if err := r.upsertUnstructured(ctx, nsInst, gvr); err != nil {
 		return fmt.Errorf("reconciling namespace instance: %v", err)
 	}
 
