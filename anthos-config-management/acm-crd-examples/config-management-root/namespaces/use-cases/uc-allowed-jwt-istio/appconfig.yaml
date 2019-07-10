@@ -29,7 +29,7 @@ spec:
     deploymentPortProtocol: "TCP"
     allowedClients:
     - name: "appconfigv2-service-sm-2"
-    - name: "hello-app-drv-py-1"
+    - name: "devtest-istio/hello-app-drv-py-1"
   - name: "appconfigv2-service-sm-2"
     deploymentApp: "appconfigv2-service-sm-2"
     deploymentPort: 8080
@@ -39,7 +39,7 @@ spec:
     - name: "appconfigv2-service-sm-1"
     - name: "appconfigv2-service-sm-3"
     - name: "appconfigv2-service-sm-4"
-    - name: "hello-app-drv-py-1"
+    - name: "devtest-istio/hello-app-drv-py-1"
   - name: "appconfigv2-service-sm-3"
     deploymentApp: "appconfigv2-service-sm-3"
     deploymentPort: 8080
@@ -48,7 +48,7 @@ spec:
     allowedClients:
     - name: "appconfigv2-service-sm-2"
     - name: "appconfigv2-service-sm-4"
-    - name: "hello-app-drv-py-1"
+    - name: "devtest-istio/hello-app-drv-py-1"
   - name: "appconfigv2-service-sm-4"
     deploymentApp: "appconfigv2-service-sm-4"
     deploymentPort: 8080
@@ -56,7 +56,7 @@ spec:
     deploymentPortProtocol: "TCP"
     allowedClients:
     - name: "appconfigv2-service-sm-2"
-    - name: "hello-app-drv-py-1"
+    - name: "devtest-istio/hello-app-drv-py-1"
   - name: "appconfigv2-service-pubsub"
     deploymentApp: "hello-app-pubsub"
     deploymentPort: 8000
@@ -64,6 +64,6 @@ spec:
     deploymentPortProtocol: "TCP"
     allowedClients:
     - name: "appconfigv2-service-sm-2"
-    - name: "hello-app-drv-py-1"
+    - name: "devtest-istio/hello-app-drv-py-1"
 
 
