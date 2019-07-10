@@ -30,10 +30,7 @@ func TestIstioHandlers(t *testing.T) {
 
 	list, err := istioHandlers(cfg, in)
 	require.NoError(t, err)
-	// There should be 2 handlers for each service:
-	// 1. The apps that can call it
-	// 2. The namespaces that can call it
-	require.Len(t, list, 2*len(in.Spec.Services))
+	require.Len(t, list, len(in.Spec.Services))
 
 	gvr := istioHandlerGVR()
 

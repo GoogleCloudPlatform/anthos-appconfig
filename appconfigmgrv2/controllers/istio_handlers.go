@@ -16,6 +16,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
 
@@ -62,34 +63,35 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileIstioHandlers(
 func istioHandlers(cfg Config, t *appconfig.AppEnvConfigTemplateV2) ([]*unstructured.Unstructured, error) {
 	list := make([]*unstructured.Unstructured, 0, len(t.Spec.Services))
 	for i := range t.Spec.Services {
-		appWhitelist, err := istioAppWhitelistHandler(cfg, t, i)
+		wl, err := istioWhitelistHandler(cfg, t, i)
 		if err != nil {
-			return nil, fmt.Errorf("new app whitelist: %v", err)
-		}
-		nsWhitelist, err := istioNamespaceWhitelistHandler(cfg, t, i)
-		if err != nil {
-			return nil, fmt.Errorf("new namespace whitelist: %v", err)
+			return nil, fmt.Errorf("building whitelist: %v", err)
 		}
 
-		list = append(list, appWhitelist, nsWhitelist)
+		list = append(list, wl)
 	}
 
 	return list, nil
 }
 
-// istioAppWhitelistHandler creates a handler that whitelists client apps.
-func istioAppWhitelistHandler(
+// istioWhitelistHandler creates a handler that whitelists client apps.
+func istioWhitelistHandler(
 	cfg Config,
 	t *appconfig.AppEnvConfigTemplateV2,
 	i int,
 ) (*unstructured.Unstructured, error) {
 	var allowedClients types.ListValue
 	for _, allowed := range t.Spec.Services[i].AllowedClients {
-		allowedClients.Values = append(allowedClients.Values, &types.Value{Kind: &types.Value_StringValue{StringValue: allowed.Name}})
+		val := allowed.Name
+		if !strings.Contains(val, "/") {
+			// Append a default namespace.
+			val = t.Namespace + "/" + val
+		}
+		allowedClients.Values = append(allowedClients.Values, &types.Value{Kind: &types.Value_StringValue{StringValue: val}})
 	}
 
 	meta := map[string]interface{}{
-		"name":      istioAppWhitelistHandlerName(t, i),
+		"name":      istioWhitelistHandlerName(t, i),
 		"namespace": t.Namespace,
 	}
 	spec := &istiopolicy.Handler{
@@ -106,43 +108,8 @@ func istioAppWhitelistHandler(
 	return unstructuredFromProto(istioHandlerGVK(), meta, spec)
 }
 
-// istioNamespaceWhitelistHandler builds a handler that whitelists the current namespace.
-func istioNamespaceWhitelistHandler(
-	cfg Config,
-	t *appconfig.AppEnvConfigTemplateV2,
-	i int,
-) (*unstructured.Unstructured, error) {
-	allowedNamespaces := &types.ListValue{
-		Values: []*types.Value{&types.Value{Kind: &types.Value_StringValue{StringValue: t.Namespace}}},
-	}
-
-	meta := map[string]interface{}{
-		"name":      istioNamespaceWhitelistHandlerName(t, i),
-		"namespace": t.Namespace,
-	}
-	spec := &istiopolicy.Handler{
-		CompiledAdapter: "listchecker",
-		Params: &types.Struct{
-			Fields: map[string]*types.Value{
-				"overrides":       {Kind: &types.Value_ListValue{ListValue: allowedNamespaces}},
-				"blacklist":       {Kind: &types.Value_BoolValue{BoolValue: false}},
-				"cachingInterval": {Kind: &types.Value_StringValue{StringValue: cfg.PolicyCachingInterval}},
-			},
-		},
-	}
-
-	return unstructuredFromProto(istioHandlerGVK(), meta, spec)
-}
-
-func istioAppWhitelistHandlerName(t *appconfig.AppEnvConfigTemplateV2, i int) string {
-	return fmt.Sprintf("%v-app-whitelist--%v",
-		t.Name,
-		t.Spec.Services[i].Name,
-	)
-}
-
-func istioNamespaceWhitelistHandlerName(t *appconfig.AppEnvConfigTemplateV2, i int) string {
-	return fmt.Sprintf("%v-namespace-whitelist--%v",
+func istioWhitelistHandlerName(t *appconfig.AppEnvConfigTemplateV2, i int) string {
+	return fmt.Sprintf("%v-whitelist--%v",
 		t.Name,
 		t.Spec.Services[i].Name,
 	)
