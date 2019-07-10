@@ -73,8 +73,7 @@ func istioRules(cfg Config, t *appconfig.AppEnvConfigTemplateV2) ([]*unstructure
 		spec := &v1beta1.Rule{
 			Match: fmt.Sprintf(`destination.labels["app"] == "%v"`, t.Spec.Services[i].Name),
 			Actions: []*v1beta1.Action{
-				{Handler: istioAppWhitelistHandlerName(t, i), Instances: []string{istioAppLabelInstanceName(t)}},
-				{Handler: istioNamespaceWhitelistHandlerName(t, i), Instances: []string{istioNamespaceInstanceName(t)}},
+				{Handler: istioWhitelistHandlerName(t, i), Instances: []string{istioAppLabelInstanceName(t)}},
 			},
 		}
 

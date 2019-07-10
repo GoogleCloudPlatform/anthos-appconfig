@@ -27,15 +27,8 @@ func TestIstioInstances(t *testing.T) {
 
 	gvr := istioInstanceGVR()
 
-	// App-label instance.
 	appLabelInst, err := istioAppLabelInstance(in)
 	require.NoError(t, err)
 
 	unstructuredShouldExist(t, r.Dynamic, gvr, appLabelInst)
-
-	// Namespace instance.
-	nsInst, err := istioNamespaceInstance(in)
-	require.NoError(t, err)
-
-	unstructuredShouldExist(t, r.Dynamic, gvr, nsInst)
 }
