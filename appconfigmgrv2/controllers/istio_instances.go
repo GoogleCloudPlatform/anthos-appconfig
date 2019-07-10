@@ -26,6 +26,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// reconcileIstioHandlers reconciles istio Instance resources to support allowedClients
+// functionality.
 func (r *AppEnvConfigTemplateV2Reconciler) reconcileIstioInstances(
 	ctx context.Context,
 	in *appconfig.AppEnvConfigTemplateV2,
@@ -38,21 +40,10 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileIstioInstances(
 		return err
 	}
 
-	nsInst, err := istioNamespaceInstance(in)
-	if err != nil {
-		return fmt.Errorf("building: %v", err)
-	}
-	if err := controllerutil.SetControllerReference(in, nsInst, r.Scheme); err != nil {
-		return err
-	}
-
 	gvr := istioInstanceGVR()
 
-	if err := r.reconcileUnstructured(ctx, appLabelInst, gvr); err != nil {
+	if err := r.upsertUnstructured(ctx, appLabelInst, gvr); err != nil {
 		return fmt.Errorf("reconciling app label instance: %v", err)
-	}
-	if err := r.reconcileUnstructured(ctx, nsInst, gvr); err != nil {
-		return fmt.Errorf("reconciling namespace instance: %v", err)
 	}
 
 	return nil
@@ -69,27 +60,7 @@ func istioAppLabelInstance(t *appconfig.AppEnvConfigTemplateV2) (*unstructured.U
 			CompiledTemplate: "listentry",
 			Params: &types.Struct{
 				Fields: map[string]*types.Value{
-					"value": {Kind: &types.Value_StringValue{StringValue: `source.labels["app"]`}},
-				},
-			},
-		}
-	)
-
-	return unstructuredFromProto(gvk, meta, spec)
-}
-
-func istioNamespaceInstance(t *appconfig.AppEnvConfigTemplateV2) (*unstructured.Unstructured, error) {
-	var (
-		gvk  = istioInstanceGVK()
-		meta = map[string]interface{}{
-			"name":      istioNamespaceInstanceName(t),
-			"namespace": t.Namespace,
-		}
-		spec = &v1beta1.Instance{
-			CompiledTemplate: "listentry",
-			Params: &types.Struct{
-				Fields: map[string]*types.Value{
-					"value": {Kind: &types.Value_StringValue{StringValue: `source.namespace`}},
+					"value": {Kind: &types.Value_StringValue{StringValue: `source.namespace + "/" + source.labels["app"]`}},
 				},
 			},
 		}
@@ -100,10 +71,6 @@ func istioNamespaceInstance(t *appconfig.AppEnvConfigTemplateV2) (*unstructured.
 
 func istioAppLabelInstanceName(t *appconfig.AppEnvConfigTemplateV2) string {
 	return fmt.Sprintf("%v-applabel", t.Name)
-}
-
-func istioNamespaceInstanceName(t *appconfig.AppEnvConfigTemplateV2) string {
-	return fmt.Sprintf("%v-namespace", t.Name)
 }
 
 func istioInstanceGVK() schema.GroupVersionKind {

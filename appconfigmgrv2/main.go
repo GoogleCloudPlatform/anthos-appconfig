@@ -37,13 +37,11 @@ var (
 )
 
 func init() {
-
 	corev1.AddToScheme(scheme)
 	netv1.AddToScheme(scheme)
 	////metav1.AddToScheme(scheme)
 	//scheme.AllKnownTypes()
 	appconfig.AddToScheme(scheme)
-
 }
 
 func main() {

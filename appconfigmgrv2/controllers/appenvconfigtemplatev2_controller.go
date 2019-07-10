@@ -11,22 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-/*
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package controllers
 
 import (
@@ -63,6 +47,9 @@ type AppEnvConfigTemplateV2Reconciler struct {
 	Scheme  *runtime.Scheme
 }
 
+// Reconcile takes an instance of an app config and issues create/update/delete requests
+// to a number of resources. Behavior is dependant on whether or not istio auto-inject is
+// enabled for the namespace.
 func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log = r.Log.WithValues("appenvconfigtemplatev2", req.NamespacedName)
@@ -140,8 +127,8 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 	return ctrl.Result{}, nil
 }
 
+// SetupWithManager registers the reconciler with a manager.
 func (r *AppEnvConfigTemplateV2Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// TODO: Watch created resources.
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appconfigmgrv1alpha1.AppEnvConfigTemplateV2{}).
 		Owns(&corev1.Service{}).
@@ -162,11 +149,14 @@ func gvkObject(gvk schema.GroupVersionKind) runtime.Object {
 	return unst
 }
 
+// getConfig currenly returns a hardcoded default configuration.
 func (r *AppEnvConfigTemplateV2Reconciler) getConfig() (Config, error) {
 	// TODO: Pull from kube config map.
 	return defaultConfig, nil
 }
 
+// istioAutoInjectEnabled checks the current namespace for the
+// "istio-injection" = "enabled" label.
 func (r *AppEnvConfigTemplateV2Reconciler) istioAutoInjectEnabled(ctx context.Context, namespace string) (bool, error) {
 	name := types.NamespacedName{Name: namespace}
 	ns := &corev1.Namespace{}
@@ -176,9 +166,9 @@ func (r *AppEnvConfigTemplateV2Reconciler) istioAutoInjectEnabled(ctx context.Co
 	return ns.Labels["istio-injection"] == "enabled", nil
 }
 
-// reconcileUnstructured is a generic reconciler of unstructured objects based on spec
+// upsertUnstructured creates/updates unstructured objects based on spec
 // comparisons.
-func (r *AppEnvConfigTemplateV2Reconciler) reconcileUnstructured(
+func (r *AppEnvConfigTemplateV2Reconciler) upsertUnstructured(
 	ctx context.Context,
 	desired *unstructured.Unstructured,
 	gvr schema.GroupVersionResource,

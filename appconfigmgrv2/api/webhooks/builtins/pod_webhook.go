@@ -19,12 +19,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	appconfigmgrv1alpha1 "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
+	"net/http"
+
+	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"net/http"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -228,7 +229,7 @@ func updateContainerEnv(container *corev1.Container, containerName string, envNa
 
 }
 
-func (a *podAnnotator) handleGCPSecretIfNeeded(ctx context.Context, pod *corev1.Pod, app *appconfigmgrv1alpha1.AppEnvConfigTemplateV2) error {
+func (a *podAnnotator) handleGCPSecretIfNeeded(ctx context.Context, pod *corev1.Pod, app *appconfig.AppEnvConfigTemplateV2) error {
 
 	log.Info("podAnnotator:handleGCPSecretIfNeeded")
 	if app.Spec.Auth == nil ||
@@ -255,10 +256,7 @@ func (a *podAnnotator) handleGCPSecretIfNeeded(ctx context.Context, pod *corev1.
 		//}
 	}
 	log.Info("HandleUpdate:Secret", "secret", secret.Name)
-	token, err := getJWT(secret.Data["key.json"])
-	if err != nil {
-		return err
-	}
+	token := string(secret.Data["key.json"])
 
 	err = cl.Get(ctx, types.NamespacedName{Name: "google-cloud-token", Namespace: app.Namespace}, secret)
 	if err != nil {
@@ -303,7 +301,7 @@ func (a *podAnnotator) Handle(ctx context.Context, req admission.Request) admiss
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	app := &appconfigmgrv1alpha1.AppEnvConfigTemplateV2{}
+	app := &appconfig.AppEnvConfigTemplateV2{}
 
 	applicationName, err := getApplicationName(pod)
 	if err != nil {
