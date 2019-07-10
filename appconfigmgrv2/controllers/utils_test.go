@@ -11,21 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-/*
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package controllers
 
 import (
@@ -33,7 +18,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/onsi/gomega"
-	istiov1a3 "istio.io/api/networking/v1alpha3"
+	istionet "istio.io/api/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -54,20 +39,20 @@ func TestUnstructuredFromProto(t *testing.T) {
 				Kind:    "MyKind",
 			},
 			meta: map[string]interface{}{"name": "myname"},
-			spec: &istiov1a3.VirtualService{
+			spec: &istionet.VirtualService{
 				Hosts:    []string{"host-a", "host-b"},
 				Gateways: []string{"gateway-a", "gateway-b"},
-				Http: []*istiov1a3.HTTPRoute{{
-					Match: []*istiov1a3.HTTPMatchRequest{{
-						Uri: &istiov1a3.StringMatch{
-							MatchType: &istiov1a3.StringMatch_Exact{
+				Http: []*istionet.HTTPRoute{{
+					Match: []*istionet.HTTPMatchRequest{{
+						Uri: &istionet.StringMatch{
+							MatchType: &istionet.StringMatch_Exact{
 								Exact: "/abc",
 							},
 						},
 					}},
 				}},
-				//Tls:      []*istiov1a3.TLSRoute{},
-				//Tcp:      []*istiov1a3.TCPRoute{},
+				//Tls:      []*istionet.TLSRoute{},
+				//Tcp:      []*istionet.TCPRoute{},
 				ExportTo: []string{"a", "b", "c"},
 			},
 			expectedUnstructured: &unstructured.Unstructured{

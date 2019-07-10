@@ -11,29 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-/*
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package controllers
 
 import (
 	"context"
 	"fmt"
-	appconfigmgrv1alpha1 "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
 	"reflect"
+
+	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
 
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -43,9 +28,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// reconcileNetworkPolicies reconciles kubernetes NetworkPolicy resources to enforce
+// transport-level allowedClients support in the absence of istio.
 func (r *AppEnvConfigTemplateV2Reconciler) reconcileNetworkPolicies(
 	ctx context.Context,
-	in *appconfigmgrv1alpha1.AppEnvConfigTemplateV2,
+	in *appconfig.AppEnvConfigTemplateV2,
 ) error {
 	names := make(map[types.NamespacedName]bool)
 
@@ -102,7 +89,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileNetworkPolicy(
 
 func (r *AppEnvConfigTemplateV2Reconciler) garbageCollectNetworkPolicies(
 	ctx context.Context,
-	in *appconfigmgrv1alpha1.AppEnvConfigTemplateV2,
+	in *appconfig.AppEnvConfigTemplateV2,
 	names map[types.NamespacedName]bool,
 ) error {
 	var list netv1.NetworkPolicyList
@@ -125,7 +112,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) garbageCollectNetworkPolicies(
 	return nil
 }
 
-func networkPolicies(in *appconfigmgrv1alpha1.AppEnvConfigTemplateV2) []*netv1.NetworkPolicy {
+func networkPolicies(in *appconfig.AppEnvConfigTemplateV2) []*netv1.NetworkPolicy {
 	var ps []*netv1.NetworkPolicy
 
 	for i := range in.Spec.Services {
@@ -164,6 +151,6 @@ func networkPolicies(in *appconfigmgrv1alpha1.AppEnvConfigTemplateV2) []*netv1.N
 	return ps
 }
 
-func networkPolicyName(in *appconfigmgrv1alpha1.AppEnvConfigTemplateV2, i int) string {
+func networkPolicyName(in *appconfig.AppEnvConfigTemplateV2, i int) string {
 	return fmt.Sprintf("%v-service--%v", in.Name, in.Spec.Services[i].Name)
 }

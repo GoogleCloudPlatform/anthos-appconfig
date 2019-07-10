@@ -27,6 +27,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// reconcileIstioHandlers reconciles istio Handler resources to support allowedClients
+// functionality.
 func (r *AppEnvConfigTemplateV2Reconciler) reconcileIstioHandlers(
 	ctx context.Context,
 	cfg Config,
@@ -44,7 +46,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileIstioHandlers(
 			return err
 		}
 
-		if err := r.reconcileUnstructured(ctx, h, gvr); err != nil {
+		if err := r.upsertUnstructured(ctx, h, gvr); err != nil {
 			return fmt.Errorf("reconciling: %v", err)
 		}
 	}
@@ -56,6 +58,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileIstioHandlers(
 	return nil
 }
 
+// istioHandlers creates a list of handlers from the spec.
 func istioHandlers(cfg Config, t *appconfig.AppEnvConfigTemplateV2) ([]*unstructured.Unstructured, error) {
 	list := make([]*unstructured.Unstructured, 0, len(t.Spec.Services))
 	for i := range t.Spec.Services {
@@ -74,6 +77,7 @@ func istioHandlers(cfg Config, t *appconfig.AppEnvConfigTemplateV2) ([]*unstruct
 	return list, nil
 }
 
+// istioAppWhitelistHandler creates a handler that whitelists client apps.
 func istioAppWhitelistHandler(
 	cfg Config,
 	t *appconfig.AppEnvConfigTemplateV2,
@@ -102,6 +106,7 @@ func istioAppWhitelistHandler(
 	return unstructuredFromProto(istioHandlerGVK(), meta, spec)
 }
 
+// istioNamespaceWhitelistHandler builds a handler that whitelists the current namespace.
 func istioNamespaceWhitelistHandler(
 	cfg Config,
 	t *appconfig.AppEnvConfigTemplateV2,
