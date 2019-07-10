@@ -516,6 +516,7 @@ rules:
   verbs:
   - list
   - get
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -523,6 +524,7 @@ rules:
   verbs:
   - list
   - get
+  - watch
 - apiGroups:
   - ""
   resources:
