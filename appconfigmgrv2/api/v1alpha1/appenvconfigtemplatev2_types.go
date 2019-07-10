@@ -98,8 +98,8 @@ type AppEnvConfigTemplateV2 struct {
 // +kubebuilder:rbac:groups=appconfigmgr.cft.dev,resources=appenvconfigtemplatev2s/status,verbs=get;update;patch
 
 // +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=list;get
-// +kubebuilder:rbac:groups=core,resources=secrets/status,verbs=list;get
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=list;get;watch
+// +kubebuilder:rbac:groups=core,resources=secrets/status,verbs=list;get;watch
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=services/status,verbs=get;update;patch
 
