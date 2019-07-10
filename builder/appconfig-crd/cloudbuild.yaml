@@ -78,7 +78,7 @@ steps:
     args:
       - '-c'
       - |
-        sed -i'' -e 's@image: .*@image: '"gcr.io/anthos-crd-v1-dev-t2/appconfigtemplatev2_controller:${_APP_VERSION}-$(cat _file_TAG.out)"'@' ./config/default/manager_image_patch.yaml
+        sed -i'' -e 's@image: .*@image: '"gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:${_APP_VERSION}-$(cat _file_TAG.out)"'@' ./config/default/manager_image_patch.yaml
         make manifests || exit 1
         make kustomize || exit 1
     dir: "build-source/appconfigmgrv2"
@@ -99,7 +99,7 @@ steps:
         git config user.email 20604585440@cloudbuild.gserviceaccount.com
         git add .
         git commit -am "build - commit - $(cat appconfigmgrv2/_file_TAG.out)"
-        git push origin master
+        git push origin ${_BRANCH_NAME}
     dir: "build-source"
     volumes:
       - name: 'ssh'
@@ -111,8 +111,9 @@ steps:
     args: ['rm', '-R',
            "gs://${PROJECT_ID}_public/acm/anthos-config-management/${_BRANCH_NAME}/*"]
     dir: "build-source"
-  - name: gcr.io/cloud-builders/gsutil
-    args: ['cp', '-R',
-           'anthos-config-management/*',
-           "gs://${PROJECT_ID}_public/acm/anthos-config-management/${_BRANCH_NAME}/"]
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+      - '-c'
+      - |
+        ls -r  use-cases/*/deploy-apps.yaml | xargs -I '{}'  gsutil cp '{}' gs://anthos-appconfig_public/deploy/${_BRANCH_NAME}/'{}'
     dir: "build-source"

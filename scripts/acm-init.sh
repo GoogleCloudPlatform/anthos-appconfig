@@ -7,7 +7,9 @@ set -e
 # GLOBAL CONFIG VARS
 ####
 
-TEMPLATE_BUCKET="gs://anthos-appconfig/acm/anthos-config-management/master/acm-crd/config-management-root"
+# TODO - Add Branch Name
+TEMPLATE_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/build-script-2019-07-10/acm-crd/config-management-root"
+EXAMPLES_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/build-script-2019-07-10/acm-crd-examples/config-management-root"
 CM_OPERATOR_BUCKET="gs://config-management-release/released/latest/config-management-operator.yaml"
 HELM_IMAGE="alpine/helm:2.13.1"
 CM_CRD_COUNT=8
@@ -288,9 +290,14 @@ install() {
 }
 
 install_istio() {
-  istio_version=$(curl -L -s https://api.github.com/repos/istio/istio/releases/latest | \
-                    grep tag_name | sed "s/ *\"tag_name\": *\"\\(.*\\)\",*/\\1/")
-  tmpdir=$(mktemp -d -t acm-init.XXXXX)
+  # TODO - Specify Istio Release (istio fails with mount), check istio version no blank don't create stuff until
+#  istio_version=$(curl -L -s https://github.com/istio/istio/releases/tag/1.1.9 | \
+#                    grep tag_name | sed "s/ *\"tag_name\": *\"\\(.*\\)\",*/\\1/")
+   istio_version=1.1.9
+#  tmpdir=$(mktemp -d -t acm-init.XXXXX)
+  tmpdir="/Users/$USER/tmp/acm-init/downloads/$(date +%Y%m%d-%H%M%S)"
+  mkdir -p $tmpdir
+
   istio_dir="${tmpdir}/istio-${istio_version}"
 
   _output "fetching istio v${istio_version}"
