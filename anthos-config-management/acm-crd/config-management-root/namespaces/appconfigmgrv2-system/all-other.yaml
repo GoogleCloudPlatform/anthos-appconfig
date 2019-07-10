@@ -110,7 +110,7 @@ spec:
         - --metrics-addr=127.0.0.1:8080
         command:
         - /manager
-        image: gcr.io/anthos-crd-v1-dev-t2/appconfigtemplatev2_controller:v2.0.0-20190709-235940
+        image: gcr.io/anthos-crd-v1-dev-t2/appconfigtemplatev2_controller:v2.0.0-20190710-001554
         name: manager
         ports:
         - containerPort: 443
