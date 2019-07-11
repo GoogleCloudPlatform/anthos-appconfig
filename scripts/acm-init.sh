@@ -47,10 +47,10 @@ _confirm() {
 usage() {
   echo "usage: $(basename ${BASH_SOURCE[0]}) <action>"
   echo -e "\nactions:"
-  echo "  help       display this usage dialog"
-  echo "  status     show install and repo sync status"
-  echo "  install    install config management operator and dependencies to active k8s cluster"
-  echo "  init-repo  initialize a new config root for active k8s cluster"
+  echo "  help         display this usage dialog"
+  echo "  status       show install and repo sync status"
+  echo "  install [-f] install config management operator and dependencies to active k8s cluster. Use optional -f flag to force install even when components are found"
+  echo "  init-repo    initialize a new config root for active k8s cluster"
 }
 
 load-ctxvars() {
@@ -277,6 +277,10 @@ _sync_errors() {
 }
 
 install() {
+  local force=0
+  for arg in $@; do
+    [[ "$arg" == "-f" ]] && force=1
+  done
   load-ctxvars
 
   echo; for v in K8S_CONTEXT ACM_CLUSTER_REGISTRY_NAME; do
@@ -284,16 +288,29 @@ install() {
   done | column -t
   _confirm "\nproceed with above configuration?" || exit 0
 
+  # operator install
   local n=1
-  (kubectl get crds | grep -q configmanagements.addons.sigs.k8s.io) || n=0
-  (kubectl get deployments config-management-operator --namespace=kube-system &> /dev/null) || n=0
+  if [[ "$force" -eq 1 ]]; then
+    n=0
+  else
+    (kubectl get crds | grep -q configmanagements.addons.sigs.k8s.io) || n=0
+    (kubectl get deployments config-management-operator --namespace=kube-system &> /dev/null) || n=0
+  fi
 
   [[ "$n" -eq 1 ]] || {
     _output "installing config management operator to cluster"
     gsutil cp ${CM_OPERATOR_BUCKET} - | kubectl apply -f -
   } && _output "config management operator install OK"
 
-  (kubectl get namespaces istio-system &> /dev/null) || {
+  # istio install
+  n=1
+  if [[ "$force" -eq 1 ]]; then
+    n=0
+  else
+    (kubectl get namespaces istio-system &> /dev/null) || n=0
+  fi
+
+  [[ "$n" -eq 1 ]] || {
     _output "installing istio to cluster"
     install_istio
   } && _output "istio install OK"
@@ -349,7 +366,7 @@ acm-init() {
   case $1 in
     help) usage ;;
     status) status ;;
-    install) install ;;
+    install) install $@;;
     init-repo) shift; init-repo $@;;
     *) _errexit "invalid action: $1\n\n$($0 help)" ;;
   esac
