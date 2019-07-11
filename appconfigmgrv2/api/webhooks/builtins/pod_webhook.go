@@ -24,6 +24,7 @@ import (
 	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -258,15 +259,24 @@ func (a *podAnnotator) handleGCPSecretIfNeeded(ctx context.Context, pod *corev1.
 	log.Info("HandleUpdate:Secret", "secret", secret.Name)
 	token := string(secret.Data["key.json"])
 
-	err = cl.Get(ctx, types.NamespacedName{Name: "google-cloud-token", Namespace: app.Namespace}, secret)
+	appSecret := &corev1.Secret{}
+	err = cl.Get(ctx, types.NamespacedName{Name: "google-cloud-token", Namespace: app.Namespace}, appSecret)
 	if err != nil {
-		err = cl.Create(ctx, kubeSecretFromTemplate(app.Namespace, "google-cloud-token", "key.json", token))
-		if err != nil {
+		// avoid using ! in compound statement due to readability
+		if k8sapierrors.IsNotFound(err) {
+			err = cl.Create(ctx, kubeSecretFromTemplate(app.Namespace, "google-cloud-token", "key.json", token))
+			if err != nil {
+				return err
+			}
+		} else {
 			return err
 		}
 	} else {
-		secret.Data["key.json"] = []byte(token)
-		err = cl.Update(ctx, secret)
+		appSecret.Data["key.json"] = []byte(token)
+		err = cl.Update(ctx, appSecret)
+		if err != nil {
+			return err
+		}
 	}
 
 	updateSecretsVolume(pod, "google-cloud-token")
