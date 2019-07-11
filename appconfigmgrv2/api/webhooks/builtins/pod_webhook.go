@@ -262,13 +262,15 @@ func (a *podAnnotator) handleGCPSecretIfNeeded(ctx context.Context, pod *corev1.
 	appSecret := &corev1.Secret{}
 	err = cl.Get(ctx, types.NamespacedName{Name: "google-cloud-token", Namespace: app.Namespace}, appSecret)
 	if err != nil {
+		// avoid using ! in compound statement due to readability
 		if k8sapierrors.IsNotFound(err) {
 			err = cl.Create(ctx, kubeSecretFromTemplate(app.Namespace, "google-cloud-token", "key.json", token))
 			if err != nil {
 				return err
 			}
+		} else {
+			return err
 		}
-		return err
 	} else {
 		appSecret.Data["key.json"] = []byte(token)
 		err = cl.Update(ctx, appSecret)
