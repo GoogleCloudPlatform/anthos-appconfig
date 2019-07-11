@@ -35,7 +35,7 @@ spec:
     spec:
       containers:
       - name: hello-app-pubsub
-        image: us.gcr.io/anthos-crd-v1-dev-t2/anthos-appconfig/gen-pubsub:v1.0.6
+        image: gcr.io/anthos-appconfig/gen-pubsub:v1.1.0
         imagePullPolicy: Always
         tty: true
         ports:
@@ -62,7 +62,7 @@ spec:
     spec:
       containers:
         - name: hello-app-sm-py
-          image: us.gcr.io/anthos-crd-v1-dev-t2/hello-app-sm-py:v3.0.18
+          image: gcr.io/anthos-appconfig/hello-app-sm-py:v3.0.20
           imagePullPolicy: Always
           command: ["python"]
           args: [
@@ -99,7 +99,7 @@ spec:
     spec:
       containers:
         - name: hello-app-sm-py
-          image: us.gcr.io/anthos-crd-v1-dev-t2/hello-app-sm-py:v3.0.18
+          image: gcr.io/anthos-appconfig/hello-app-sm-py:v3.0.20
           imagePullPolicy: Always
           command: ["python"]
           args: [
@@ -136,7 +136,7 @@ spec:
     spec:
       containers:
         - name: hello-app-sm-py
-          image: us.gcr.io/anthos-crd-v1-dev-t2/hello-app-sm-py:v3.0.18
+          image: gcr.io/anthos-appconfig/hello-app-sm-py:v3.0.20
           imagePullPolicy: Always
           command: ["python"]
           args: [
@@ -174,7 +174,7 @@ spec:
     spec:
       containers:
         - name: hello-app-sm-py
-          image: us.gcr.io/anthos-crd-v1-dev-t2/hello-app-sm-py:v3.0.18
+          image: gcr.io/anthos-appconfig/hello-app-sm-py:v3.0.20
           imagePullPolicy: Always
           command: ["python"]
           args: [
