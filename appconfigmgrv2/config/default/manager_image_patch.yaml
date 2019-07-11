@@ -22,5 +22,5 @@ spec:
     spec:
       containers:
       # Change the value of image field below to your controller image URL
-      - image: gcr.io/anthos-appconfig/appconfigtemplatev2_controller:v2.1.0-20190710-234948
+      - image: gcr.io/anthos-appconfig/appconfigtemplatev2_controller:v2.1.0-20190711-173209
         name: manager
