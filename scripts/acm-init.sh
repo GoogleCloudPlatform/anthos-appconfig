@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 set -e
 
 ####
@@ -303,14 +302,14 @@ install() {
 }
 
 install_istio() {
-  # TODO - Specify Istio Release (istio fails with mount), check istio version no blank don't create stuff until
-#  istio_version=$(curl -L -s https://github.com/istio/istio/releases/tag/1.1.9 | \
-#                    grep tag_name | sed "s/ *\"tag_name\": *\"\\(.*\\)\",*/\\1/")
-   istio_version=1.1.9
-#  tmpdir=$(mktemp -d -t acm-init.XXXXX)
-  tmpdir="/Users/$USER/tmp/acm-init/downloads/$(date +%Y%m%d-%H%M%S)"
-  mkdir -p $tmpdir
+  local x tmpdir
+  istio_version=$(curl -L -s https://api.github.com/repos/istio/istio/releases/latest | \
+                    grep tag_name | sed "s/ *\"tag_name\": *\"\\(.*\\)\",*/\\1/")
+  prompt=$(echo -ne "istio version to install? \033[32m($istio_version)\033[0m ")
+  read -p "$prompt" x; echo
+  [[ -z "$x" ]] || istio_version=$x
 
+  tmpdir=$(mktemp -d $(pwd)/.acm-init-XXXXXX)
   istio_dir="${tmpdir}/istio-${istio_version}"
 
   _output "fetching istio v${istio_version}"
@@ -341,6 +340,8 @@ install_istio() {
       --set global.disablePolicyChecks=false \
       --set global.outboundTrafficPolicy.mode=REGISTRY_ONLY \
       --values install/kubernetes/helm/istio/values-istio-demo-auth.yaml | kubectl apply -f -
+
+  rm -rf $tmpdir
 }
 
 acm-init() {
