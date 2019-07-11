@@ -82,7 +82,7 @@ func istioServiceEntries(cfg Config, t *appconfig.AppEnvConfigTemplateV2) ([]*un
 			Location: istionet.ServiceEntry_MESH_EXTERNAL,
 			// TODO: Validation on known types.
 			Ports:      ports,
-			Resolution: istionet.ServiceEntry_DNS,
+			Resolution: istionet.ServiceEntry_NONE,
 			// Apply to same namespace only:
 			ExportTo: []string{"."},
 		}
