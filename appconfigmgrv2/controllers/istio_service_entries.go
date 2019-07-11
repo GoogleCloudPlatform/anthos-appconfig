@@ -16,6 +16,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
 
@@ -73,6 +74,14 @@ func istioServiceEntries(cfg Config, t *appconfig.AppEnvConfigTemplateV2) ([]*un
 			return nil, fmt.Errorf("unknown allowedEgress.type: %v", entry.Type)
 		}
 
+		res := istionet.ServiceEntry_DNS
+		for _, h := range entry.Hosts {
+			if strings.Contains(h, "*") {
+				res = istionet.ServiceEntry_NONE
+				break
+			}
+		}
+
 		meta := map[string]interface{}{
 			"name":      istioServiceEntryName(t, i),
 			"namespace": t.Namespace,
@@ -82,7 +91,7 @@ func istioServiceEntries(cfg Config, t *appconfig.AppEnvConfigTemplateV2) ([]*un
 			Location: istionet.ServiceEntry_MESH_EXTERNAL,
 			// TODO: Validation on known types.
 			Ports:      ports,
-			Resolution: istionet.ServiceEntry_DNS,
+			Resolution: res,
 			// Apply to same namespace only:
 			ExportTo: []string{"."},
 		}
