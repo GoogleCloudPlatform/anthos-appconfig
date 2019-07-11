@@ -24,6 +24,7 @@ import (
 	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -260,7 +261,7 @@ func (a *podAnnotator) handleGCPSecretIfNeeded(ctx context.Context, pod *corev1.
 
 	appSecret := &corev1.Secret{}
 	err = cl.Get(ctx, types.NamespacedName{Name: "google-cloud-token", Namespace: app.Namespace}, appSecret)
-	if err != nil {
+	if err != nil && k8sapierrors.IsNotFound(err) {
 		err = cl.Create(ctx, kubeSecretFromTemplate(app.Namespace, "google-cloud-token", "key.json", token))
 		if err != nil {
 			return err
