@@ -258,15 +258,19 @@ func (a *podAnnotator) handleGCPSecretIfNeeded(ctx context.Context, pod *corev1.
 	log.Info("HandleUpdate:Secret", "secret", secret.Name)
 	token := string(secret.Data["key.json"])
 
-	err = cl.Get(ctx, types.NamespacedName{Name: "google-cloud-token", Namespace: app.Namespace}, secret)
+	appSecret := &corev1.Secret{}
+	err = cl.Get(ctx, types.NamespacedName{Name: "google-cloud-token", Namespace: app.Namespace}, appSecret)
 	if err != nil {
 		err = cl.Create(ctx, kubeSecretFromTemplate(app.Namespace, "google-cloud-token", "key.json", token))
 		if err != nil {
 			return err
 		}
 	} else {
-		secret.Data["key.json"] = []byte(token)
-		err = cl.Update(ctx, secret)
+		appSecret.Data["key.json"] = []byte(token)
+		err = cl.Update(ctx, appSecret)
+		if err != nil {
+			return err
+		}
 	}
 
 	updateSecretsVolume(pod, "google-cloud-token")
