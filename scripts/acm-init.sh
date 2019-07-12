@@ -327,9 +327,18 @@ install_istio() {
   istio_dir="${tmpdir}/istio-${istio_version}"
 
   _output "fetching istio v${istio_version}"
-  URL="https://github.com/istio/istio/releases/download/${istio_version}/istio-${istio_version}-linux.tar.gz"
-  curl -Lo ${tmpdir}/istio.tgz --progress-bar $URL
-  tar -C $tmpdir -xz ${tmpdir}/istio.tgz
+  target="istio-${istio_version}-linux.tar.gz"
+  url="https://github.com/istio/istio/releases/download/${istio_version}/${target}"
+  curl -Lo ${tmpdir}/${target} --progress-bar $url
+  curl -Lo ${tmpdir}/${target}.sha256 --progress-bar ${url}.sha256
+
+  _output "validating checksums"
+  (
+   cd ${tmpdir}
+   sha256sum -c ${target}.sha256 || _errexit "checksum validation failed"
+   _output "installing"
+   tar xfz ${target}
+  )
 
   (kubectl get namespaces | grep -q istio-system) || {
     kubectl create namespace istio-system
