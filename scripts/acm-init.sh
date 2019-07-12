@@ -21,7 +21,7 @@ set -e
 
 # TODO - Add Branch Name
 TEMPLATE_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/build-script-2019-07-10/acm-crd/config-management-root"
-EXAMPLES_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/build-script-2019-07-10/acm-crd-examples/config-management-root"
+EXAMPLES_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/build-script-2019-07-10/acm-crd-examples/config-management-root/namespaces"
 CM_OPERATOR_BUCKET="gs://config-management-release/released/latest/config-management-operator.yaml"
 HELM_IMAGE="alpine/helm:2.13.1"
 CM_CRD_COUNT=8
@@ -42,6 +42,12 @@ _confirm() {
   read -n1 -p "$prompt" x; echo
   [ "$x" == "y" ] && return 0
   return 1
+}
+
+load-gcpvars() {
+  export PROJECT_NAME=$(gcloud config get-value core/project 2> /dev/null)
+  [[ -z "$PROJECT_NAME" ]] && _errexit "missing gcloud configuration, run 'gcloud init' to create"
+  return 0
 }
 
 load-ctxvars() {
@@ -216,6 +222,82 @@ $(cat ${key_path}.pub)
 EOM
 }
 
+init-demos() {
+  load-ctxvars
+  load-gcpvars
+  load-repovars $@
+  local x app_iters="1 2" app_name="appconfigcrd-demo"
+
+  echo; for v in REPO_REMOTE REPO_BRANCH REPO_URL PROJECT_NAME K8S_CONTEXT ACM_CLUSTER_REGISTRY_NAME; do
+    echo -e "\033[32m${v}\033[0m\t| ${!v}"
+  done | column -t
+  _confirm "\nproceed with above configuration?" || exit 0
+
+  prompt=$(echo -ne "please provide an app name prefix to use (\033[32m$app_name\033[0m) > ")
+  read -p "$prompt" x
+  [[ -z "$x" ]] || app_name=$x
+
+  _output "creating pubsub topics and subscriptions"
+  for i in $app_iters; do
+    topic="${app_name}-topic${i}"
+    if (gcloud pubsub topics describe $topic &> /dev/null); then
+      echo "$topic topic exists, skipping"
+    else
+      gcloud pubsub topics create $topic --project $PROJECT_NAME
+    fi
+
+    if (gcloud pubsub subscriptions describe $topic &> /dev/null); then
+      echo "$topic subscription exists, skipping"
+    else
+      gcloud pubsub subscriptions create $topic --project $PROJECT_NAME \
+        --topic ${app_name}-topic1 --topic-project $PROJECT_NAME
+    fi
+  done
+
+  _output "adding IAM service account keys to RBAC-protected config management namespace"
+  mkdir -p ./keys
+  for i in $app_iters; do
+    iam_name=${app_name}-sa${i}
+    iam_account="${iam_name}@${PROJECT_NAME}.iam.gserviceaccount.com"
+
+    if (gcloud iam service-accounts describe $iam_account &> /dev/null); then
+      echo "$iam_account service account exists, skipping creation"
+    else
+      gcloud iam service-accounts create ${iam_name} --display-name=${iam_name} --project $PROJECT_NAME
+    fi
+
+    if (kubectl get secret -n appconfigmgrv2-system ${iam_name}-secret &> /dev/null); then
+      echo "${iam_name}-secret exists, skipping"
+    else
+      gcloud iam service-accounts keys create ./keys/${iam_name}.json --project $PROJECT_NAME \
+        --iam-account=${iam_account}
+      kubectl create secret generic ${iam_name}-secret \
+        -n appconfigmgrv2-system \
+        --from-file=key.json=./keys/${iam_name}.json
+    fi
+  done
+
+  _output "creating service account pubsub ACLs"
+  for i in $app_iters; do
+    topic="${app_name}-topic${i}"
+    iam_name=${app_name}-sa${i}
+    iam_account="${iam_name}@${PROJECT_NAME}.iam.gserviceaccount.com"
+    gcloud beta pubsub topics add-iam-policy-binding ${topic} --project $PROJECT_NAME \
+      --member=serviceAccount:${iam_account} \
+      --role=roles/pubsub.publisher || true
+    done
+
+  [[ -d "${ACM_ENV_ROOT}/namespaces/use-cases" ]] && {
+    _output "${ACM_ENV_ROOT}/namespaces/use-cases already exists, skipping repo update"
+    exit 0
+  }
+
+  _output "adding demo apps to policy config repo"
+  gsutil -m cp -R "${EXAMPLES_BUCKET}/*" ${ACM_ENV_ROOT}/namespaces/
+  git add ${ACM_ENV_ROOT}/namespaces/use-cases
+  git commit -am "initialize $ACM_CLUSTER_REGISTRY_NAME demo apps" && git push
+}
+
 status() {
   _cmo_status
   echo
@@ -375,6 +457,7 @@ usage() {
   echo "  status       show install and repo sync status"
   echo "  install [-f] install config management operator and dependencies to active k8s cluster. Use optional -f flag to force install even when components are found"
   echo "  init-repo    initialize a new config root for active k8s cluster"
+  echo "  init-demos   initialize and install demo use case apps"
 }
 
 _parseopts() {
@@ -405,6 +488,7 @@ acm-init() {
     status) status ;;
     install) install ${OPTS[@]};;
     init-repo) init-repo ${ARGS[@]};;
+    init-demos) init-demos ${ARGS[@]};;
     *) _errexit "invalid action: $1\n\n$($0 help)" ;;
   esac
 }
