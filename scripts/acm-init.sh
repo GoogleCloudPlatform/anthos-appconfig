@@ -316,8 +316,9 @@ install_istio() {
   local x tmpdir
   _output "installing istio to cluster"
 
-  istio_version=$(curl -L -s https://api.github.com/repos/istio/istio/releases/latest | \
-                    grep tag_name | sed "s/ *\"tag_name\": *\"\\(.*\\)\",*/\\1/")
+  istio_version=$(curl -L -s https://api.github.com/repos/istio/istio/releases | \
+    grep -E 'tag_name.*1\.1\.' | grep -vE '(\-rc|\-snapshot)' | \
+    sed "s/ *\"tag_name\": *\"\\(.*\\)\",*/\\1/" | head -1)
   prompt=$(echo -ne "istio version to install? \033[32m($istio_version)\033[0m ")
   read -p "$prompt" x; echo
   [[ -z "$x" ]] || istio_version=$x
