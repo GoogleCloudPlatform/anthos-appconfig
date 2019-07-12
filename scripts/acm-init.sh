@@ -44,15 +44,6 @@ _confirm() {
   return 1
 }
 
-usage() {
-  echo "usage: $(basename ${BASH_SOURCE[0]}) <action>"
-  echo -e "\nactions:"
-  echo "  help         display this usage dialog"
-  echo "  status       show install and repo sync status"
-  echo "  install [-f] install config management operator and dependencies to active k8s cluster. Use optional -f flag to force install even when components are found"
-  echo "  init-repo    initialize a new config root for active k8s cluster"
-}
-
 load-ctxvars() {
   # set cluster variables
   export K8S_CONTEXT=$(kubectl config current-context)
@@ -277,11 +268,15 @@ _sync_errors() {
 }
 
 install() {
-  local force=0
-  for arg in $@; do
-    [[ "$arg" == "-f" ]] && force=1
-  done
   load-ctxvars
+
+  local force
+  for opt in $@; do
+    case $opt in
+      -f) force=1; _output "force install enabled" ;;
+      *) _errexit "unknown install option \"$opt\"";;
+    esac
+  done
 
   echo; for v in K8S_CONTEXT ACM_CLUSTER_REGISTRY_NAME; do
     echo -e "\033[32m${v}\033[0m\t| ${!v}"
@@ -290,36 +285,37 @@ install() {
 
   # operator install
   local n=1
-  if [[ "$force" -eq 1 ]]; then
+  if [[ -n "$force" ]]; then
     n=0
   else
     (kubectl get crds | grep -q configmanagements.addons.sigs.k8s.io) || n=0
     (kubectl get deployments config-management-operator --namespace=kube-system &> /dev/null) || n=0
   fi
 
-  [[ "$n" -eq 1 ]] || {
-    _output "installing config management operator to cluster"
-    gsutil cp ${CM_OPERATOR_BUCKET} - | kubectl apply -f -
-  } && _output "config management operator install OK"
+  [[ "$n" -eq 1 ]] || install_operator && _output "config management operator install OK"
 
   # istio install
   n=1
-  if [[ "$force" -eq 1 ]]; then
+  if [[ -n "$force" ]]; then
     n=0
   else
     (kubectl get namespaces istio-system &> /dev/null) || n=0
   fi
 
-  [[ "$n" -eq 1 ]] || {
-    _output "installing istio to cluster"
-    install_istio
-  } && _output "istio install OK"
+  [[ "$n" -eq 1 ]] || install_istio && _output "istio install OK"
 
   _output "done"
 }
 
+install_operator() {
+  _output "installing config management operator to cluster"
+  gsutil cp ${CM_OPERATOR_BUCKET} - | kubectl apply -f -
+}
+
 install_istio() {
   local x tmpdir
+  _output "installing istio to cluster"
+
   istio_version=$(curl -L -s https://api.github.com/repos/istio/istio/releases/latest | \
                     grep tag_name | sed "s/ *\"tag_name\": *\"\\(.*\\)\",*/\\1/")
   prompt=$(echo -ne "istio version to install? \033[32m($istio_version)\033[0m ")
@@ -361,13 +357,43 @@ install_istio() {
   rm -rf $tmpdir
 }
 
-acm-init() {
+usage() {
+  echo "usage: $(basename ${BASH_SOURCE[0]}) <action>"
+  echo -e "\nactions:"
+  echo "  help         display this usage dialog"
+  echo "  status       show install and repo sync status"
+  echo "  install [-f] install config management operator and dependencies to active k8s cluster. Use optional -f flag to force install even when components are found"
+  echo "  init-repo    initialize a new config root for active k8s cluster"
+}
+
+_parseopts() {
+  local -a opts args
+
   [[ $# -eq 0 ]] && { usage; exit 0; }
-  case $1 in
+  export ACTION=$1; shift
+
+  for a in $@; do
+    case $a in
+      -*)
+        opts+=($a)
+        ;;
+      *)
+        args+=($a)
+        ;;
+    esac
+  done
+
+  export OPTS=(${opts[@]})
+  export ARGS=(${args[@]})
+}
+
+acm-init() {
+  _parseopts $@
+  case $ACTION in
     help) usage ;;
     status) status ;;
-    install) install $@;;
-    init-repo) shift; init-repo $@;;
+    install) install ${OPTS[@]};;
+    init-repo) init-repo ${ARGS[@]};;
     *) _errexit "invalid action: $1\n\n$($0 help)" ;;
   esac
 }
