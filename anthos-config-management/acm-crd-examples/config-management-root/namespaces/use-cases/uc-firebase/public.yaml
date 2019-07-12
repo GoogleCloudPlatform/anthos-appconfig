@@ -12,33 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
 metadata:
-  name: webapp
+  name: firebase-app-svc
   namespace: uc-firebase
-  labels:
-    version: v1
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: webapp
-  template:
-    metadata:
-      labels:
-        app: webapp
-        version: v1
-    spec:
-      containers:
-      - name: main
-        image: gcr.io/anthos-appconfig/firebase-webapp
-        resources:
-          requests:
-            cpu: "50m"
-        ports:
-        - containerPort: 80
-        imagePullPolicy: IfNotPresent
+  hosts:
+  - "*"
+  gateways:
+  - devtest-istio/mygateway-http
+  http:
+  - match:
+    - uri:
+        prefix: /api
+    route:
+    - destination:
+        host: firebase-tasks
+
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
