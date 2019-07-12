@@ -34,7 +34,7 @@ spec:
       serviceAccountName: controller-setup-helper-service-account
       containers:
         - name: controller-setup-helper
-          image: us.gcr.io/anthos-crd-v1-dev-t2/anthos-appconfig/appconfigmonitor-init:v1.1.4
+          image: gcr.io/anthos-appconfig/appconfigmonitor-init:v1.1.4
           command: ["sh", "generate-keys-webhook.sh"]
           tty: true
 

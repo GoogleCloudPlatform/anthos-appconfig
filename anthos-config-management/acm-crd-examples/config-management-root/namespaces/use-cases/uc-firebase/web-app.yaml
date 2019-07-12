@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
       - name: main
-        image: gcr.io/anthos-crd-v1-dev-t2/firebase-webapp
+        image: gcr.io/anthos-appconfig/firebase-webapp
         resources:
           requests:
             cpu: "50m"
