@@ -320,7 +320,7 @@ install_istio() {
     grep -E 'tag_name.*1\.1\.' | grep -vE '(\-rc|\-snapshot)' | \
     sed "s/ *\"tag_name\": *\"\\(.*\\)\",*/\\1/" | head -1)
   prompt=$(echo -ne "istio version to install? \033[32m($istio_version)\033[0m ")
-  read -p "$prompt" x; echo
+  read -p "$prompt" x
   [[ -z "$x" ]] || istio_version=$x
 
   tmpdir=$(mktemp -d $(pwd)/.acm-init-XXXXXX)
@@ -328,7 +328,8 @@ install_istio() {
 
   _output "fetching istio v${istio_version}"
   URL="https://github.com/istio/istio/releases/download/${istio_version}/istio-${istio_version}-linux.tar.gz"
-  curl -sL $URL | tar -C $tmpdir -xz
+  curl -Lo ${tmpdir}/istio.tgz --progress-bar $URL
+  tar -C $tmpdir -xz ${tmpdir}/istio.tgz
 
   (kubectl get namespaces | grep -q istio-system) || {
     kubectl create namespace istio-system
