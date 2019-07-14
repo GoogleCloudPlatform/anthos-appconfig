@@ -119,7 +119,7 @@ func updateSecretsVolume(pod *corev1.Pod, secretName string) {
 }
 
 func updateContainers(pod *corev1.Pod, containerName string, mountName string, mountPath string, envName string) {
-	log.V(1).Info("updateContainers",
+	log.Info("updateContainers",
 		"containerName", containerName,
 		"mountName", mountName,
 		"mountPath", mountPath,
@@ -278,10 +278,15 @@ func (a *podAnnotator) handleGCPSecretIfNeeded(ctx context.Context, pod *corev1.
 			return err
 		}
 	}
-
+	log.Info("HandleUpdate:Volume Mounts", "secret", "google-cloud-token")
 	updateSecretsVolume(pod, "google-cloud-token")
-	updateContainers(pod, "hello-app-pubsub", "google-auth-token",
-		"/var/run/secrets/google/token", "GOOGLE_APPLICATION_CREDENTIALS")
+
+	log.Info("HandleUpdate:Containers", "pod.Labels", pod.GetLabels())
+	if len(pod.GetLabels()["app"]) > 0 {
+		log.Info("HandleUpdate:Containers:app", "pod.Labels.app", pod.GetLabels()["app"])
+		updateContainers(pod, pod.GetLabels()["app"], "google-auth-token",
+			"/var/run/secrets/google/token", "GOOGLE_APPLICATION_CREDENTIALS")
+	}
 
 	return nil
 
