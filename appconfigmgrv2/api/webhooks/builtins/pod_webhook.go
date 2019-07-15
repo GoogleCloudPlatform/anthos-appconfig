@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -118,21 +119,21 @@ func updateSecretsVolume(pod *corev1.Pod, secretName string) {
 
 }
 
-func updateContainers(pod *corev1.Pod, containerName string, mountName string, mountPath string, envName string) {
+func updateContainers(pod *corev1.Pod, appName string, mountName string, mountPath string, envName string) {
 	log.Info("updateContainers",
-		"containerName", containerName,
+		"appName", appName,
 		"mountName", mountName,
 		"mountPath", mountPath,
 	)
 
 	for index, element := range pod.Spec.Containers {
-		if element.Name == containerName {
-			log.V(1).Info("updateContainers:found",
-				"containerName", containerName,
+		if strings.HasPrefix(appName,element.Name) {
+			log.Info("updateContainers:found",
+				"appName", element.Name,
 				"mountName", mountName,
 				"mountPath", mountPath)
-			updateContainerMounts(&element, containerName, mountName, mountPath)
-			updateContainerEnv(&element, containerName, envName, mountPath+"/key.json")
+			updateContainerMounts(&element, element.Name, mountName, mountPath)
+			updateContainerEnv(&element, element.Name, envName, mountPath+"/key.json")
 			pod.Spec.Containers[index] = element
 			return
 		}
