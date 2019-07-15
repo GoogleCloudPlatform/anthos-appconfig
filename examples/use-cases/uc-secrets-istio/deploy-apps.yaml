@@ -35,7 +35,7 @@ spec:
     spec:
       containers:
       - name: hello-app-pubsub
-        image: gcr.io/anthos-appconfig/gen-pubsub:v1.1.0
+        image: gcr.io/anthos-appconfig/gen-pubsub:v1.2.0
         imagePullPolicy: Always
         args: [
           "./app",

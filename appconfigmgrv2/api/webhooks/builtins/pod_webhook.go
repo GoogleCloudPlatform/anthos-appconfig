@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -118,28 +119,28 @@ func updateSecretsVolume(pod *corev1.Pod, secretName string) {
 
 }
 
-func updateContainers(pod *corev1.Pod, containerName string, mountName string, mountPath string, envName string) {
-	log.V(1).Info("updateContainers",
-		"containerName", containerName,
+func updateContainers(pod *corev1.Pod, appName string, mountName string, mountPath string, envName string) {
+	log.Info("updateContainers",
+		"appName", appName,
 		"mountName", mountName,
 		"mountPath", mountPath,
 	)
 
 	for index, element := range pod.Spec.Containers {
-		if element.Name == containerName {
-			log.V(1).Info("updateContainers:found",
-				"containerName", containerName,
+		if strings.HasPrefix(appName,element.Name) {
+			log.Info("updateContainers:found",
+				"appName", element.Name,
 				"mountName", mountName,
 				"mountPath", mountPath)
-			updateContainerMounts(&element, containerName, mountName, mountPath)
-			updateContainerEnv(&element, containerName, envName, mountPath+"/key.json")
+			updateContainerMounts(&element, element.Name, mountName, mountPath)
+			updateContainerEnv(&element, element.Name, envName, mountPath+"/key.json")
 			pod.Spec.Containers[index] = element
 			return
 		}
 	}
 
 	//TODO - Decide how to fail or just warning
-	log.Info("updateContainers:containerNotFound", "containerName", containerName,
+	log.Info("updateContainers:containerNotFound", "appName", appName,
 		"mountName", mountName,
 		"mountPath", mountPath)
 }
@@ -278,10 +279,15 @@ func (a *podAnnotator) handleGCPSecretIfNeeded(ctx context.Context, pod *corev1.
 			return err
 		}
 	}
-
+	log.Info("HandleUpdate:Volume Mounts", "secret", "google-cloud-token")
 	updateSecretsVolume(pod, "google-cloud-token")
-	updateContainers(pod, "hello-app-pubsub", "google-auth-token",
-		"/var/run/secrets/google/token", "GOOGLE_APPLICATION_CREDENTIALS")
+
+	log.Info("HandleUpdate:Containers", "pod.Labels", pod.GetLabels())
+	if len(pod.GetLabels()["app"]) > 0 {
+		log.Info("HandleUpdate:Containers:app", "pod.Labels.app", pod.GetLabels()["app"])
+		updateContainers(pod, pod.GetLabels()["app"], "google-auth-token",
+			"/var/run/secrets/google/token", "GOOGLE_APPLICATION_CREDENTIALS")
+	}
 
 	return nil
 
