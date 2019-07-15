@@ -45,8 +45,10 @@ _confirm() {
 }
 
 load-gcpvars() {
-  export PROJECT_NAME=$(gcloud config get-value core/project 2> /dev/null)
-  [[ -z "$PROJECT_NAME" ]] && _errexit "missing gcloud configuration, run 'gcloud init' to create"
+  export GCP_ACCOUNT=$(gcloud config get-value core/account 2> /dev/null)
+  export GCP_PROJECT=$(gcloud config get-value core/project 2> /dev/null)
+  [[ -z "$GCP_PROJECT" ]] || [[ -z "$GCP_ACCOUNT" ]] && \
+    _errexit "missing gcloud configuration, run 'gcloud init' to create"
   return 0
 }
 
@@ -58,7 +60,7 @@ load-ctxvars() {
 }
 
 load-repovars() {
-  REPO_PATH=${@:-$(pwd)}
+  REPO_PATH=${ARGS[0]:-$(pwd)}
   cd $REPO_PATH
 
   # set repo variables
@@ -85,16 +87,52 @@ git-key-url() {
   esac
 }
 
-init-repo() {
-  load-ctxvars
-  load-repovars $@
+_echo_vars() {
+  echo; for v in $@; do
+    echo -e "\033[32m${v}\033[0m\t| ${!v}"
+  done | column -t
+}
 
-  [[ -a $ACM_ENV_ROOT ]] && _errexit "config root exists: $ACM_ENV_ROOT"
+create-repo() {
+  load-gcpvars
+
+  export REPO_PATH=$(readlink -f ${ARGS[0]}) || _errexit "invalid path"
+  export REPO_NAME=$(basename $REPO_PATH)
+  export REPO_URL="ssh://${GCP_ACCOUNT}@google.com@source.developers.google.com:2022/p/${GCP_PROJECT}/r/${REPO_NAME}"
+  export REPO_REMOTE=origin
+  export REPO_BRANCH=master
+
+  [[ -e "$REPO_PATH" ]] && _errexit "path exists: $REPO_PATH"
+
+  _echo_vars GCP_PROJECT REPO_PATH
+  _confirm "\ncreate repo with above configuration?" || exit 0
+
+  _output "creating cloud source repo"
+  gcloud source repos create --project $GCP_PROJECT $REPO_NAME
+
+  _output "cloning new repo"
+  gcloud source repos clone --project $GCP_PROJECT $REPO_NAME $REPO_PATH
+}
+
+init-repo() {
+  local create
+  for opt in ${OPTS[@]}; do
+    case $opt in
+      -c) create=1 ;;
+      *) _errexit "unknown install option \"$opt\"";;
+    esac
+  done
+
+  load-ctxvars
+  [[ -z "$create" ]] || create-repo
+  load-repovars
 
   echo; for v in REPO_REMOTE REPO_BRANCH REPO_URL K8S_CONTEXT ACM_CLUSTER_REGISTRY_NAME; do
     echo -e "\033[32m${v}\033[0m\t| ${!v}"
   done | column -t
-  _confirm "\nproceed with above configuration?" || exit 0
+  _confirm "\ninitialize repo with above configuration?" || exit 0
+
+  [[ -a $ACM_ENV_ROOT ]] && _errexit "config root exists: $ACM_ENV_ROOT"
 
   _output "initializing cluster config root"
 
@@ -225,10 +263,10 @@ EOM
 init-demos() {
   load-ctxvars
   load-gcpvars
-  load-repovars $@
+  load-repovars
   local x app_iters="1 2" app_name="appconfigcrd-demo"
 
-  echo; for v in REPO_REMOTE REPO_BRANCH REPO_URL PROJECT_NAME K8S_CONTEXT ACM_CLUSTER_REGISTRY_NAME; do
+  echo; for v in REPO_REMOTE REPO_BRANCH REPO_URL GCP_PROJECT K8S_CONTEXT ACM_CLUSTER_REGISTRY_NAME; do
     echo -e "\033[32m${v}\033[0m\t| ${!v}"
   done | column -t
   _confirm "\nproceed with above configuration?" || exit 0
@@ -243,14 +281,14 @@ init-demos() {
     if (gcloud pubsub topics describe $topic &> /dev/null); then
       echo "$topic topic exists, skipping"
     else
-      gcloud pubsub topics create $topic --project $PROJECT_NAME
+      gcloud pubsub topics create $topic --project $GCP_PROJECT
     fi
 
     if (gcloud pubsub subscriptions describe $topic &> /dev/null); then
       echo "$topic subscription exists, skipping"
     else
-      gcloud pubsub subscriptions create $topic --project $PROJECT_NAME \
-        --topic ${app_name}-topic1 --topic-project $PROJECT_NAME
+      gcloud pubsub subscriptions create $topic --project $GCP_PROJECT \
+        --topic ${app_name}-topic1 --topic-project $GCP_PROJECT
     fi
   done
 
@@ -258,18 +296,18 @@ init-demos() {
   mkdir -p ./keys
   for i in $app_iters; do
     iam_name=${app_name}-sa${i}
-    iam_account="${iam_name}@${PROJECT_NAME}.iam.gserviceaccount.com"
+    iam_account="${iam_name}@${GCP_PROJECT}.iam.gserviceaccount.com"
 
     if (gcloud iam service-accounts describe $iam_account &> /dev/null); then
       echo "$iam_account service account exists, skipping creation"
     else
-      gcloud iam service-accounts create ${iam_name} --display-name=${iam_name} --project $PROJECT_NAME
+      gcloud iam service-accounts create ${iam_name} --display-name=${iam_name} --project $GCP_PROJECT
     fi
 
     if (kubectl get secret -n appconfigmgrv2-system ${iam_name}-secret &> /dev/null); then
       echo "${iam_name}-secret exists, skipping"
     else
-      gcloud iam service-accounts keys create ./keys/${iam_name}.json --project $PROJECT_NAME \
+      gcloud iam service-accounts keys create ./keys/${iam_name}.json --project $GCP_PROJECT \
         --iam-account=${iam_account}
       kubectl create secret generic ${iam_name}-secret \
         -n appconfigmgrv2-system \
@@ -281,8 +319,8 @@ init-demos() {
   for i in $app_iters; do
     topic="${app_name}-topic${i}"
     iam_name=${app_name}-sa${i}
-    iam_account="${iam_name}@${PROJECT_NAME}.iam.gserviceaccount.com"
-    gcloud beta pubsub topics add-iam-policy-binding ${topic} --project $PROJECT_NAME \
+    iam_account="${iam_name}@${GCP_PROJECT}.iam.gserviceaccount.com"
+    gcloud beta pubsub topics add-iam-policy-binding ${topic} --project $GCP_PROJECT \
       --member=serviceAccount:${iam_account} \
       --role=roles/pubsub.publisher || true
     done
@@ -353,7 +391,7 @@ install() {
   load-ctxvars
 
   local force
-  for opt in $@; do
+  for opt in ${OPTS[@]}; do
     case $opt in
       -f) force=1; _output "force install enabled" ;;
       *) _errexit "unknown install option \"$opt\"";;
@@ -458,12 +496,13 @@ usage() {
   echo "usage: $(basename ${BASH_SOURCE[0]}) <action>"
 cat <<EOM
 actions:
-  help               display this usage dialog
-  status             show install and repo sync status
-  install [-f]       install config management operator and dependencies to active k8s cluster
-                     use optional -f flag to force install even when components are found
-  init-repo          initialize a new config root for active k8s cluster
-  init-demos         initialize and install demo use case apps
+  help                   display this usage dialog
+  status                 show install and repo sync status
+  install [-f]           install config management operator and dependencies to active k8s cluster
+                         use optional -f flag to force install even when components are found
+  init-repo [-c] <path>  initialize a new config root for active k8s cluster within the given repo path
+                         use optional -c flag to create and clone a new Cloud Source Git repo prior to initializing
+  init-demos <path>      initialize and install demo use case apps within the given repo path
 EOM
 }
 
@@ -492,8 +531,8 @@ _parseopts $@
 case $ACTION in
   help) usage ;;
   status) status ;;
-  install) install ${OPTS[@]};;
-  init-repo) init-repo ${ARGS[@]};;
-  init-demos) init-demos ${ARGS[@]};;
+  install) install ;;
+  init-repo) init-repo ;;
+  init-demos) init-demos ;;
   *) _errexit "invalid action: $1\n\n$($0 help)" ;;
 esac
