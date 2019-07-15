@@ -485,16 +485,12 @@ _parseopts() {
   export ARGS=(${args[@]})
 }
 
-acm-init() {
-  _parseopts $@
-  case $ACTION in
-    help) usage ;;
-    status) status ;;
-    install) install ${OPTS[@]};;
-    init-repo) init-repo ${ARGS[@]};;
-    init-demos) init-demos ${ARGS[@]};;
-    *) _errexit "invalid action: $1\n\n$($0 help)" ;;
-  esac
-}
-
-[[ "${BASH_SOURCE[0]}" != "${0}" ]] || acm-init $@
+_parseopts $@
+case $ACTION in
+  help) usage ;;
+  status) status ;;
+  install) install ${OPTS[@]};;
+  init-repo) init-repo ${ARGS[@]};;
+  init-demos) init-demos ${ARGS[@]};;
+  *) _errexit "invalid action: $1\n\n$($0 help)" ;;
+esac
