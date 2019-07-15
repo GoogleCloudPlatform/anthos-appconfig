@@ -140,7 +140,7 @@ func updateContainers(pod *corev1.Pod, appName string, mountName string, mountPa
 	}
 
 	//TODO - Decide how to fail or just warning
-	log.Info("updateContainers:containerNotFound", "containerName", containerName,
+	log.Info("updateContainers:containerNotFound", "appName", appName,
 		"mountName", mountName,
 		"mountPath", mountPath)
 }
