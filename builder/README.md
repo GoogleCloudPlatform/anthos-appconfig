@@ -47,5 +47,5 @@ gcloud builds submit \
 ```
 
 ```bash
-gsutil -m cp -R gs://anthos-appconfig_public/acm/anthos-config-management/$RELEASE_NAME/acm-crd/config-management-root/* ${ACM_ROOT}
+gsutil -m cp -R "gs://anthos-appconfig_public/acm/anthos-config-management/$RELEASE_NAME/acm-crd/config-management-root/* ${ACM_ROOT}"
 ```
