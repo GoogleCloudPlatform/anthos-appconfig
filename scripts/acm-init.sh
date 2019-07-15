@@ -20,8 +20,8 @@ set -e
 ####
 
 # TODO - Add Branch Name
-TEMPLATE_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/$RELEASE_NAME/acm-crd/config-management-root"
-EXAMPLES_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/$RELEASE_NAME/acm-crd-examples/config-management-root/namespaces"
+TEMPLATE_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/build-script-2019-07-10/acm-crd/config-management-root"
+EXAMPLES_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/build-script-2019-07-10/acm-crd-examples/config-management-root/namespaces"
 CM_OPERATOR_BUCKET="gs://config-management-release/released/latest/config-management-operator.yaml"
 HELM_IMAGE="alpine/helm:2.13.1"
 CM_CRD_COUNT=8
@@ -456,12 +456,15 @@ install_istio() {
 
 usage() {
   echo "usage: $(basename ${BASH_SOURCE[0]}) <action>"
-  echo -e "\nactions:"
-  echo "  help         display this usage dialog"
-  echo "  status       show install and repo sync status"
-  echo "  install [-f] install config management operator and dependencies to active k8s cluster. Use optional -f flag to force install even when components are found"
-  echo "  init-repo    initialize a new config root for active k8s cluster"
-  echo "  init-demos   initialize and install demo use case apps"
+cat <<EOM
+actions:
+  help               display this usage dialog
+  status             show install and repo sync status
+  install [-f]       install config management operator and dependencies to active k8s cluster
+                     use optional -f flag to force install even when components are found
+  init-repo          initialize a new config root for active k8s cluster
+  init-demos         initialize and install demo use case apps
+EOM
 }
 
 _parseopts() {
