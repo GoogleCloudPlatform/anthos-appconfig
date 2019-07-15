@@ -395,7 +395,7 @@ install_operator() {
 }
 
 install_istio() {
-  local x tmpdir
+  local x tmpdir shacmd
   _output "installing istio to cluster"
 
   istio_version=$(curl -L -s https://api.github.com/repos/istio/istio/releases | \
@@ -414,13 +414,17 @@ install_istio() {
   curl -Lo ${tmpdir}/${target} --progress-bar $url
   curl -Lo ${tmpdir}/${target}.sha256 --progress-bar ${url}.sha256
 
-  _output "validating checksums"
-  (
-   cd ${tmpdir}
-   sha256sum -c ${target}.sha256 || _errexit "checksum validation failed"
-   _output "installing"
-   tar xfz ${target}
-  )
+  # checksum validation
+  _installed sha256sum && shacmd="sha256sum"
+  _installed gsha256sum && shacmd="gsha256sum"
+  if [[ -z "$shacmd" ]]; then
+    _confirm "sha256sum command not found; skip checksum validation?" || exit 0
+  else
+    _output "validating checksums"
+    ( cd ${tmpdir} && $shacmd -c ${target}.sha256 || _errexit "checksum validation failed" )
+  fi
+
+  ( cd ${tmpdir} && _output "installing" && tar xfz ${target} )
 
   (kubectl get namespaces | grep -q istio-system) || {
     kubectl create namespace istio-system
