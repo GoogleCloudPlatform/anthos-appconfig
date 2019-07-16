@@ -30,7 +30,7 @@ spec:
     servicePort: 8000
     deploymentPortProtocol: TCP
     allowedClients:
-    - name: istio-ingressgateway
+    - name: istio-system/istio-ingressgateway
     - name: curl
   - name: webapp
     deploymentApp: webapp
@@ -38,6 +38,6 @@ spec:
     servicePort: 80
     deploymentPortProtocol: TCP
     allowedClients:
-    - name: istio-ingressgateway
+    - name: istio-system/istio-ingressgateway
     - name: curl
     disableAuth: true
