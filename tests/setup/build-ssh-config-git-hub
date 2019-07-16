@@ -1,0 +1,6 @@
+# GitLab.com server
+Host github.com
+  HostName github.com
+  RSAAuthentication yes
+  IdentityFile /root/.ssh/id_rsa
+  StrictHostKeyChecking no
