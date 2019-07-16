@@ -1,0 +1,158 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# gcloud builds submit --config=/Users/joseret/go112/src/github.com/GoogleCloudPlatform/anthos-appconfig/tests/setup/cloudbuild.yaml /Users/joseret/go112/src/github.com/GoogleCloudPlatform/anthos-appconfig/tests/setup --project anthos-appconfig
+timeout: 3600s
+steps:
+  - name: gcr.io/cloud-builders/gsutil
+    args: ['cp', '-DD', 'gs://${PROJECT_ID}_build/repo/keys/id_rsa_${PROJECT_ID}-repo', '/builder/home/.ssh/id_rsa']
+  - name: gcr.io/cloud-builders/gsutil
+    args: ['cp', '-DD', 'gs://${PROJECT_ID}_build/billing/billing_acount_testing.txt', '/builder/home/.ssh/billing_acount_testing.txt']
+  - name: 'gcr.io/cloud-builders/git'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        cp /builder/home/.ssh/id_rsa /root/.ssh/id_rsa
+        cp ./build-ssh-config-git-hub /root/.ssh/config
+        chmod 400 /root/.ssh/id_rsa
+        ls -la /root/.ssh
+    #        env
+    #        rm -f /root/.ssh/known_hosts
+    #        ssh -Tv  git@github.com
+    #        cat /root/.ssh/known_hosts
+    volumes:
+      - name: 'ssh'
+        path: /root/.ssh
+  - name: gcr.io/cloud-builders/git
+    args: [
+      'clone', '--branch', '$_BRANCH_NAME',
+      'git@github.com:GoogleCloudPlatform/anthos-appconfig.git',
+      'build-source'
+    ]
+    volumes:
+      - name: 'ssh'
+        path: /root/.ssh
+  - name: ubuntu
+    args:
+      - "bash"
+      - '-c'
+      - |
+        mkdir -p build-source/tests/setup
+        ls -la build-source/tests/setup
+#  - name: ubuntu
+#    args:
+#      - "bash"
+#      - '-c'
+#      - |
+#        date "+%Y%m%d-%H%M%S" > _file_TAG.out
+#        date "+%Y%m%d-%H%M" > _filemin_TAG.out
+#    dir: "build-source/tests/setup"
+  - name: ubuntu
+    args:
+      - "bash"
+      - '-c'
+      - |
+        echo "20190712000300" > _file_TAG.out
+        echo "201907120003" > _filemin_TAG.out
+        echo "tst-appconfig-$(cat _filemin_TAG.out)" > _fileproj_TAG.out
+        echo "test-1" > _fileclus_TAG.out
+        echo "us-west1" > _filereg_TAG.out
+        echo "us-west1-b" > _filezone_TAG.out
+    dir: "build-source/tests/setup"
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+    args:
+    - '-c'
+    - |
+      set -x
+      echo "PROJECT_NAME-$(cat _fileproj_TAG.out)"
+      gcloud config list  --quiet
+      gcloud projects create --folder=611791615006 --name="$(cat _fileproj_TAG.out)" --quiet  || echo 0
+      gcloud services enable cloudbilling.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
+      gcloud beta billing projects link tst-appconfig-$(cat _filemin_TAG.out) --billing-account="$(cat /builder/home/.ssh/billing_acount_testing.txt)" --quiet
+      gcloud services enable compute.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
+      gcloud services enable container.googleapis.com  --project "$(cat _fileproj_TAG.out)" --quiet
+      gcloud services enable sourcerepo.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
+      gcloud services enable monitoring.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
+      gcloud services enable logging.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
+      echo $(gcloud beta compute routers create r"$(cat _filereg_TAG.out)" --network=default --region "$(cat _filereg_TAG.out)" --project "$(cat _fileproj_TAG.out)" || echo 0)
+      echo $(gcloud beta compute routers nats create "n$(cat _filereg_TAG.out)" --router "r$(cat _filereg_TAG.out)" --project "$(cat _fileproj_TAG.out)" --auto-allocate-nat-external-ips --nat-all-subnet-ip-ranges --router-region "$(cat _filereg_TAG.out)" || echo 0)
+      echo $(gcloud container clusters describe $(cat _fileclus_TAG.out) --zone $(cat _filezone_TAG.out) --format="value(selfLink.basename())" --project "$(cat _fileproj_TAG.out)" || echo "") > out_cluster_TAG.out
+      echo "CLUS-$(cat out_cluster_TAG.out)"
+      [  ! -z  "$(cat out_cluster_TAG.out)" ] ||  gcloud beta container --project "$(cat _fileproj_TAG.out)" \
+          clusters create "$(cat _fileclus_TAG.out)" \
+          --disk-size "500" \
+          --disk-type "pd-standard" \
+          --enable-autorepair \
+          --enable-cloud-logging \
+          --enable-cloud-monitoring \
+          --enable-ip-alias \
+          --enable-master-authorized-networks \
+          --enable-network-policy \
+          --enable-private-nodes \
+          --enable-stackdriver-kubernetes \
+          --image-type "COS" \
+          --machine-type "n1-standard-4" \
+          --master-ipv4-cidr "172.28.0.0/28" \
+          --metadata disable-legacy-endpoints=true \
+          --no-enable-autoupgrade \
+          --no-enable-basic-auth \
+          --no-issue-client-certificate \
+          --num-nodes "3" \
+          --network "projects/$(cat _fileproj_TAG.out)/global/networks/default" \
+          --subnetwork "projects/$(cat _fileproj_TAG.out)/regions/$(cat _filereg_TAG.out)/subnetworks/default" \
+          --zone "$(cat _filezone_TAG.out)"
+
+      echo $(gcloud container clusters describe "$(cat _fileclus_TAG.out)" --zone "$(cat _filezone_TAG.out)" --format="value(selfLink.basename())" --project "$(cat _fileproj_TAG.out)"  || echo "") > out2_cluster_TAG.out
+      echo "CLUS2-$(cat out2_cluster_TAG.out)"
+
+      gcloud container clusters update "$(cat _fileclus_TAG.out)"  --zone "$(cat _filezone_TAG.out)" \
+        --enable-master-authorized-networks \
+        --master-authorized-networks 0.0.0.0/0 --zone "$(cat _filezone_TAG.out)" --project "$(cat _fileproj_TAG.out)"
+      echo $(gcloud source repos describe "$(cat _fileproj_TAG.out)-r" --format="value(selfLink.basename())" --project "$(cat _fileproj_TAG.out)" || echo "") > out_repos_TAG.out
+      echo "REPO-$(cat out_repos_TAG.out)"
+
+      [ ! -z  "$(cat out_repos_TAG.out)" ] || gcloud source repos create "$(cat _fileproj_TAG.out)-r" --project "$(cat _fileproj_TAG.out)"
+
+
+      rm -f ./kubeconfig
+      touch ./kubeconfig
+
+      gcloud container clusters get-credentials "$(cat _fileclus_TAG.out)" --zone "$(cat _filezone_TAG.out)"  --project "$(cat _fileproj_TAG.out)"
+
+      kubectl create clusterrolebinding cluster-admin-binding \
+        --clusterrole cluster-admin \
+        --user $(gcloud config get-value core/account)
+
+
+    dir: "build-source/tests/setup"
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+    args:
+      - '-c'
+      - |
+        set -x
+        gcloud source repos clone  "$(cat _fileproj_TAG.out)-r" ./repo --project "$(cat _fileproj_TAG.out)"
+        curl -Lo acm-init.sh \
+           https://storage.googleapis.com/anthos-appconfig_public/install/scripts/acm-init.sh
+        gsutil cp gs://anthos-appconfig_public/install/config-management-operator.yaml .
+        chmod +x acm-init.sh
+        kubectl get nodes
+        yes | ./acm-init.sh install
+        ls -lR
+
+    dir: "build-source/tests"
+    env:
+      - 'KUBECONFIG=build-source/tests/kubeconfig'

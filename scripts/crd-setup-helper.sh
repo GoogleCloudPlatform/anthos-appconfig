@@ -20,8 +20,8 @@ set -e
 ####
 
 # TODO - Add Branch Name
-TEMPLATE_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/build-script-2019-07-10/acm-crd/config-management-root"
-EXAMPLES_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/build-script-2019-07-10/acm-crd-examples/config-management-root/namespaces"
+TEMPLATE_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/${RELEASE_NAME}/acm-crd/config-management-root"
+EXAMPLES_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/${RELEASE_NAME}/acm-crd-examples/config-management-root/namespaces"
 CM_OPERATOR_BUCKET="gs://config-management-release/released/latest/config-management-operator.yaml"
 HELM_IMAGE="alpine/helm:2.13.1"
 CM_CRD_COUNT=8
@@ -46,27 +46,35 @@ _confirm() {
 
 load-gcpvars() {
   export GCP_ACCOUNT=$(gcloud config get-value core/account 2> /dev/null)
-  export GCP_PROJECT=$(gcloud config get-value core/project 2> /dev/null)
-  [[ -z "$GCP_PROJECT" ]] || [[ -z "$GCP_ACCOUNT" ]] && \
+#  export PROJECT_NAME=$(gcloud config get-value core/project 2> /dev/null)
+  [[ -z "$PROJECT_NAME" ]] || [[ -z "$GCP_ACCOUNT" ]] && \
     _errexit "missing gcloud configuration, run 'gcloud init' to create"
   return 0
 }
 
 load-ctxvars() {
   # set cluster variables
+  [[ -z $PROJECT_NAME ]] && _errexit "missing Project Name context"
+  [[ -z $RELEASE_NAME ]] && _errexit "missing Release Name (use master) context"
   export K8S_CONTEXT=$(kubectl config current-context)
   export ACM_CLUSTER_REGISTRY_NAME=${K8S_CONTEXT//_/-}
   export ACM_ENV_ROOT=./env/${ACM_CLUSTER_REGISTRY_NAME}
+  [[ -z $K8S_CONTEXT ]] ||  [[ -z $K8S_CONTEXT ]] || [[ -z $K8S_CONTEXT ]] || return 0
+   _errexit "missing k8s context"
 }
 
 load-repovars() {
+  echo "load-repovars - args - ${ARGS} - opts -${OPTS} - PARMS - ${@}"
   REPO_PATH=${ARGS[0]:-$(pwd)}
-  cd $REPO_PATH
-
+  pushd $REPO_PATH
+  export REPO_PATH="$(dirname ${ARGS[0]})/$(basename ${ARGS[0]})"
+  export REPO_NAME=$(basename $REPO_PATH)
   # set repo variables
   export REPO_REMOTE=$(git remote | head -1)
   [[ -z "$REPO_REMOTE" ]] && _errexit "repo missing remote upstream url"
   export REPO_URL=$(git config --get remote.${REPO_REMOTE}.url 2> /dev/null) || _errexit "repo missing remote upstream url"
+  export REPO_URL="ssh://${GCP_ACCOUNT}@source.developers.google.com:2022/p/${PROJECT_NAME}/r/${REPO_NAME}"
+
   # default to master branch on repos with no commit index
   REPO_BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null) || REPO_BRANCH="master"
   export REPO_BRANCH
@@ -95,42 +103,50 @@ _echo_vars() {
 
 create-repo() {
   load-gcpvars
+  echo "create-repo - args - ${ARGS}"
+  [ -e "${ARGS[0]}" ] && _errexit "create-repo:check-path:path exists: $REPO_PATH"
+#  [ -d "${ARGS[0]}" ] || mkdir -p "${ARGS[0]}"
+#  [ -d "${ARGS[0]}" ] || _errexit "create-repo:check-path:invalid path - ${ARGS[0]}"
 
-  export REPO_PATH=$(readlink -f ${ARGS[0]}) || _errexit "invalid path"
+  export REPO_PATH="$(dirname ${ARGS[0]})/$(basename ${ARGS[0]})"
   export REPO_NAME=$(basename $REPO_PATH)
-  export REPO_URL="ssh://${GCP_ACCOUNT}@google.com@source.developers.google.com:2022/p/${GCP_PROJECT}/r/${REPO_NAME}"
+  export REPO_URL="ssh://${GCP_ACCOUNT}@source.developers.google.com:2022/p/${PROJECT_NAME}/r/${REPO_NAME}"
   export REPO_REMOTE=origin
   export REPO_BRANCH=master
 
-  [[ -e "$REPO_PATH" ]] && _errexit "path exists: $REPO_PATH"
 
-  _echo_vars GCP_PROJECT REPO_PATH
+
+  _echo_vars PROJECT_NAME REPO_NAME REPO_PATH REPO_URL
   _confirm "\ncreate repo with above configuration?" || exit 0
 
   _output "creating cloud source repo"
-  gcloud source repos create --project $GCP_PROJECT $REPO_NAME
+  gcloud source repos create --project $PROJECT_NAME $REPO_NAME
 
   _output "cloning new repo"
-  gcloud source repos clone --project $GCP_PROJECT $REPO_NAME $REPO_PATH
+  gcloud source repos clone --project $PROJECT_NAME $REPO_NAME $REPO_PATH
+
 }
 
 init-repo() {
   local create
+  echo "init-repo - args - ${ARGS} - opts - ${OPTS} - ${OPTS[@]}"
   for opt in ${OPTS[@]}; do
     case $opt in
       -c) create=1 ;;
       *) _errexit "unknown install option \"$opt\"";;
     esac
   done
-
+  echo "init-repo-create - create - ${create}"
+  load-gcpvars
   load-ctxvars
   [[ -z "$create" ]] || create-repo
-  load-repovars
 
-  echo; for v in REPO_REMOTE REPO_BRANCH REPO_URL K8S_CONTEXT ACM_CLUSTER_REGISTRY_NAME; do
+  load-repovars $ARGS[0]
+
+  echo; for v in GCP_ACCOUNT ACM_ENV_ROOT REPO_PATH REPO_REMOTE REPO_BRANCH REPO_URL K8S_CONTEXT ACM_CLUSTER_REGISTRY_NAME PROJECT_NAME; do
     echo -e "\033[32m${v}\033[0m\t| ${!v}"
   done | column -t
-  _confirm "\ninitialize repo with above configuration?" || exit 0
+  _confirm "\ninitialize repo with above configuration?" || { echo "x" ; popd ; exit 0; }
 
   [[ -a $ACM_ENV_ROOT ]] && _errexit "config root exists: $ACM_ENV_ROOT"
 
@@ -203,61 +219,51 @@ spec:
     policyDir: "${ACM_ENV_ROOT}"
 EOF
 
-  # check in new config root
-  [[ -f .gitignore ]] || echo 'keys/*' > .gitignore
-  git add ${ACM_ENV_ROOT} .gitignore
 
-  mkdir -p ./keys
-  key_path="./keys/${ACM_CLUSTER_REGISTRY_NAME}_rsa"
-  _output "generating repo ssh key [${key_path}]"
-  ssh-keygen -t rsa -b 4096 -N '' -q \
-    -C "${ACM_CLUSTER_REGISTRY_NAME}" \
-    -f $key_path
+  if _confirm "\npush new config?"; then
 
-  if ! _confirm "\npush new config?"; then
+    git add ${REPO_PATH}/*
+    git status
+    echo "git commit"
+    git commit -am "auto-initialize $ACM_CLUSTER_REGISTRY_NAME" || echo "git commit - might be empty - should be ok"
+    echo "git push"
+    git push -q --set-upstream ${REPO_REMOTE} ${REPO_BRANCH}
+    echo "kubectl apply"
+    kubectl apply -f ${ACM_ENV_ROOT}/config-management.yaml
+    echo "Instructions for keys"
+
     cat <<EOM
 
 # Complete Setup
 
 1. Run the following commands to complete setup:
 
-git commit -am "auto-initialize $ACM_CLUSTER_REGISTRY_NAME" && git push
+Create private key in secrets to access repostory
 
-kubectl create secret generic git-creds \\
+Example:
+
+ssh-keygen -t rsa -b 4096 -N '' -q \
+  -C "${ACM_CLUSTER_REGISTRY_NAME}" \
+  -f "private key path"
+
+2.  Create secret
+
+kubectl create secret generic git-creds \
 --namespace=config-management-system \\
---from-file=ssh=${key_path}
+--from-file=ssh="private key path"
 
-kubectl apply -f ${ACM_ENV_ROOT}/config-management.yaml
+**************IMPORTANT**************
+Delete the private key from the local disk or otherwise protect it.
+**************IMPORTANT**************
 
-
-2. Add the below public SSH key to your repo provider
+2. Add the below public SSH key to your repo provider - "public key path + .pub"
 $(git-key-url $REPO_URL)
 
-$(cat ${key_path}.pub)
 EOM
-
+    popd
     exit 0
   fi
 
-  _output "pushing config repo updates\n"
-  git commit -q -am "auto-initialize $ACM_CLUSTER_REGISTRY_NAME"
-  git push -q --set-upstream ${REPO_REMOTE} ${REPO_BRANCH}
-
-  _output "configuring operator repo key"
-  kubectl create secret generic git-creds \
-    --namespace=config-management-system \
-    --from-file=ssh=${key_path}
-  kubectl apply -f ${ACM_ENV_ROOT}/config-management.yaml
-
-  cat <<EOM
-
-# Complete Setup
-
-Add the below public SSH key to your repo provider to complete setup:
-$(git-key-url $REPO_URL)
-
-$(cat ${key_path}.pub)
-EOM
 }
 
 init-demos() {
@@ -266,7 +272,7 @@ init-demos() {
   load-repovars
   local x app_iters="1 2" app_name="appconfigcrd-demo"
 
-  echo; for v in REPO_REMOTE REPO_BRANCH REPO_URL GCP_PROJECT K8S_CONTEXT ACM_CLUSTER_REGISTRY_NAME; do
+  echo; for v in REPO_REMOTE REPO_BRANCH REPO_URL PROJECT_NAMEK8S_CONTEXT ACM_CLUSTER_REGISTRY_NAME; do
     echo -e "\033[32m${v}\033[0m\t| ${!v}"
   done | column -t
   _confirm "\nproceed with above configuration?" || exit 0
@@ -278,52 +284,50 @@ init-demos() {
   _output "creating pubsub topics and subscriptions"
   for i in $app_iters; do
     topic="${app_name}-topic${i}"
-    if (gcloud pubsub topics describe $topic &> /dev/null); then
+    if (gcloud pubsub topics describe $topic --project $PROJECT_NAME &> /dev/null); then
       echo "$topic topic exists, skipping"
     else
-      gcloud pubsub topics create $topic --project $GCP_PROJECT
+      gcloud pubsub topics create $topic --project $PROJECT_NAME
     fi
 
-    if (gcloud pubsub subscriptions describe $topic &> /dev/null); then
+    if (gcloud pubsub subscriptions describe $topic --project $PROJECT_NAME &> /dev/null); then
       echo "$topic subscription exists, skipping"
     else
-      gcloud pubsub subscriptions create $topic --project $GCP_PROJECT \
-        --topic ${app_name}-topic1 --topic-project $GCP_PROJECT
+      gcloud pubsub subscriptions create $topic --project $PROJECT_NAME\
+        --topic ${topic} --topic-project $PROJECT_NAME
     fi
   done
 
-  _output "adding IAM service account keys to RBAC-protected config management namespace"
-  mkdir -p ./keys
-  for i in $app_iters; do
-    iam_name=${app_name}-sa${i}
-    iam_account="${iam_name}@${GCP_PROJECT}.iam.gserviceaccount.com"
-
-    if (gcloud iam service-accounts describe $iam_account &> /dev/null); then
-      echo "$iam_account service account exists, skipping creation"
-    else
-      gcloud iam service-accounts create ${iam_name} --display-name=${iam_name} --project $GCP_PROJECT
-    fi
-
-    if (kubectl get secret -n appconfigmgrv2-system ${iam_name}-secret &> /dev/null); then
-      echo "${iam_name}-secret exists, skipping"
-    else
-      gcloud iam service-accounts keys create ./keys/${iam_name}.json --project $GCP_PROJECT \
-        --iam-account=${iam_account}
-      kubectl create secret generic ${iam_name}-secret \
-        -n appconfigmgrv2-system \
-        --from-file=key.json=./keys/${iam_name}.json
-    fi
-  done
-
-  _output "creating service account pubsub ACLs"
+  DEMO_COMMAND=""
   for i in $app_iters; do
     topic="${app_name}-topic${i}"
     iam_name=${app_name}-sa${i}
-    iam_account="${iam_name}@${GCP_PROJECT}.iam.gserviceaccount.com"
-    gcloud beta pubsub topics add-iam-policy-binding ${topic} --project $GCP_PROJECT \
-      --member=serviceAccount:${iam_account} \
-      --role=roles/pubsub.publisher || true
-    done
+    iam_account="${iam_name}@${PROJECT_NAME}.iam.gserviceaccount.com"
+    DEMO_COMMAND="${DEMO_COMMAND}gcloud iam service-accounts create ${iam_name} --display-name=${iam_name} --project $PROJECT_NAME\n"
+    DEMO_COMMAND="${DEMO_COMMAND}gcloud iam service-accounts keys create 'key path.json' --project $PROJECT_NAME \\\\\n"
+    DEMO_COMMAND="${DEMO_COMMAND}  --iam-account=${iam_account}\n"
+    DEMO_COMMAND="${DEMO_COMMAND}gcloud beta pubsub topics add-iam-policy-binding ${topic} --project $PROJECT_NAME \\\\\n"
+    DEMO_COMMAND="${DEMO_COMMAND}  --member=serviceAccount:${iam_account} \\\\\n"
+    DEMO_COMMAND="${DEMO_COMMAND}  --role=roles/pubsub.publisher\n"
+    DEMO_COMMAND="${DEMO_COMMAND}\nkubectl create secret generic ${iam_name}-secret \\\\\n"
+    DEMO_COMMAND="${DEMO_COMMAND}  -n appconfigmgrv2-system \\\\\n"
+    DEMO_COMMAND="${DEMO_COMMAND}  --from-file=key.json='key dir'/${iam_name}.json\n\n"
+
+  done
+      cat <<EOM
+
+# Complete Setup
+
+1. Run the following commands to complete setup:
+
+Create two service accounts and JSON Keys and corresponding subscriptions and secrets (to test pubsub ACL)
+
+EOM
+
+echo -e ${DEMO_COMMAND}
+
+
+
 
   [[ -d "${ACM_ENV_ROOT}/namespaces/use-cases" ]] && {
     _output "${ACM_ENV_ROOT}/namespaces/use-cases already exists, skipping repo update"
@@ -332,7 +336,7 @@ init-demos() {
 
   _output "adding demo apps to policy config repo"
   gsutil -m cp -R "${EXAMPLES_BUCKET}/*" ${ACM_ENV_ROOT}/namespaces/
-  git add ${ACM_ENV_ROOT}/namespaces/use-cases
+  git add ${ACM_ENV_ROOT}/namespaces/use-cases || echo "1"
   git commit -am "initialize $ACM_CLUSTER_REGISTRY_NAME demo apps" && git push
 }
 
@@ -371,12 +375,12 @@ _cmo_status() {
 }
 
 _sync_status() {
-  echo -e 'COMPONENT,LAST_UPDATE,TOKEN'
+  echo -e 'COMPONENT,LAST_UPDATE,TOKEN\n'
   kubectl get repos.configmanagement.gke.io repo \
     -o='go-template' \
     --template='go-template' --template='source,-,{{ .status.source.token }}
-git_importer,{{ .status.import.lastUpdate }},{{ .status.import.token }}
-git_syncer,{{ .status.sync.lastUpdate }},{{ .status.sync.latestToken }}'
+git_importer,{{ .status.import.lastUpdate }},{{ .status.import.token }}{{printf "\n"}}
+git_syncer,{{ .status.sync.lastUpdate }},{{ .status.sync.latestToken }}{{printf "\n"}}'
 }
 
 _sync_errors() {
@@ -398,7 +402,7 @@ install() {
     esac
   done
 
-  echo; for v in K8S_CONTEXT ACM_CLUSTER_REGISTRY_NAME; do
+  echo; for v in K8S_CONTEXT ACM_CLUSTER_REGISTRY_NAME PROJECT_NAME; do
     echo -e "\033[32m${v}\033[0m\t| ${!v}"
   done | column -t
   _confirm "\nproceed with above configuration?" || exit 0
@@ -429,6 +433,7 @@ install() {
 
 install_operator() {
   _output "installing config management operator to cluster"
+  gsutil ls ${CM_OPERATOR_BUCKET} || _errexit "No access to config management operator, whitelisted?"
   gsutil cp ${CM_OPERATOR_BUCKET} - | kubectl apply -f -
 }
 
@@ -523,11 +528,14 @@ _parseopts() {
     esac
   done
 
-  export OPTS=(${opts[@]})
-  export ARGS=(${args[@]})
+  OPTS=(${opts[@]})
+  ARGS=(${args[@]})
+  echo "_parseopts - args - ${ARGS} - opts -${OPTS}"
 }
 
 _parseopts $@
+
+echo "main - args - ${ARGS} - opts -${OPTS}"
 case $ACTION in
   help) usage ;;
   status) status ;;
