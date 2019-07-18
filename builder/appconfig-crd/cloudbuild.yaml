@@ -16,13 +16,15 @@ timeout: 3600s
 steps:
   - name: gcr.io/cloud-builders/gsutil
     args: ['cp', '-DD', 'gs://${PROJECT_ID}_build/repo/keys/id_rsa_${PROJECT_ID}-repo', '/builder/home/.ssh/id_rsa']
+  - name: gcr.io/cloud-builders/gsutil
+    args: ['cp', '-DD', 'gs://${PROJECT_ID}_build/repo/keys/id_rsa_${PROJECT_ID}-repo', '/builder/home/.ssh/config']
   - name: 'gcr.io/cloud-builders/git'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
         cp /builder/home/.ssh/id_rsa /root/.ssh/id_rsa
-        cp ./build-ssh-config-git-hub /root/.ssh/config
+        cp /builder/home/.ssh/config /root/.ssh/config
         chmod 400 /root/.ssh/id_rsa
         ls -la /root/.ssh
         cat /root/.ssh/config
