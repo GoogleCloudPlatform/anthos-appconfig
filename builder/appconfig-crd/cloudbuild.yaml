@@ -44,7 +44,7 @@ steps:
       - |
         echo "Fetch-$COMMIT_SHA - REF - $_REF_PATH"
         [ "$_REF_PATH" == '*MASTER*'] && MY_CHECKOUT_REF="/refs/heads/$BRANCH_NAME"
-        git fetch --unshallow $$MY_CHECKOUT_REF $COMMIT_SHA
+        git fetch $$MY_CHECKOUT_REF $COMMIT_SHA
     volumes:
       - name: 'ssh'
         path: /root/.ssh
