@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# gcloud builds submit --config=/Users/joseret/go112/src/github.com/GoogleCloudPlatform/anthos-appconfig/tests/setup/cloudbuild.yaml /Users/joseret/go112/src/github.com/GoogleCloudPlatform/anthos-appconfig/tests/setup --project anthos-appconfig
 timeout: 3600s
 steps:
   - name: gcr.io/cloud-builders/gsutil
@@ -70,6 +69,8 @@ steps:
         echo "test-1" > _fileclus_TAG.out
         echo "us-west1" > _filereg_TAG.out
         echo "us-west1-b" > _filezone_TAG.out
+        echo "repo8" > _filerepo_TAG.out
+        echo "repopath" > _filerepopath_TAG.out
     dir: "build-source/tests/setup"
   - name: google/cloud-sdk
     entrypoint: "bash"
@@ -77,7 +78,9 @@ steps:
     - '-c'
     - |
       set -x
+      [[ "$_STEPS_X" == *"CLUSTER1"* ]] && exit 0
       echo "PROJECT_NAME-$(cat _fileproj_TAG.out)"
+      TESTENV=$(date "+%Y%m%d-%H%M%S")
       gcloud config list  --quiet
       gcloud projects create --folder=611791615006 --name="$(cat _fileproj_TAG.out)" --quiet  || echo 0
       gcloud services enable cloudbilling.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
@@ -87,6 +90,7 @@ steps:
       gcloud services enable sourcerepo.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
       gcloud services enable monitoring.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
       gcloud services enable logging.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
+      echo "TESTENV=$$TESTENV"
       echo $(gcloud beta compute routers create r"$(cat _filereg_TAG.out)" --network=default --region "$(cat _filereg_TAG.out)" --project "$(cat _fileproj_TAG.out)" || echo 0)
       echo $(gcloud beta compute routers nats create "n$(cat _filereg_TAG.out)" --router "r$(cat _filereg_TAG.out)" --project "$(cat _fileproj_TAG.out)" --auto-allocate-nat-external-ips --nat-all-subnet-ip-ranges --router-region "$(cat _filereg_TAG.out)" || echo 0)
       echo $(gcloud container clusters describe $(cat _fileclus_TAG.out) --zone $(cat _filezone_TAG.out) --format="value(selfLink.basename())" --project "$(cat _fileproj_TAG.out)" || echo "") > out_cluster_TAG.out
@@ -121,10 +125,10 @@ steps:
       gcloud container clusters update "$(cat _fileclus_TAG.out)"  --zone "$(cat _filezone_TAG.out)" \
         --enable-master-authorized-networks \
         --master-authorized-networks 0.0.0.0/0 --zone "$(cat _filezone_TAG.out)" --project "$(cat _fileproj_TAG.out)"
-      echo $(gcloud source repos describe "$(cat _fileproj_TAG.out)-r" --format="value(selfLink.basename())" --project "$(cat _fileproj_TAG.out)" || echo "") > out_repos_TAG.out
+      echo $(gcloud source repos describe "$(cat _filerepo_TAG.out)" --format="value(selfLink.basename())" --project "$(cat _fileproj_TAG.out)" || echo "") > out_repos_TAG.out
       echo "REPO-$(cat out_repos_TAG.out)"
 
-      [ ! -z  "$(cat out_repos_TAG.out)" ] || gcloud source repos create "$(cat _fileproj_TAG.out)-r" --project "$(cat _fileproj_TAG.out)"
+      [ ! -z  "$(cat out_repos_TAG.out)" ] || gcloud source repos create "$(cat _filerepo_TAG.out)" --project "$(cat _fileproj_TAG.out)"
 
 
       rm -f ./kubeconfig
@@ -132,7 +136,8 @@ steps:
 
       gcloud container clusters get-credentials "$(cat _fileclus_TAG.out)" --zone "$(cat _filezone_TAG.out)"  --project "$(cat _fileproj_TAG.out)"
 
-      kubectl create clusterrolebinding cluster-admin-binding \
+      [ ! -z  "$(kubectl get clusterrolebinding cluster-admin-binding --output 'jsonpath={.metadata.name}')" ] || kubectl \
+        create clusterrolebinding cluster-admin-binding \
         --clusterrole cluster-admin \
         --user $(gcloud config get-value core/account)
 
@@ -144,15 +149,123 @@ steps:
       - '-c'
       - |
         set -x
-        gcloud source repos clone  "$(cat _fileproj_TAG.out)-r" ./repo --project "$(cat _fileproj_TAG.out)"
+        [[ "$_STEPS_X" == *"CRD1"* ]] && exit 0
+
+        PARM_TS_SEC=$(cat setup/_file_TAG.out)
+        PARM_TS_MIN=$(cat _filemin_TAG.out)
+        PARM_PROJ="$(cat setup/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat setup/_fileclus_TAG.out)
+        PARM_REGION=$(cat setup/_filereg_TAG.out)
+        PARM_ZONE=$(cat setup/_filezone_TAG.out)
+        PARM_REPO=$(cat setup/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
+
+        gcloud source repos clone  $$PARM_REPO "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" --project "$$PARM_PROJ"
         curl -Lo acm-init.sh \
            https://storage.googleapis.com/anthos-appconfig_public/install/scripts/acm-init.sh
-        gsutil cp gs://anthos-appconfig_public/install/config-management-operator.yaml .
-        chmod +x acm-init.sh
+        chmod a+x acm-init.sh
+        curl -Lo crd-setup-helper.sh \
+           https://storage.googleapis.com/anthos-appconfig_public/install/scripts/crd-setup-helper.sh
+        chmod a+x crd-setup-helper.sh
+        rm -f ./kubeconfig
+        touch ./kubeconfig
+
+        gcloud container clusters get-credentials "$$PARM_CLUSTER" \
+          --zone "$$PARM_ZONE" \
+          --project "$$PARM_PROJ"
+
         kubectl get nodes
-        yes | ./acm-init.sh install
-        ls -lR
+
+        # Install column
+        apt-get install bsdmainutils -y
+
+        git config --global user.email $(gcloud config get-value core/account 2> /dev/null)
+        git config --global user.name  $(gcloud config get-value core/account 2> /dev/null)
+
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$_BRANCH_NAME; echo "y\nyyyy" | ./crd-setup-helper.sh install -f
+
+        # TODO - Check for Istio Install
+        # kubectl get deployment  -o yaml -n istio-system | grep image:
+
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$_BRANCH_NAME; echo "yy" | ./crd-setup-helper.sh init-repo "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" "joseret@google.com"
+        gsutil cp gs://${PROJECT_ID}_build/repo/keys/id_rsa_test* .
+        cp ./id_rsa_test* /root/.ssh/
+        [ ! -z  "$(kubectl get secrets -n=config-management-system git-creds --output 'jsonpath={.items[0].metadata.name}')" ] || kubectl \
+          create secret generic -n=config-management-system git-creds \
+          --from-file=ssh=./id_rsa_test
+
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$_BRANCH_NAME; yes | bash acm-init.sh status
+
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$_BRANCH_NAME;  echo "y\n" | ./crd-setup-helper.sh init-demos "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" "joseret@google.com"
+
+        sleep 120
+
+        gsutil cat  gs://anthos-appconfig_public/deploy/${_BRANCH_NAME}/examples/use-cases/uc-allowed-services-k8s/deploy-apps.yaml | kubectl apply -f -
+        gsutil cat  gs://anthos-appconfig_public/deploy/${_BRANCH_NAME}/examples/use-cases/uc-allowed-services-istio/deploy-apps.yaml | kubectl apply -f -
+        gsutil cat  gs://anthos-appconfig_public/deploy/${_BRANCH_NAME}/examples/use-cases/uc-allowed-jwt-istio/deploy-apps.yaml | kubectl apply -f -
+        gsutil cat  gs://anthos-appconfig_public/deploy/${_BRANCH_NAME}/examples/use-cases/uc-secrets-k8s/deploy-apps.yaml | kubectl apply -f -
+        gsutil cat  gs://anthos-appconfig_public/deploy/${_BRANCH_NAME}/examples/use-cases/uc-secrets-istio/deploy-apps.yaml | kubectl apply -f -
+        gsutil cat  gs://anthos-appconfig_public/deploy/${_BRANCH_NAME}/examples/use-cases/uc-firebase/deploy-apps.yaml | kubectl apply -f -
+
+
+        # ls -lR
 
     dir: "build-source/tests"
-    env:
-      - 'KUBECONFIG=build-source/tests/kubeconfig'
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+    args:
+      - '-c'
+      - |
+        set -x
+        PARM_TS_SEC=$(cat setup/_file_TAG.out)
+        PARM_TS_MIN=$(cat _filemin_TAG.out)
+        PARM_PROJ="$(cat setup/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat setup/_fileclus_TAG.out)
+        PARM_REGION=$(cat setup/_filereg_TAG.out)
+        PARM_ZONE=$(cat setup/_filezone_TAG.out)
+        PARM_REPO=$(cat setup/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
+
+        rm -f ./kubeconfig
+        touch ./kubeconfig
+
+        gcloud container clusters get-credentials "$$PARM_CLUSTER" \
+          --zone "$$PARM_ZONE" \
+          --project "$$PARM_PROJ"
+
+        export INGRESS_ISTIO_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        export INGRESS_NO_ISTIO_HOST=$(kubectl -n devtest get service test-service-external -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+        UC1aTEST=$(curl "http://$$INGRESS_NO_ISTIO_HOST/testcallseq?call1=http://app-allowed-k8s-appconfigv2-service-sm-2.uc-allowed-services-k8s/testcallseq&call2=http://app-allowed-k8s-appconfigv2-service-sm-1/testcallseq&call3=https://httpbin.org/get")
+        UC1bTEST=$(curl "http://$$INGRESS_NO_ISTIO_HOST/testcallseq?call1=http://app-allowed-k8s-appconfigv2-service-sm-2.uc-allowed-services-k8s/testcallseq&call2=http://app-allowed-k8s-appconfigv2-service-sm-3/testcallseq&call3=https://httpbin.org/get")
+        UC2aTEST=$(curl "http://$$INGRESS_ISTIO_HOST/testcallseq?call1=http://app-allowed-istio-appconfigv2-service-sm-2.uc-allowed-services-istio/testcallseq&call2=http://app-allowed-istio-appconfigv2-service-sm-3/testcallseq")
+        UC2bTEST=$(curl "http://$$INGRESS_ISTIO_HOST/testcallseq?call1=http://app-allowed-istio-appconfigv2-service-sm-1.uc-allowed-services-istio/testcallseq&call2=http://app-allowed-istio-appconfigv2-service-sm-3/testcallseq")
+
+
+
+        usecase=()
+        usecase_output=()
+        usecase_error()
+        usecase+=("UC1aTEST")
+        usecase_output+=($$UC1aTEST)
+        use_case_error+=("N")
+        usecase+=("UC1bTEST")
+        usecase_output+=($$UC1bTEST)
+        use_case_error+=("Y")
+        usecase+=("UC2aTEST")
+        usecase_output+=($$UC2aTEST)
+        use_case_error+=("N")
+        usecase+=("UC2bTEST")
+        usecase_output+=($$UC2bTEST)
+        use_case_error+=("Y")
+
+        for i in "1 2 3 4"; do
+          if ${usecase_error[i]} == "Y"; then
+            echo "ERROR-${usecase[i]}"
+          else
+            echo "NO-ERROR-${usecase[i]}"
+          fi
+        done
+
+
+    dir: "build-source/tests"

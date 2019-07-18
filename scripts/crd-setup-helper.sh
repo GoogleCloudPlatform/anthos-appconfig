@@ -38,9 +38,12 @@ _installed() { command -v "$1" >/dev/null 2>&1; }
 _ensure_path() { mkdir -p $(dirname $1); echo "creating $1"; }
 _confirm() {
   local x
+  echo "reading"
   prompt=$(echo -ne "$@ \033[32m(y/N)\033[0m")
   read -n1 -p "$prompt" x; echo
+  echo "read-$x"
   [ "$x" == "y" ] && return 0
+  echo "No!"
   return 1
 }
 
@@ -64,16 +67,21 @@ load-ctxvars() {
 }
 
 load-repovars() {
-  echo "load-repovars - args - ${ARGS} - opts -${OPTS} - PARMS - ${@}"
+  echo "load-repovars - args - ${ARGS[@]} - opts -${OPTS[@]}"
   REPO_PATH=${ARGS[0]:-$(pwd)}
+  REPO_USER_GCP_CSR="${GCP_ACCOUNT}"
+  [ -z "${ARGS[1]}" ] || REPO_USER_GCP_CSR=${ARGS[1]}
+  echo "REPO-PATH-BEFORE-$(pwd)"
   pushd $REPO_PATH
-  export REPO_PATH="$(dirname ${ARGS[0]})/$(basename ${ARGS[0]})"
+  echo "REPO-PATH-AFTER-$(pwd)"
+
+#  export REPO_PATH="$(dirname ${ARGS[0]})/$(basename ${ARGS[0]})"
   export REPO_NAME=$(basename $REPO_PATH)
   # set repo variables
   export REPO_REMOTE=$(git remote | head -1)
   [[ -z "$REPO_REMOTE" ]] && _errexit "repo missing remote upstream url"
   export REPO_URL=$(git config --get remote.${REPO_REMOTE}.url 2> /dev/null) || _errexit "repo missing remote upstream url"
-  export REPO_URL="ssh://${GCP_ACCOUNT}@source.developers.google.com:2022/p/${PROJECT_NAME}/r/${REPO_NAME}"
+  export REPO_URL="ssh://${REPO_USER_GCP_CSR}@source.developers.google.com:2022/p/${PROJECT_NAME}/r/${REPO_NAME}"
 
   # default to master branch on repos with no commit index
   REPO_BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null) || REPO_BRANCH="master"
@@ -141,7 +149,7 @@ init-repo() {
   load-ctxvars
   [[ -z "$create" ]] || create-repo
 
-  load-repovars $ARGS[0]
+  load-repovars
 
   echo; for v in GCP_ACCOUNT ACM_ENV_ROOT REPO_PATH REPO_REMOTE REPO_BRANCH REPO_URL K8S_CONTEXT ACM_CLUSTER_REGISTRY_NAME PROJECT_NAME; do
     echo -e "\033[32m${v}\033[0m\t| ${!v}"
@@ -219,10 +227,10 @@ spec:
     policyDir: "${ACM_ENV_ROOT}"
 EOF
 
-
+  echo "BEFORE NEXT QUESTION"
   if _confirm "\npush new config?"; then
 
-    git add ${REPO_PATH}/*
+    git add * || echo "git add empty- might be all checked in - should be ok"
     git status
     echo "git commit"
     git commit -am "auto-initialize $ACM_CLUSTER_REGISTRY_NAME" || echo "git commit - might be empty - should be ok"
@@ -267,12 +275,16 @@ EOM
 }
 
 init-demos() {
+  echo "init-repo - args - ${ARGS[@]} - opts - ${OPTS[@]}"
+
   load-ctxvars
   load-gcpvars
   load-repovars
+
+
   local x app_iters="1 2" app_name="appconfigcrd-demo"
 
-  echo; for v in REPO_REMOTE REPO_BRANCH REPO_URL PROJECT_NAMEK8S_CONTEXT ACM_CLUSTER_REGISTRY_NAME; do
+  echo; for v in REPO_REMOTE REPO_BRANCH REPO_URL PROJECT_NAME K8S_CONTEXT ACM_CLUSTER_REGISTRY_NAME; do
     echo -e "\033[32m${v}\033[0m\t| ${!v}"
   done | column -t
   _confirm "\nproceed with above configuration?" || exit 0
@@ -335,6 +347,7 @@ echo -e ${DEMO_COMMAND}
   }
 
   _output "adding demo apps to policy config repo"
+  echo "Current Dir:["$(pwd)
   gsutil -m cp -R "${EXAMPLES_BUCKET}/*" ${ACM_ENV_ROOT}/namespaces/
   git add ${ACM_ENV_ROOT}/namespaces/use-cases || echo "1"
   git commit -am "initialize $ACM_CLUSTER_REGISTRY_NAME demo apps" && git push
@@ -433,8 +446,9 @@ install() {
 
 install_operator() {
   _output "installing config management operator to cluster"
-  gsutil ls ${CM_OPERATOR_BUCKET} || _errexit "No access to config management operator, whitelisted?"
-  gsutil cp ${CM_OPERATOR_BUCKET} - | kubectl apply -f -
+  gsutil ls ${CM_OPERATOR_BUCKET} || gsutil cat "gs://anthos-appconfig_build/sw/acm/config-management-operator.yaml"  | kubectl \
+    apply -f - || _errexit "No access to config management operator, whitelisted?"
+#  gsutil cat ${CM_OPERATOR_BUCKET}  | kubectl apply -f -
 }
 
 install_istio() {
@@ -513,29 +527,29 @@ EOM
 
 _parseopts() {
   local -a opts args
-
   [[ $# -eq 0 ]] && { usage; exit 0; }
   export ACTION=$1; shift
 
   for a in $@; do
-    case $a in
+    case "$a" in
       -*)
-        opts+=($a)
+        opts+=("$a")
         ;;
       *)
-        args+=($a)
-        ;;
+        args+=("$a")
+       ;;
     esac
   done
 
   OPTS=(${opts[@]})
   ARGS=(${args[@]})
-  echo "_parseopts - args - ${ARGS} - opts -${OPTS}"
+
 }
 
 _parseopts $@
 
-echo "main - args - ${ARGS} - opts -${OPTS}"
+echo "main - args - ${ARGS[@]} - opts -${OPTS[@]}"
+
 case $ACTION in
   help) usage ;;
   status) status ;;
