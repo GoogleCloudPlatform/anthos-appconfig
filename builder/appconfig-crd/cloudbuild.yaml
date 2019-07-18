@@ -43,8 +43,9 @@ steps:
       - '-c'
       - |
         echo "Fetch-$COMMIT_SHA - REF - $_REF_PATH"
-        [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="/refs/heads/$BRANCH_NAME"
-        git fetch origin $$MY_CHECKOUT_REF $COMMIT_SHA
+        git show-ref
+        [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="refs/remotes/origin/$BRANCH_NAME"
+        git pull origin $$MY_CHECKOUT_REF $COMMIT_SHA
     volumes:
       - name: 'ssh'
         path: /root/.ssh
