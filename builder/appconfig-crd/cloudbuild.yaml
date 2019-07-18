@@ -36,7 +36,7 @@ steps:
   - name: gcr.io/cloud-builders/git
     args: [
       'fetch', '--depth=1', 'origin',
-      '$_REF_PATH',
+      '$COMMIT_SHA'
     ]
   ]
     volumes:
