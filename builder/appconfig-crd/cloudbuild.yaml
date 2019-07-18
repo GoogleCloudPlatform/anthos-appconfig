@@ -25,22 +25,23 @@ steps:
         cp ./build-ssh-config-git-hub /root/.ssh/config
         chmod 400 /root/.ssh/id_rsa
         ls -la /root/.ssh
-#        env
-#        rm -f /root/.ssh/known_hosts
-#        ssh -Tv  git@github.com
-#        cat /root/.ssh/known_hosts
+        mkdir build-source
+        cd build-source
+        git init
+        git remote add origin git@github.com:GoogleCloudPlatform/anthos-appconfig.git
+        echo $_REF_PATH
     volumes:
-    - name: 'ssh'
-      path: /root/.ssh
+      - name: 'ssh'
+        path: /root/.ssh
   - name: gcr.io/cloud-builders/git
     args: [
-      'clone', '--branch', '$_BRANCH_NAME',
-      'git@github.com:GoogleCloudPlatform/anthos-appconfig.git',
-      'build-source'
+      'fetch', '--depth=1', 'origin',
+      '$_REF_PATH',
     ]
+  ]
     volumes:
-    - name: 'ssh'
-      path: /root/.ssh
+      - name: 'ssh'
+        path: /root/.ssh
   - name: ubuntu
     args:
       - "bash"
@@ -96,11 +97,11 @@ steps:
       - |
         cp appconfigmgrv2/config/generated/all-cluster.yaml anthos-config-management/acm-crd/config-management-root/cluster
         cp appconfigmgrv2/config/generated/all-other.yaml anthos-config-management/acm-crd/config-management-root/namespaces/appconfigmgrv2-system
-#        git config user.name pso-crd-autobuild
-#        git config user.email 20604585440@cloudbuild.gserviceaccount.com
-#        git add .
-#        git commit -am "build - commit - $(cat appconfigmgrv2/_file_TAG.out)"
-#        git push origin ${_BRANCH_NAME}
+    #        git config user.name pso-crd-autobuild
+    #        git config user.email 20604585440@cloudbuild.gserviceaccount.com
+    #        git add .
+    #        git commit -am "build - commit - $(cat appconfigmgrv2/_file_TAG.out)"
+    #        git push origin ${_BRANCH_NAME}
     dir: "build-source"
     volumes:
       - name: 'ssh'
