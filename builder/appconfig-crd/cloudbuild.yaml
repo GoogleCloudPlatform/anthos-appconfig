@@ -41,6 +41,7 @@ steps:
     volumes:
       - name: 'ssh'
         path: /root/.ssh
+    dir: "build-source"
   - name: ubuntu
     args:
       - "bash"
