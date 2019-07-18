@@ -33,7 +33,7 @@ steps:
         cd build-source
         git init
         git remote add origin git@github.com:GoogleCloudPlatform/anthos-appconfig.git
-        git clone -n
+        git clone -n git@github.com:GoogleCloudPlatform/anthos-appconfig.git
         echo c
     volumes:
       - name: 'ssh'
