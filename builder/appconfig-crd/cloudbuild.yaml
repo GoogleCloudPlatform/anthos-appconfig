@@ -37,13 +37,13 @@ steps:
     volumes:
       - name: 'ssh'
         path: /root/.ssh
-  - name: google/cloud-sdk
+  - name: 'gcr.io/cloud-builders/git'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        echo "Fetch-$COMMIT_SHA"
-        [ ! -z "$_REF_PATH" ] && echo "testing for $_REF_PATH"
+        # echo "Fetch-$COMMIT_SHA"
+        # [ ! -z "$_REF_PATH" ] && echo "testing for $_REF_PATH"
         git fetch --depth=1 origin $COMMIT_SHA
     volumes:
       - name: 'ssh'
