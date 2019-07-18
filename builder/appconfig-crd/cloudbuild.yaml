@@ -29,7 +29,7 @@ steps:
         cd build-source
         git init
         git remote add origin git@github.com:GoogleCloudPlatform/anthos-appconfig.git
-        echo $_REF_PATH
+        echo c
     volumes:
       - name: 'ssh'
         path: /root/.ssh
@@ -38,7 +38,8 @@ steps:
     args:
       - '-c'
       - |
-        echo "Fetch-$COMMIT_SHA"s
+        echo "Fetch-$COMMIT_SHA"
+        [ ! -z "$_REF_PATH" ] && echo "testing for $_REF_PATH"
         git fetch --depth=1 origin $COMMIT_SHA
     volumes:
       - name: 'ssh'
