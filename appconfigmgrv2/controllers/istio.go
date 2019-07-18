@@ -15,22 +15,6 @@ package controllers
 
 import "k8s.io/apimachinery/pkg/runtime/schema"
 
-func istioResources() []schema.GroupVersionResource {
-	res := make([]schema.GroupVersionResource, 0, len(istioTypes))
-	for _, t := range istioTypes {
-		res = append(res, t.Resource)
-	}
-	return res
-}
-
-func istioKinds() []schema.GroupVersionKind {
-	kinds := make([]schema.GroupVersionKind, 0, len(istioTypes))
-	for _, t := range istioTypes {
-		kinds = append(kinds, t.Kind)
-	}
-	return kinds
-}
-
 var istioTypes = []struct {
 	Resource schema.GroupVersionResource
 	Kind     schema.GroupVersionKind
