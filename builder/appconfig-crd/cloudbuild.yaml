@@ -38,8 +38,8 @@ steps:
     args:
       - '-c'
       - |
-        echo "Fetch-$COMMIT_SHA"s
-        git fetch --depth=1 origin $COMMIT_SHA
+        echo "Fetch-$$COMMIT_SHA"s
+        git fetch --depth=1 origin $$COMMIT_SHA
     ]
     volumes:
       - name: 'ssh'
