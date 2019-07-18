@@ -42,7 +42,7 @@ steps:
     args:
       - '-c'
       - |
-        # echo "Fetch-$COMMIT_SHA"
+        echo "Fetch-$COMMIT_SHA - REF - $_REF_PATH"
         # [ ! -z "$_REF_PATH" ] && echo "testing for $_REF_PATH"
         git fetch --depth=1 origin $COMMIT_SHA
     volumes:
@@ -54,7 +54,7 @@ steps:
       - "bash"
       - '-c'
       - |
-        ls -la build-source/appconfigmgrv2
+        ls -la build-source
   - name: ubuntu
     args:
       - "bash"
