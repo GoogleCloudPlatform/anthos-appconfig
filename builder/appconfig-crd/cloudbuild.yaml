@@ -28,12 +28,6 @@ steps:
         chmod 400 /root/.ssh/id_rsa
         ls -la /root/.ssh
         cat /root/.ssh/config
-        cat
-        mkdir build-source
-        cd build-source
-        git init
-        git remote add origin git@github.com:GoogleCloudPlatform/anthos-appconfig.git
-        git clone git@github.com:GoogleCloudPlatform/anthos-appconfig.git
     volumes:
       - name: 'ssh'
         path: /root/.ssh
@@ -42,7 +36,9 @@ steps:
     args:
       - '-c'
       - |
+
         echo "Fetch-$COMMIT_SHA - REF - $_REF_PATH"
+        git clone git@github.com:GoogleCloudPlatform/anthos-appconfig.git build-source
         git show-ref
         [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME"
         git checkout $BRANCH_NAME
