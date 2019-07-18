@@ -25,6 +25,8 @@ steps:
         cp ./build-ssh-config-git-hub /root/.ssh/config
         chmod 400 /root/.ssh/id_rsa
         ls -la /root/.ssh
+        cat /root/.ssh/config
+        cat
         mkdir build-source
         cd build-source
         git init
@@ -33,7 +35,7 @@ steps:
     volumes:
       - name: 'ssh'
         path: /root/.ssh
-  - name: gcr.io/cloud-builders/git
+  - name: google/cloud-sdk
     entrypoint: 'bash'
     args:
       - '-c'
