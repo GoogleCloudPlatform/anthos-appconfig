@@ -41,6 +41,7 @@ steps:
         git clone git@github.com:GoogleCloudPlatform/anthos-appconfig.git build-source
         git show-ref
         [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME"
+        git pull origin $BRANCH_NAME
         git checkout $BRANCH_NAME
     volumes:
       - name: 'ssh'
