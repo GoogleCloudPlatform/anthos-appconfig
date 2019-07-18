@@ -34,9 +34,12 @@ steps:
       - name: 'ssh'
         path: /root/.ssh
   - name: gcr.io/cloud-builders/git
-    args: [
-      'fetch', '--depth=1', 'origin',
-      '$COMMIT_SHA'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Fetch-$COMMIT_SHA"s
+        git fetch --depth=1 origin $COMMIT_SHA
     ]
     volumes:
       - name: 'ssh'
