@@ -129,17 +129,48 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 
 // SetupWithManager registers the reconciler with a manager.
 func (r *AppEnvConfigTemplateV2Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+	c := ctrl.NewControllerManagedBy(mgr).
 		For(&appconfigmgrv1alpha1.AppEnvConfigTemplateV2{}).
 		Owns(&corev1.Service{}).
-		Owns(&netv1.NetworkPolicy{}).
-		Owns(gvkObject(istioHandlerGVK())).
-		Owns(gvkObject(istioInstanceGVK())).
-		Owns(gvkObject(istioPolicyGVK())).
-		Owns(gvkObject(istioRuleGVK())).
-		Owns(gvkObject(istioServiceEntryGVK())).
-		Owns(gvkObject(istioVirtualServiceGVK())).
-		Complete(r)
+		Owns(&netv1.NetworkPolicy{})
+
+	istioInstalled := true
+	for _, t := range istioTypes {
+		installed, err := r.resourceInstalled(context.Background(), t.Resource)
+		if err != nil {
+			return fmt.Errorf("checking if istio crd is installed: %v", err)
+		}
+		if !installed {
+			istioInstalled = false
+			break
+		}
+	}
+	log.Info("Determined istio installation status", "installed", istioInstalled)
+	if istioInstalled {
+		for _, t := range istioTypes {
+			c.Owns(gvkObject(t.Kind))
+		}
+	}
+
+	return c.Complete(r)
+}
+
+// resourceInstalled checks if a CRD is installed on the cluster.
+func (r *AppEnvConfigTemplateV2Reconciler) resourceInstalled(ctx context.Context, gvr schema.GroupVersionResource) (bool, error) {
+	c := r.Dynamic.Resource(schema.GroupVersionResource{
+		Group:    "apiextensions.k8s.io",
+		Version:  "v1beta1",
+		Resource: "customresourcedefinitions",
+	})
+	_, err := c.Get(gvr.Resource+"."+gvr.Group, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }
 
 // gvkObject returns an empty object with its GroupVersionKind set.

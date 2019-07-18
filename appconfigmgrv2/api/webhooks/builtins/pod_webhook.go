@@ -24,8 +24,8 @@ import (
 
 	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -127,7 +127,7 @@ func updateContainers(pod *corev1.Pod, appName string, mountName string, mountPa
 	)
 
 	for index, element := range pod.Spec.Containers {
-		if strings.HasPrefix(appName,element.Name) {
+		if strings.HasPrefix(appName, element.Name) {
 			log.Info("updateContainers:found",
 				"appName", element.Name,
 				"mountName", mountName,
