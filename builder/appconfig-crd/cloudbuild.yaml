@@ -44,7 +44,7 @@ steps:
       - |
         echo "Fetch-$COMMIT_SHA - REF - $_REF_PATH"
         # [ ! -z "$_REF_PATH" ] && echo "testing for $_REF_PATH"
-        git fetch --depth=1 origin $COMMIT_SHA
+        git fetch --unshallow origin $COMMIT_SHA
     volumes:
       - name: 'ssh'
         path: /root/.ssh
