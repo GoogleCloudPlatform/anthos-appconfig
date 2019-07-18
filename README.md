@@ -19,7 +19,8 @@ which leverages the k8s controller framework.
 
 ## High Level Diagram
 
-<Copy Image link here in docs>
+[[https://github.com/GoogleCloudPlatform/anthos-appconfig/wiki/images/global/ApplicationConfigTemplate.png|ApplicatinConfigTemplate High Level View]]
+
 
 ### Source Code Headers
 
