@@ -27,6 +27,11 @@ steps:
         cp ./build-ssh-config-git-hub /root/.ssh/config
         chmod 400 /root/.ssh/id_rsa
         ls -la /root/.ssh
+        mkdir build-source
+        cd build-source
+        git init
+        git remote add origin git@github.com:GoogleCloudPlatform/anthos-appconfig.git
+        echo $_REF_PATH
     #        env
     #        rm -f /root/.ssh/known_hosts
     #        ssh -Tv  git@github.com
@@ -36,13 +41,13 @@ steps:
         path: /root/.ssh
   - name: gcr.io/cloud-builders/git
     args: [
-      'clone', '--branch', '$_BRANCH_NAME',
-      'git@github.com:GoogleCloudPlatform/anthos-appconfig.git',
-      'build-source'
+      'fetch', '--depth=1', 'origin',
+      '$_REF_PATH',
     ]
     volumes:
       - name: 'ssh'
         path: /root/.ssh
+    dir: "build-source"
   - name: ubuntu
     args:
       - "bash"
@@ -213,7 +218,29 @@ steps:
         # ls -lR
 
     dir: "build-source/tests"
-  - name: gcr.io/anthos-appconfig/pso-e2e-testing-py:v1.0.0
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+    args:
+      - '-c'
+      - |
+        set -x
+        PARM_CLUSTER=$(cat setup/_fileclus_TAG.out)
+        PARM_PROJ="$(cat setup/_fileproj_TAG.out)"
+        export KUBECONFIG=$(pwd)/kc
+
+        rm -f $$KUBECONFIG ||touch $$KUBECONFIG
+
+        gcloud container clusters get-credentials "$$PARM_CLUSTER" \
+          --zone "$$PARM_ZONE" \
+          --project "$$PARM_PROJ"
+
+        kubectl config get context
+        export INGRESS_ISTIO_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        export INGRESS_NO_ISTIO_HOST=$(kubectl -n devtest get service test-service-external -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        echo $$INGRESS_ISTIO_HOST > _fileout_test_istio_host.out
+        echo $$INGRESS_NO_ISTIO_HOST > _fileout_test_istio_no_host.out
+    dir: "build-source/tests"
+  - name: gcr.io/anthos-appconfig/pso-e2e-testing-py:v1.0.1
     entrypoint: "bash"
     args:
       - '-c'
@@ -229,15 +256,11 @@ steps:
         PARM_REPO=$(cat setup/_filerepo_TAG.out)
         PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
 
-        KUBECONFIG=$(pwd)/kc
-        rm -f $$KUBECONFIG ||touch $$KUBECONFIG
-
-        gcloud container clusters get-credentials "$$PARM_CLUSTER" \
-          --zone "$$PARM_ZONE" \
-          --project "$$PARM_PROJ"
-
-        kubectl config get context
-        bash /workdir/smoke-test.sh
+        export INGRESS_ISTIO_HOST=$(cat _fileout_test_istio_host.out)
+        export INGRESS_NO_ISTIO_HOST=$(cat _fileout_test_istio_no_host.out)
+        echo $(pwd)
+        ls /workspace
+        bash /workspace/smoke-test.sh || echo "0"
 
 
     dir: "build-source/tests"

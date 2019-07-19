@@ -26,3 +26,10 @@ gcloud builds submit \
 ```
 
 https://chromedriver.storage.googleapis.com/76.0.3809.68/chromedriver_linux64.zip
+
+```bash
+docker build . -t pso-e2e-testing-py:v1.0.1
+docker tag pso-e2e-testing-py:v1.0.1 gcr.io/anthos-appconfig/pso-e2e-testing-py:v1.0.1
+docker push gcr.io/anthos-appconfig/pso-e2e-testing-py:v1.0.1
+
+```

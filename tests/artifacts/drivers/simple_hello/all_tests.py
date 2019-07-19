@@ -14,6 +14,6 @@ the_testing_list.append(TestLoader().loadTestsFromTestCase(SimpleHelloTestCase))
 
 suite = TestSuite(the_testing_list)
 
-runner = HtmlTestRunner.HTMLTestRunner(combine_reports=True, report_name="reports.html", add_timestamp=False)
+runner = HtmlTestRunner.HTMLTestRunner(combine_reports=True, output="reports/temp", report_name="all_tests", add_timestamp=False)
 
 runner.run(suite)

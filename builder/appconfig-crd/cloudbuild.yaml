@@ -25,18 +25,19 @@ steps:
         cp ./build-ssh-config-git-hub /root/.ssh/config
         chmod 400 /root/.ssh/id_rsa
         ls -la /root/.ssh
-#        env
-#        rm -f /root/.ssh/known_hosts
-#        ssh -Tv  git@github.com
-#        cat /root/.ssh/known_hosts
+        mkdir build-source
+        cd build-source
+        git init
+        git remote add origin git@github.com:GoogleCloudPlatform/anthos-appconfig.git
+        echo $_REF_PATH
     volumes:
     - name: 'ssh'
       path: /root/.ssh
   - name: gcr.io/cloud-builders/git
     args: [
-      'clone', '--branch', '$_BRANCH_NAME',
-      'git@github.com:GoogleCloudPlatform/anthos-appconfig.git',
-      'build-source'
+      'fetch', '--depth=1', 'origin',
+      '$_REF_PATH',
+    ]
     ]
     volumes:
     - name: 'ssh'
