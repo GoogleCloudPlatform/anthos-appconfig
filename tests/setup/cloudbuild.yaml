@@ -59,6 +59,7 @@ steps:
       - "bash"
       - '-c'
       - |
+        date "+%Y%m%d-%H%M%S" > _fileat_TAG.out
         echo "20190712000300" > _file_TAG.out
         echo "201907120003" > _filemin_TAG.out
         echo "tst-appconfig-$(cat _filemin_TAG.out)" > _fileproj_TAG.out
@@ -147,6 +148,7 @@ steps:
         set -x
         [[ "$_STEPS_X" == *"CRD1"* ]] && exit 0
 
+        PARM_AT_SEC=$(cat setup/_fileat_TAG.out)
         PARM_TS_SEC=$(cat setup/_file_TAG.out)
         PARM_TS_MIN=$(cat _filemin_TAG.out)
         PARM_PROJ="$(cat setup/_fileproj_TAG.out)"
@@ -261,6 +263,7 @@ steps:
       - '-c'
       - |
         set -x
+        PARM_AT_SEC=$(cat setup/_fileat_TAG.out)
         PARM_TS_SEC=$(cat setup/_file_TAG.out)
         PARM_TS_MIN=$(cat _filemin_TAG.out)
         PARM_PROJ="$(cat setup/_fileproj_TAG.out)"
@@ -271,7 +274,7 @@ steps:
         PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
         PARM_BUILD_BRANCH="$(cat ../_fileappversion_TAG.out)"
 
-        gsutil cp '../_fileappversion_TAG.out' "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${PARM_TS_SEC}/app_version.txt"
-        gsutil cp  -R "../tests/artifacts/drivers/simple_hello/reports/temp/*" "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${PARM_TS_SEC}/reports/"
+        gsutil cp '../_fileappversion_TAG.out' "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${PARM_AT_SEC}/app_version.txt"
+        gsutil cp  -R "../tests/artifacts/drivers/simple_hello/reports/temp/*" "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${PARM_AT_SEC}/reports/"
 
     dir: "build-source/tests"
