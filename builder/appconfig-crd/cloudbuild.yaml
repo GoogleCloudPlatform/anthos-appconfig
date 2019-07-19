@@ -16,43 +16,47 @@ timeout: 3600s
 steps:
   - name: gcr.io/cloud-builders/gsutil
     args: ['cp', '-DD', 'gs://${PROJECT_ID}_build/repo/keys/id_rsa_${PROJECT_ID}-repo', '/builder/home/.ssh/id_rsa']
+  - name: gcr.io/cloud-builders/gsutil
+    args: ['cp', '-DD', 'gs://${PROJECT_ID}_build/repo/github/build-ssh-config-git-hub', '/builder/home/.ssh/config']
+  - name: 'gcr.io/cloud-builders/git'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |a
+        cp /builder/home/.ssh/id_rsa /root/.ssh/id_rsa
+        cp /builder/home/.ssh/config /root/.ssh/config
+        chmod 400 /root/.ssh/id_rsa
+        git clone git@github.com:GoogleCloudPlatform/anthos-appconfig.git build-source
+    volumes:
+      - name: 'ssh'
+        path: /root/.ssh
   - name: 'gcr.io/cloud-builders/git'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        cp /builder/home/.ssh/id_rsa /root/.ssh/id_rsa
-        cp ./build-ssh-config-git-hub /root/.ssh/config
-        chmod 400 /root/.ssh/id_rsa
-        ls -la /root/.ssh
-#        env
-#        rm -f /root/.ssh/known_hosts
-#        ssh -Tv  git@github.com
-#        cat /root/.ssh/known_hosts
+        [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
+        echo "$$MY_APP_VERSION" > _fileappversion_TAG.out
+
+        git checkout -b $$MY_CHECKOUT_REF
+    dir: "build-source"
     volumes:
-    - name: 'ssh'
-      path: /root/.ssh
-  - name: gcr.io/cloud-builders/git
-    args: [
-      'clone', '--branch', '$_BRANCH_NAME',
-      'git@github.com:GoogleCloudPlatform/anthos-appconfig.git',
-      'build-source'
-    ]
-    volumes:
-    - name: 'ssh'
-      path: /root/.ssh
+      - name: 'ssh'
+        path: /root/.ssh
   - name: ubuntu
     args:
       - "bash"
       - '-c'
       - |
-        ls -la build-source/appconfigmgrv2
+        ls -l
+    dir: "build-source"
   - name: ubuntu
     args:
       - "bash"
       - '-c'
       - |
         date "+%Y%m%d-%H%M%S" > _file_TAG.out
+
     dir: "build-source/appconfigmgrv2"
   - name: "gcr.io/${PROJECT_ID}/appconfighelper-build:${_BUILDER_VERSION}"
     entrypoint: 'bash'
@@ -64,22 +68,17 @@ steps:
     dir: "build-source/appconfigmgrv2"
   - name: gcr.io/cloud-builders/docker
     entrypoint: '/bin/sh'
-    args: [
-      '-c', "docker build -t gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:${_APP_VERSION}-$(cat _file_TAG.out) . || exit 1"
-    ]
-    dir: "build-source/appconfigmgrv2"
-  - name: gcr.io/cloud-builders/docker
-    entrypoint: '/bin/sh'
-    args: [
-      '-c', "docker push gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:${_APP_VERSION}-$(cat _file_TAG.out) || exit 1"
-    ]
+    args:
+      - '-c'
+      - |
+        docker build -t gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$(cat ../_fileappversion_TAG.out)-$(cat _file_TAG.out) . || exit 1
     dir: "build-source/appconfigmgrv2"
   - name: "gcr.io/${PROJECT_ID}/appconfighelper-build:${_BUILDER_VERSION}"
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        sed -i'' -e 's@image: .*@image: '"gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:${_APP_VERSION}-$(cat _file_TAG.out)"'@' ./config/default/manager_image_patch.yaml
+        sed -i'' -e 's@image: .*@image: '"gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$(cat ../_fileappversion_TAG.out)"'@' ./config/default/manager_image_patch.yaml
         make manifests || exit 1
         make kustomize || exit 1
     dir: "build-source/appconfigmgrv2"
@@ -96,31 +95,24 @@ steps:
       - |
         cp appconfigmgrv2/config/generated/all-cluster.yaml anthos-config-management/acm-crd/config-management-root/cluster
         cp appconfigmgrv2/config/generated/all-other.yaml anthos-config-management/acm-crd/config-management-root/namespaces/appconfigmgrv2-system
-#        git config user.name pso-crd-autobuild
-#        git config user.email 20604585440@cloudbuild.gserviceaccount.com
-#        git add .
-#        git commit -am "build - commit - $(cat appconfigmgrv2/_file_TAG.out)"
-#        git push origin ${_BRANCH_NAME}
+        echo "" > placeholder.txt
     dir: "build-source"
     volumes:
       - name: 'ssh'
         path: /root/.ssh
   - name: gcr.io/cloud-builders/gsutil
-    args: ['cp', 'placeholder.txt',
-           "gs://${PROJECT_ID}_public/acm/anthos-config-management/${_BRANCH_NAME}/"]
-  - name: gcr.io/cloud-builders/gsutil
-    args: ['rm', '-R',
-           "gs://${PROJECT_ID}_public/acm/anthos-config-management/${_BRANCH_NAME}/*"]
-    dir: "build-source"
-  - name: gcr.io/cloud-builders/gsutil
-    args: ['cp', '-R',
-           'anthos-config-management/*',
-           "gs://${PROJECT_ID}_public/acm/anthos-config-management/${_BRANCH_NAME}/"]
+    entrypoint: "bash"
+    args:
+      - '-c'
+      - |
+        gsutil cp 'placeholder.txt' "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/"
+        gsutil rm -R "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/*"
+        gsutil cp -R 'anthos-config-management/*' "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/"
     dir: "build-source"
   - name: google/cloud-sdk
     entrypoint: "bash"
     args:
       - '-c'
       - |
-        ls -r  examples/use-cases/*/deploy-apps.yaml | xargs -I '{}'  gsutil cp '{}' gs://anthos-appconfig_public/deploy/${_BRANCH_NAME}/'{}'
+        ls -r  examples/use-cases/*/deploy-apps.yaml | xargs -I '{}'  gsutil cp '{}' gs://anthos-appconfig_public/deploy/$(cat _fileappversion_TAG.out)/'{}'
     dir: "build-source"

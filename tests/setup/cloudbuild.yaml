@@ -26,28 +26,24 @@ steps:
         cp /builder/home/.ssh/id_rsa /root/.ssh/id_rsa
         cp ./build-ssh-config-git-hub /root/.ssh/config
         chmod 400 /root/.ssh/id_rsa
-        ls -la /root/.ssh
-        mkdir build-source
-        cd build-source
-        git init
-        git remote add origin git@github.com:GoogleCloudPlatform/anthos-appconfig.git
-        echo $_REF_PATH
-    #        env
-    #        rm -f /root/.ssh/known_hosts
-    #        ssh -Tv  git@github.com
-    #        cat /root/.ssh/known_hosts
+        git clone git@github.com:GoogleCloudPlatform/anthos-appconfig.git build-source
     volumes:
       - name: 'ssh'
         path: /root/.ssh
-  - name: gcr.io/cloud-builders/git
-    args: [
-      'fetch', '--depth=1', 'origin',
-      '$_REF_PATH',
-    ]
-    volumes:
-      - name: 'ssh'
-        path: /root/.ssh
+  - name: 'gcr.io/cloud-builders/git'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
+        [ "$_REF_PATH" == '*BRANCH-MANUAL*' ] && MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="b-$_BRANCH_NAME"
+        echo "$$MY_APP_VERSION" > _fileappversion_TAG.out
+
+        git checkout -b $$MY_CHECKOUT_REF
     dir: "build-source"
+    volumes:
+      - name: 'ssh'
+        path: /root/.ssh
   - name: ubuntu
     args:
       - "bash"
