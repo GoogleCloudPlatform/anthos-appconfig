@@ -66,8 +66,8 @@ steps:
         echo "test-1" > _fileclus_TAG.out
         echo "us-west1" > _filereg_TAG.out
         echo "us-west1-b" > _filezone_TAG.out
-        cp _fileat_TAG.out _filerepo_TAG.out
-        echo "repopath" > _filerepopath_TAG.out
+        cp _fileat_TAG.out _filerepopath_TAG.out
+        echo "repo8" > _filerepo_TAG.out
     dir: "build-source/tests/setup"
   - name: google/cloud-sdk
     entrypoint: "bash"
@@ -122,10 +122,6 @@ steps:
       gcloud container clusters update "$(cat _fileclus_TAG.out)"  --zone "$(cat _filezone_TAG.out)" \
         --enable-master-authorized-networks \
         --master-authorized-networks 0.0.0.0/0 --zone "$(cat _filezone_TAG.out)" --project "$(cat _fileproj_TAG.out)"
-      echo $(gcloud source repos describe "$(cat _filerepo_TAG.out)" --format="value(selfLink.basename())" --project "$(cat _fileproj_TAG.out)" || echo "") > out_repos_TAG.out
-      echo "REPO-$(cat out_repos_TAG.out)"
-
-      [ ! -z  "$(cat out_repos_TAG.out)" ] || gcloud source repos create "$(cat _filerepo_TAG.out)" --project "$(cat _fileproj_TAG.out)"
 
 
       rm -f ./kubeconfig
@@ -159,6 +155,11 @@ steps:
         PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
         PARM_BUILD_BRANCH="$(cat ../_fileappversion_TAG.out)"
 
+        echo $(gcloud source repos describe "$(cat _filerepo_TAG.out)" --format="value(selfLink.basename())" --project "$(cat _fileproj_TAG.out)" || echo "") > out_repos_TAG.out
+        echo "REPO-$(cat out_repos_TAG.out)"
+
+        [ ! -z  "$(cat out_repos_TAG.out)" ] || gcloud source repos create "$(cat _filerepo_TAG.out)" --project "$(cat _fileproj_TAG.out)"
+
 
         gcloud source repos clone  $$PARM_REPO "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" --project "$$PARM_PROJ"
         curl -Lo acm-init.sh \
@@ -190,7 +191,7 @@ steps:
         gsutil cp gs://${PROJECT_ID}_build/repo/keys/id_rsa_test* .
         gsutil cp gs://${PROJECT_ID}_build/repo/gcloud_user.txt .
         cp ./id_rsa_test* /root/.ssh/
-        
+
         export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; echo "yy" | ./crd-setup-helper.sh init-repo "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" "$(cat gcloud_user.txt)"
 
         [ ! -z  "$(kubectl get secrets -n=config-management-system git-creds --output 'jsonpath={.metadata.name}')" ] || kubectl \
@@ -222,9 +223,10 @@ steps:
         set -x
         PARM_CLUSTER=$(cat setup/_fileclus_TAG.out)
         PARM_PROJ="$(cat setup/_fileproj_TAG.out)"
+        PARM_ZONE="$(cat setup/_filezone_TAG.out)"
         export KUBECONFIG=$(pwd)/kc
 
-        rm -f $$KUBECONFIG ||touch $$KUBECONFIG
+        rm -f $$KUBECONFIG || touch $$KUBECONFIG
 
         gcloud container clusters get-credentials "$$PARM_CLUSTER" \
           --zone "$$PARM_ZONE" \
@@ -264,15 +266,18 @@ steps:
       - '-c'
       - |
         set -x
-        PARM_AT_SEC=$(cat setup/_fileat_TAG.out)
-        PARM_TS_SEC=$(cat setup/_file_TAG.out)
-        PARM_TS_MIN=$(cat _filemin_TAG.out)
-        PARM_PROJ="$(cat setup/_fileproj_TAG.out)"
-        PARM_CLUSTER=$(cat setup/_fileclus_TAG.out)
-        PARM_REGION=$(cat setup/_filereg_TAG.out)
-        PARM_ZONE=$(cat setup/_filezone_TAG.out)
-        PARM_REPO=$(cat setup/_filerepo_TAG.out)
-        PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
+        PARM_AT_SEC=$(cat ../setup/_fileat_TAG.out)
+        PARM_TS_SEC=$(cat ../setup/_file_TAG.out)
+        PARM_TS_MIN=$(cat ../_filemin_TAG.out)
+        PARM_PROJ="$(cat ../setup/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat ../setup/_fileclus_TAG.out)
+        PARM_REGION=$(cat ../setup/_filereg_TAG.out)
+        PARM_ZONE=$(cat ../setup/_filezone_TAG.out)
+        PARM_REPO=$(cat ../setup/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat ../setup/_filerepopath_TAG.out)
+
+        # Note different Path
+
         PARM_BUILD_BRANCH="$(cat ../_fileappversion_TAG.out)"
 
         gsutil cp '../_fileappversion_TAG.out' "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${PARM_AT_SEC}/app_version.txt"
