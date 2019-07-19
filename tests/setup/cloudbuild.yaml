@@ -17,6 +17,8 @@ steps:
   - name: gcr.io/cloud-builders/gsutil
     args: ['cp', '-DD', 'gs://${PROJECT_ID}_build/repo/keys/id_rsa_${PROJECT_ID}-repo', '/builder/home/.ssh/id_rsa']
   - name: gcr.io/cloud-builders/gsutil
+    args: ['cp', '-DD', 'gs://${PROJECT_ID}_build/repo/github/build-ssh-config-git-hub', '/builder/home/.ssh/config']
+  - name: gcr.io/cloud-builders/gsutil
     args: ['cp', '-DD', 'gs://${PROJECT_ID}_build/billing/billing_acount_testing.txt', '/builder/home/.ssh/billing_acount_testing.txt']
   - name: 'gcr.io/cloud-builders/git'
     entrypoint: 'bash'
@@ -40,8 +42,7 @@ steps:
         echo "$$MY_APP_VERSION" > _fileappversion_TAG.out
 
         git checkout -b $$MY_CHECKOUT_REF
-        ls  -lR tests
-        exit 1
+
     dir: "build-source"
     volumes:
       - name: 'ssh'
@@ -51,16 +52,9 @@ steps:
       - "bash"
       - '-c'
       - |
-        mkdir -p build-source/tests/setup
-        ls -la build-source/tests/setup
-#  - name: ubuntu
-#    args:
-#      - "bash"
-#      - '-c'
-#      - |
-#        date "+%Y%m%d-%H%M%S" > _file_TAG.out
-#        date "+%Y%m%d-%H%M" > _filemin_TAG.out
-#    dir: "build-source/tests/setup"
+        ls -lR
+        exit 1
+    dir: "build-source"
   - name: ubuntu
     args:
       - "bash"
