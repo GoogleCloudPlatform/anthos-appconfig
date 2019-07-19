@@ -103,17 +103,13 @@ steps:
       - name: 'ssh'
         path: /root/.ssh
   - name: gcr.io/cloud-builders/gsutil
-    args: ['cp', 'placeholder.txt',
-           "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/"]
-    dir: "build-source"
-  - name: gcr.io/cloud-builders/gsutil
-    args: ['rm', '-R',
-           "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/*"]
-    dir: "build-source"
-  - name: gcr.io/cloud-builders/gsutil
-    args: ['cp', '-R',
-           'anthos-config-management/*',
-           "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/"]
+    entrypoint: "bash"
+    args:
+      - '-c'
+      - |
+        gsutil cp 'placeholder.txt' gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/"
+        gsutil rm -R "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/*"]
+        gsutil cp -R 'anthos-config-management/*' "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/"]
     dir: "build-source"
   - name: google/cloud-sdk
     entrypoint: "bash"
