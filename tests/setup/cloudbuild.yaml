@@ -40,8 +40,8 @@ steps:
         [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
         [ "$_REF_PATH" == '*BRANCH-MANUAL*' ] && MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="b-$_BRANCH_NAME"
         echo "$$MY_APP_VERSION" > _fileappversion_TAG.out
-
-        git checkout -b $$MY_CHECKOUT_REF
+        git pull
+        git checkout $$MY_CHECKOUT_REF
 
     dir: "build-source"
     volumes:
@@ -52,8 +52,7 @@ steps:
       - "bash"
       - '-c'
       - |
-        ls -lR
-        exit 1
+        ls -l
     dir: "build-source"
   - name: ubuntu
     args:
