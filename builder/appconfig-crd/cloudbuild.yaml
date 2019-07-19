@@ -79,7 +79,7 @@ steps:
     args:
       - '-c'
       - |
-        sed -i'' -e 's@image: .*@image: '"gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$(cat ../_fileappversion_TAG.out)"'@' ./config/default/manager_image_patch.yaml
+        sed -i'' -e 's@image: .*@image: '"gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$(cat ../_fileappversion_TAG.out)-$(cat ../_fileappversion_TAG.out)"'@' ./config/default/manager_image_patch.yaml
         make manifests || exit 1
         make kustomize || exit 1
     dir: "build-source/appconfigmgrv2"
