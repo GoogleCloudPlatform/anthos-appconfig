@@ -97,27 +97,28 @@ steps:
       - |
         cp appconfigmgrv2/config/generated/all-cluster.yaml anthos-config-management/acm-crd/config-management-root/cluster
         cp appconfigmgrv2/config/generated/all-other.yaml anthos-config-management/acm-crd/config-management-root/namespaces/appconfigmgrv2-system
-        echo "" > ../placeholder.txt
+        echo "" > placeholder.txt
     dir: "build-source"
     volumes:
       - name: 'ssh'
         path: /root/.ssh
   - name: gcr.io/cloud-builders/gsutil
     args: ['cp', 'placeholder.txt',
-           "gs://${PROJECT_ID}_public/acm/anthos-config-management/${_BRANCH_NAME}/"]
+           "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/"]
+    dir: "build-source"
   - name: gcr.io/cloud-builders/gsutil
     args: ['rm', '-R',
-           "gs://${PROJECT_ID}_public/acm/anthos-config-management/${_BRANCH_NAME}/*"]
+           "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/*"]
     dir: "build-source"
   - name: gcr.io/cloud-builders/gsutil
     args: ['cp', '-R',
            'anthos-config-management/*',
-           "gs://${PROJECT_ID}_public/acm/anthos-config-management/${_BRANCH_NAME}/"]
+           "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/"]
     dir: "build-source"
   - name: google/cloud-sdk
     entrypoint: "bash"
     args:
       - '-c'
       - |
-        ls -r  examples/use-cases/*/deploy-apps.yaml | xargs -I '{}'  gsutil cp '{}' gs://anthos-appconfig_public/deploy/${_BRANCH_NAME}/'{}'
+        ls -r  examples/use-cases/*/deploy-apps.yaml | xargs -I '{}'  gsutil cp '{}' gs://anthos-appconfig_public/deploy/$(cat _fileappversion_TAG.out)/'{}'
     dir: "build-source"
