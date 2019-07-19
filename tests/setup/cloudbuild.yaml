@@ -199,11 +199,30 @@ steps:
           --from-file=ssh=/root/.ssh/id_rsa_test
 
         export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; yes | bash acm-init.sh status
-
         export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH;  echo -e "y\n" | ./crd-setup-helper.sh init-demos "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" "$(cat gcloud_user.txt)"
 
-        echo $(gcloud container clusters describe "$(cat _fileclus_TAG.out)" --zone "$(cat _filezone_TAG.out)" --format="value(selfLink.basename())" --project "$(cat _fileproj_TAG.out)"  || echo "") > out2_cluster_TAG.out
 
+        # ls -lR
+
+    dir: "build-source/tests"
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+    args:
+      - '-c'
+      - |
+        set -x
+        [[ "$_STEPS_X" == *"CRD1"* ]] && exit 0
+
+        PARM_AT_SEC=$(cat setup/_fileat_TAG.out)
+        PARM_TS_SEC=$(cat setup/_file_TAG.out)
+        PARM_TS_MIN=$(cat _filemin_TAG.out)
+        PARM_PROJ="$(cat setup/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat setup/_fileclus_TAG.out)
+        PARM_REGION=$(cat setup/_filereg_TAG.out)
+        PARM_ZONE=$(cat setup/_filezone_TAG.out)
+        PARM_REPO=$(cat setup/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
+        PARM_BUILD_BRANCH="$(cat ../_fileappversion_TAG.out)"
 
         CHECK_SA1=$(gcloud iam service-accounts describe appconfigcrd-demo-sa1  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
         [ -z  $$CHECK_SA1 ] || gcloud iam service-accounts create appconfigcrd-demo-sa1 --display-name=appconfigcrd-demo-sa1 --project --project $${PARM_PROJ}
@@ -248,7 +267,6 @@ steps:
         gsutil cat  "$$PARM_PATH/uc-firebase/deploy-apps.yaml" | kubectl apply -f -
 
 
-        # ls -lR
 
     dir: "build-source/tests"
   - name: google/cloud-sdk
