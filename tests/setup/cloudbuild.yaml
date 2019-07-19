@@ -202,7 +202,7 @@ steps:
         export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH;  echo -e "y\n" | ./crd-setup-helper.sh init-demos "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" "$(cat gcloud_user.txt)"
 
 
-        # ls -lR
+        echo "Done"
 
     dir: "build-source/tests"
   - name: google/cloud-sdk
@@ -249,7 +249,7 @@ steps:
           -n appconfigmgrv2-system \
           --from-file=key.json=/root/home/.private/gsakeys/sa2.json
 
-        PARM_PATH="$$PARM_PATH"
+        PARM_PATH="gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases"
         gsutil cat  "$$PARM_PATH/uc-allowed-services-k8s/deploy-apps.yaml" | kubectl delete -f -
         gsutil cat  "$$PARM_PATH/uc-allowed-services-istio/deploy-apps.yaml" | kubectl delete -f -
         gsutil cat  "$$PARM_PATH/uc-allowed-jwt-istio/deploy-apps.yaml" | kubectl delete -f -
