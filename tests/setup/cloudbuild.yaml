@@ -230,22 +230,22 @@ steps:
           -n appconfigmgrv2-system \
           --from-file=key.json=/root/home/.private/gsakeys/sa2.json
 
-
-        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-allowed-services-k8s/deploy-apps.yaml" | kubectl delete -f -
-        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-allowed-services-istio/deploy-apps.yaml" | kubectl delete -f -
-        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-allowed-jwt-istio/deploy-apps.yaml" | kubectl delete -f -
-        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-secrets-k8s/deploy-apps.yaml" | kubectl delete -f -
-        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-secrets-istio/deploy-apps.yaml" | kubectl delete -f -
-        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-firebase/deploy-apps.yaml" | kubectl delete -f -
+        PARM_PATH="$$PARM_PATH"
+        gsutil cat  "$$PARM_PATH/uc-allowed-services-k8s/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-allowed-services-istio/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-allowed-jwt-istio/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-secrets-k8s/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-secrets-istio/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-firebase/deploy-apps.yaml" | kubectl delete -f -
 
         sleep 60
 
-        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-allowed-services-k8s/deploy-apps.yaml" | kubectl apply -f -
-        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-allowed-services-istio/deploy-apps.yaml" | kubectl apply -f -
-        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-allowed-jwt-istio/deploy-apps.yaml" | kubectl apply -f -
-        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-secrets-k8s/deploy-apps.yaml" | kubectl apply -f -
-        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-secrets-istio/deploy-apps.yaml" | kubectl apply -f -
-        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-firebase/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "$$PARM_PATH/uc-allowed-services-k8s/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "$$PARM_PATH/uc-allowed-services-istio/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "$$PARM_PATH/uc-allowed-jwt-istio/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "$$PARM_PATH/uc-secrets-k8s/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "$$PARM_PATH/uc-secrets-istio/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "$$PARM_PATH/uc-firebase/deploy-apps.yaml" | kubectl apply -f -
 
 
         # ls -lR
