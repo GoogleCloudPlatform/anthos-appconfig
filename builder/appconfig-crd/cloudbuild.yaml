@@ -107,9 +107,9 @@ steps:
     args:
       - '-c'
       - |
-        gsutil cp 'placeholder.txt' gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/"
-        gsutil rm -R "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/*"]
-        gsutil cp -R 'anthos-config-management/*' "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/"]
+        gsutil cp 'placeholder.txt' "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/"
+        gsutil rm -R "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/*
+        gsutil cp -R 'anthos-config-management/*' "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/"
     dir: "build-source"
   - name: google/cloud-sdk
     entrypoint: "bash"
