@@ -28,7 +28,8 @@ steps:
         chmod 400 /root/.ssh/id_rsa
         ls -la /root/.ssh
         cat /root/.ssh/config
-    volumes:
+        git clone git@github.com:GoogleCloudPlatform/anthos-appconfig.git build-source
+  volumes:
       - name: 'ssh'
         path: /root/.ssh
   - name: 'gcr.io/cloud-builders/git'
@@ -36,23 +37,19 @@ steps:
     args:
       - '-c'
       - |
-
-        echo "Fetch-$COMMIT_SHA - REF - $_REF_PATH"
-        git clone git@github.com:GoogleCloudPlatform/anthos-appconfig.git build-source
-        git show-ref
         [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME"
-        git pull origin $BRANCH_NAME
-        git checkout $BRANCH_NAME
+        git checkout -b $BRANCH_NAME
+    dir: "build-source"
     volumes:
       - name: 'ssh'
         path: /root/.ssh
-    dir: "build-source"
   - name: ubuntu
     args:
       - "bash"
       - '-c'
       - |
-        ls -la build-source
+        ls -l
+    dir: "build-source"
   - name: ubuntu
     args:
       - "bash"
