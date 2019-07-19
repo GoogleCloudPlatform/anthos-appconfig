@@ -160,6 +160,8 @@ steps:
         PARM_ZONE=$(cat setup/_filezone_TAG.out)
         PARM_REPO=$(cat setup/_filerepo_TAG.out)
         PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
+        PARM_BUILD_BRANCH="$(cat ../_fileappversion_TAG.out)"
+
 
         gcloud source repos clone  $$PARM_REPO "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" --project "$$PARM_PROJ"
         curl -Lo acm-init.sh \
@@ -183,7 +185,7 @@ steps:
         git config --global user.email $(gcloud config get-value core/account 2> /dev/null)
         git config --global user.name  $(gcloud config get-value core/account 2> /dev/null)
 
-        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$_BRANCH_NAME; echo "y\nyyyy" | ./crd-setup-helper.sh install -f
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; echo "y\nyyyy" | ./crd-setup-helper.sh install -f
 
         # TODO - Check for Istio Install
         # kubectl get deployment  -o yaml -n istio-system | grep image:
@@ -191,24 +193,24 @@ steps:
         gsutil cp gs://${PROJECT_ID}_build/repo/keys/id_rsa_test* .
         gsutil cp gs://${PROJECT_ID}_build/repo/gcloud_user.txt .
 
-        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$_BRANCH_NAME; echo "yy" | ./crd-setup-helper.sh init-repo "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" "$(cat gcloud_user.txt)"
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; echo "yy" | ./crd-setup-helper.sh init-repo "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" "$(cat gcloud_user.txt)"
         cp ./id_rsa_test* /root/.ssh/
         [ ! -z  "$(kubectl get secrets -n=config-management-system git-creds --output 'jsonpath={.items[0].metadata.name}')" ] || kubectl \
           create secret generic -n=config-management-system git-creds \
           --from-file=ssh=./id_rsa_test
 
-        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$_BRANCH_NAME; yes | bash acm-init.sh status
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; yes | bash acm-init.sh status
 
-        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$_BRANCH_NAME;  echo "y\n" | ./crd-setup-helper.sh init-demos "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" "$(cat gcloud_user.txt)"
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH;  echo "y\n" | ./crd-setup-helper.sh init-demos "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" "$(cat gcloud_user.txt)"
 
         sleep 120
 
-        gsutil cat  gs://anthos-appconfig_public/deploy/${_BRANCH_NAME}/examples/use-cases/uc-allowed-services-k8s/deploy-apps.yaml | kubectl apply -f -
-        gsutil cat  gs://anthos-appconfig_public/deploy/${_BRANCH_NAME}/examples/use-cases/uc-allowed-services-istio/deploy-apps.yaml | kubectl apply -f -
-        gsutil cat  gs://anthos-appconfig_public/deploy/${_BRANCH_NAME}/examples/use-cases/uc-allowed-jwt-istio/deploy-apps.yaml | kubectl apply -f -
-        gsutil cat  gs://anthos-appconfig_public/deploy/${_BRANCH_NAME}/examples/use-cases/uc-secrets-k8s/deploy-apps.yaml | kubectl apply -f -
-        gsutil cat  gs://anthos-appconfig_public/deploy/${_BRANCH_NAME}/examples/use-cases/uc-secrets-istio/deploy-apps.yaml | kubectl apply -f -
-        gsutil cat  gs://anthos-appconfig_public/deploy/${_BRANCH_NAME}/examples/use-cases/uc-firebase/deploy-apps.yaml | kubectl apply -f -
+        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-allowed-services-k8s/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-allowed-services-istio/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-allowed-jwt-istio/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-secrets-k8s/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-secrets-istio/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-firebase/deploy-apps.yaml" | kubectl apply -f -
 
 
         # ls -lR
@@ -255,8 +257,26 @@ steps:
         export INGRESS_ISTIO_HOST=$(cat _fileout_test_istio_host.out)
         export INGRESS_NO_ISTIO_HOST=$(cat _fileout_test_istio_no_host.out)
         echo $(pwd)
-        ls /workspace
-        bash /workspace/smoke-test.sh || echo "0"
 
+        python all_tests.py bash || echo "0"
+    dir: "build-source//tests/artifacts/drivers/simple_hello"
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+    args:
+      - '-c'
+      - |
+        set -x
+        PARM_TS_SEC=$(cat setup/_file_TAG.out)
+        PARM_TS_MIN=$(cat _filemin_TAG.out)
+        PARM_PROJ="$(cat setup/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat setup/_fileclus_TAG.out)
+        PARM_REGION=$(cat setup/_filereg_TAG.out)
+        PARM_ZONE=$(cat setup/_filezone_TAG.out)
+        PARM_REPO=$(cat setup/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
+        PARM_BUILD_BRANCH="$(cat ../_fileappversion_TAG.out)"
+
+        gsutil cp '../_fileappversion_TAG.out' "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/app_version.txt"
+        gsutil cp  -R "../tests/artifacts/drivers/simple_hello/reports/temp/*" "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/reports/"
 
     dir: "build-source/tests"
