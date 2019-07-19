@@ -22,7 +22,7 @@ steps:
     entrypoint: 'bash'
     args:
       - '-c'
-      - |a
+      - |
         cp /builder/home/.ssh/id_rsa /root/.ssh/id_rsa
         cp /builder/home/.ssh/config /root/.ssh/config
         chmod 400 /root/.ssh/id_rsa
