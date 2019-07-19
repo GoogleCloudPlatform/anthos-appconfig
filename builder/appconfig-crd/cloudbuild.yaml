@@ -81,7 +81,7 @@ steps:
         sed -i'' -e 's@image: .*@image: '"gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$(cat ../_fileappversion_TAG.out)"'@' ./config/default/manager_image_patch.yaml
         make manifests || exit 1
         make kustomize || exit 1
-        docker build -t gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$(cat ../_fileappversion_TAG.out)-$(cat _file_TAG.out) . || exit 1
+        docker push gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$(cat ../_fileappversion_TAG.out)-$(cat _file_TAG.out) || exit 1
 
     dir: "build-source/appconfigmgrv2"
   - name: "gcr.io/${PROJECT_ID}/acmsplit:${_BUILDER_VERSION}"
