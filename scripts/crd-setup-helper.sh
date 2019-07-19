@@ -343,8 +343,7 @@ echo -e ${DEMO_COMMAND}
 
 
   [[ -d "${ACM_ENV_ROOT}/namespaces/use-cases" ]] && {
-    _output "${ACM_ENV_ROOT}/namespaces/use-cases already exists, skipping repo update"
-    exit 0
+    _output "WARN: ${ACM_ENV_ROOT}/namespaces/use-cases already exists"
   }
 
   _output "adding demo apps to policy config repo"

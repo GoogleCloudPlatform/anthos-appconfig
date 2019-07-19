@@ -155,10 +155,10 @@ steps:
         PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
         PARM_BUILD_BRANCH="$(cat ../_fileappversion_TAG.out)"
 
-        echo $(gcloud source repos describe "$(cat _filerepo_TAG.out)" --format="value(selfLink.basename())" --project "$(cat _fileproj_TAG.out)" || echo "") > out_repos_TAG.out
+        echo $(gcloud source repos describe "$$PARM_REPO" --format="value(selfLink.basename())" --project "$$PARM_PROJ" || echo "") > out_repos_TAG.out
         echo "REPO-$(cat out_repos_TAG.out)"
 
-        [ ! -z  "$(cat out_repos_TAG.out)" ] || gcloud source repos create "$(cat _filerepo_TAG.out)" --project "$(cat _fileproj_TAG.out)"
+        [ ! -z  "$(cat out_repos_TAG.out)" ] || gcloud source repos create "$$PARM_REPO" --project "$$PARM_PROJ"
 
 
         gcloud source repos clone  $$PARM_REPO "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" --project "$$PARM_PROJ"
