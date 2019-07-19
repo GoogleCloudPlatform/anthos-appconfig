@@ -71,6 +71,7 @@ load-repovars() {
   REPO_PATH=${ARGS[0]:-$(pwd)}
   REPO_USER_GCP_CSR="${GCP_ACCOUNT}"
   [ -z "${ARGS[1]}" ] || REPO_USER_GCP_CSR=${ARGS[1]}
+  [ -d $REPO_PATH ] || echo "creating directory for repo"; mkdir -p $REPO_PATH
   echo "REPO-PATH-BEFORE-$(pwd)"
   pushd $REPO_PATH
   echo "REPO-PATH-AFTER-$(pwd)"
