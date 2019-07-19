@@ -97,7 +97,7 @@ steps:
       - |
         cp appconfigmgrv2/config/generated/all-cluster.yaml anthos-config-management/acm-crd/config-management-root/cluster
         cp appconfigmgrv2/config/generated/all-other.yaml anthos-config-management/acm-crd/config-management-root/namespaces/appconfigmgrv2-system
-        cat "" > ../placeholder.txt
+        echo "" > ../placeholder.txt
     dir: "build-source"
     volumes:
       - name: 'ssh'
