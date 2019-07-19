@@ -202,7 +202,43 @@ steps:
 
         export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH;  echo -e "y\n" | ./crd-setup-helper.sh init-demos "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" "$(cat gcloud_user.txt)"
 
-        sleep 120
+        echo $(gcloud container clusters describe "$(cat _fileclus_TAG.out)" --zone "$(cat _filezone_TAG.out)" --format="value(selfLink.basename())" --project "$(cat _fileproj_TAG.out)"  || echo "") > out2_cluster_TAG.out
+
+
+        CHECK_SA1=$(gcloud iam service-accounts describe appconfigcrd-demo-sa1  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
+        [ -z  $$CHECK_SA1 ] || gcloud iam service-accounts create appconfigcrd-demo-sa1 --display-name=appconfigcrd-demo-sa1 --project --project $${PARM_PROJ}
+
+        CHECK_SA2=$(gcloud iam service-accounts describe appconfigcrd-demo-sa2  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
+        [ -z  $$CHECK_SA2 ] || gcloud iam service-accounts create appconfigcrd-demo-sa2 --display-name=appconfigcrd-demo-sa2 --project --project $${PARM_PROJ}
+
+
+        gcloud beta pubsub topics add-iam-policy-binding appconfigcrd-demo-topic1 --project $${PARM_PROJ}  \
+          --member=serviceAccount:appconfigcrd-demo-sa1@$${PARM_PROJ}.iam.gserviceaccount.com \
+          --role=roles/pubsub.publisher
+        gcloud beta pubsub topics add-iam-policy-binding appconfigcrd-demo-topic2 --project $${PARM_PROJ}  \
+          --member=serviceAccount:appconfigcrd-demo-sa2@$${PARM_PROJ}.iam.gserviceaccount.com \
+          --role=roles/pubsub.publisher
+
+        mkdir -p /root/home/.private/gsakeys
+        gsutil cp  "gs://anthos-appconfig_build/tests/gsakeys/$${PARM_PROJ}/*" /root/home/.private/gsakeys
+
+
+        kubectl create secret generic appconfigcrd-demo-sa1-secret \
+          -n appconfigmgrv2-system \
+          --from-file=key.json=/root/home/.private/gsakeys/sa1.json
+        kubectl create secret generic appconfigcrd-demo-sa2-secret \
+          -n appconfigmgrv2-system \
+          --from-file=key.json=/root/home/.private/gsakeys/sa2.json
+
+
+        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-allowed-services-k8s/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-allowed-services-istio/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-allowed-jwt-istio/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-secrets-k8s/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-secrets-istio/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-firebase/deploy-apps.yaml" | kubectl delete -f -
+
+        sleep 60
 
         gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-allowed-services-k8s/deploy-apps.yaml" | kubectl apply -f -
         gsutil cat  "gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases/uc-allowed-services-istio/deploy-apps.yaml" | kubectl apply -f -
