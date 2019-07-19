@@ -276,7 +276,7 @@ steps:
         PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
         PARM_BUILD_BRANCH="$(cat ../_fileappversion_TAG.out)"
 
-        gsutil cp '../_fileappversion_TAG.out' "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${PARM_TS_SEC}app_version.txt"
+        gsutil cp '../_fileappversion_TAG.out' "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${PARM_TS_SEC}/app_version.txt"
         gsutil cp  -R "../tests/artifacts/drivers/simple_hello/reports/temp/*" "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${PARM_TS_SEC}/reports/"
 
     dir: "build-source/tests"
