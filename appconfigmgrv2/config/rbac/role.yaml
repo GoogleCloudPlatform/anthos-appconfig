@@ -19,6 +19,13 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - apiextensions.k8sio
+  resources:
+    - customresourcedefinitions
+  verbs:
+    - get
+    - list
+- apiGroups:
   - appconfigmgr.cft.dev
   resources:
   - appenvconfigtemplatev2s

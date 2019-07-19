@@ -1,5 +1,14 @@
 # Anthos Application Configuration - Custom Resource Definition/Controller
 
+
+
+<code>
+Copyright 2019 Google LLC. This software is provided as-is, without warranty or representation for any use or purpose. 
+</code>
+
+
+## Overview
+
 This project is about application configuration for deployment.
 It focuses on two different user personas:
  
