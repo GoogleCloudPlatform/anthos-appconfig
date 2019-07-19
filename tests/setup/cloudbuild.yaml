@@ -189,9 +189,10 @@ steps:
 
         gsutil cp gs://${PROJECT_ID}_build/repo/keys/id_rsa_test* .
         gsutil cp gs://${PROJECT_ID}_build/repo/gcloud_user.txt .
-
-        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; echo "yy" | ./crd-setup-helper.sh init-repo "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" "$(cat gcloud_user.txt)"
         cp ./id_rsa_test* /root/.ssh/
+        
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; echo "yy" | ./crd-setup-helper.sh init-repo "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" "$(cat gcloud_user.txt)"
+
         [ ! -z  "$(kubectl get secrets -n=config-management-system git-creds --output 'jsonpath={.metadata.name}')" ] || kubectl \
           create secret generic -n=config-management-system git-creds \
           --from-file=ssh=/root/.ssh/id_rsa_test
