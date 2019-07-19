@@ -66,7 +66,7 @@ steps:
         echo "test-1" > _fileclus_TAG.out
         echo "us-west1" > _filereg_TAG.out
         echo "us-west1-b" > _filezone_TAG.out
-        echo "repo8" > _filerepo_TAG.out
+        cp _fileat_TAG.out > _filerepo_TAG.out
         echo "repopath" > _filerepopath_TAG.out
     dir: "build-source/tests/setup"
   - name: google/cloud-sdk
