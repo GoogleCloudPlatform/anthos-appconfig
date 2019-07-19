@@ -40,6 +40,8 @@ steps:
         echo "$$MY_APP_VERSION" > _fileappversion_TAG.out
 
         git checkout -b $$MY_CHECKOUT_REF
+        ls  -lR tests
+        exit 1
     dir: "build-source"
     volumes:
       - name: 'ssh'
