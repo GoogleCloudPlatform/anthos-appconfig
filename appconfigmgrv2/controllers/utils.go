@@ -15,6 +15,9 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
@@ -62,4 +65,22 @@ func unstructuredNames(list []*unstructured.Unstructured) map[types.NamespacedNa
 		names[types.NamespacedName{Name: obj.GetName(), Namespace: obj.GetNamespace()}] = true
 	}
 	return names
+}
+
+// parseAllowedClient splits an allowedClient into namespace, app-label
+// returned in that order.
+func parseAllowedClient(allowedClient, defaultNamespace string) (string, string, error) {
+	if allowedClient == "" {
+		return "", "", errors.New("empty allowed client")
+	}
+
+	split := strings.Split(allowedClient, "/")
+	switch n := len(split); n {
+	case 2:
+		return split[0], split[1], nil
+	case 1:
+		return defaultNamespace, allowedClient, nil
+	default:
+		return "", "", fmt.Errorf("expected format <namespace>/<app> or <app>, got: %s", allowedClient)
+	}
 }
