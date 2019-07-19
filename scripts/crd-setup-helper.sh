@@ -157,7 +157,7 @@ init-repo() {
   done | column -t
   _confirm "\ninitialize repo with above configuration?" || { echo "x" ; popd ; exit 0; }
 
-  [[ -a $ACM_ENV_ROOT ]] && _errexit "config root exists: $ACM_ENV_ROOT"
+  [[ -a $ACM_ENV_ROOT ]] && echo "WARN:config root exists: $ACM_ENV_ROOT"
 
   _output "initializing cluster config root"
 
