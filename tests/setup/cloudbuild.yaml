@@ -257,7 +257,7 @@ steps:
         export INGRESS_ISTIO_HOST=$(cat _fileout_test_istio_host.out)
         export INGRESS_NO_ISTIO_HOST=$(cat _fileout_test_istio_no_host.out)
         echo $(pwd)
-
+        ls -l
         python all_tests.py || echo "0"
     dir: "build-source/tests/artifacts/drivers/simple_hello"
   - name: google/cloud-sdk
