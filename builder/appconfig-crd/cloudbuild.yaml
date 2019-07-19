@@ -22,11 +22,11 @@ steps:
     entrypoint: 'bash'
     args:
       - '-c'
-      - |
+      - |a
         cp /builder/home/.ssh/id_rsa /root/.ssh/id_rsa
         cp /builder/home/.ssh/config /root/.ssh/config
         chmod 400 /root/.ssh/id_rsa
-        ls -la /root/.ssh
+        ls -la /root/.ssha
         cat /root/.ssh/config
         git clone git@github.com:GoogleCloudPlatform/anthos-appconfig.git build-source
     volumes:
