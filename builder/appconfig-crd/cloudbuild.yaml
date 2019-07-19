@@ -116,3 +116,12 @@ steps:
       - |
         ls -r  examples/use-cases/*/deploy-apps.yaml | xargs -I '{}'  gsutil cp '{}' gs://anthos-appconfig_public/deploy/$(cat _fileappversion_TAG.out)/'{}'
     dir: "build-source"
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+    args:
+      - '-c'
+      - |
+        [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME"; MY_APP_VERSION="b-$BRANCH_NAME"; MY_REF_PATH="*BRANCH-MANUAL*"
+        gcloud builds submit --config=tests/setup/cloudbuild.yaml  tests/setup/jobtemp --project ${PROJECT_ID} \
+            --substitutions="_BRANCH_NAME=$$MY_CHECKOUT_REF,_STEPS_X=CLUSTER1,_REF_PATH=$$MY_REF_PATH"
+    dir: "build-source"
