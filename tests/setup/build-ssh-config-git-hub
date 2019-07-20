@@ -4,3 +4,9 @@ Host github.com
   RSAAuthentication yes
   IdentityFile /root/.ssh/id_rsa
   StrictHostKeyChecking no
+# source repos server
+Host source.developers.google.com
+  HostName source.developers.google.com
+  RSAAuthentication yes
+  IdentityFile /root/.ssh/id_rsa_test
+  StrictHostKeyChecking no

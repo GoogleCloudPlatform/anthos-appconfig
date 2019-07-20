@@ -1,35 +1,37 @@
-# New Project Template
+# Anthos Application Configuration - Custom Resource Definition/Controller
 
-This repository contains a template you can use to seed a repository for a
-new open source project.
 
-See go/releasing (available externally at
-https://opensource.google.com/docs/releasing/) for more information about
-releasing a new Google open source project.
 
-This template uses the Apache license, as is Google's default.  See the
-documentation for instructions on using alternate license.
+<code>
+Copyright 2019 Google LLC. This software is provided as-is, without warranty or representation for any use or purpose. 
+</code>
 
-## How to use this template
 
-1. Check it out from GitHub.
-    * There is no reason to fork it.
-1. Create a new local repository and copy the files from this repo into it.
-1. Modify README.md and CONTRIBUTING.md to represent your project, not the
-   template project.
-1. Develop your new project!
+## Overview
 
-``` shell
-git clone https://github.com/google/new-project
-mkdir my-new-thing
-cd my-new-thing
-git init
-cp ../new-project/* .
-git add *
-git commit -a -m 'Boilerplate for new Google open source project'
-```
+This project is about application configuration for deployment.
+It focuses on two different user personas:
+ 
+* the developer team 
+* the platform team
 
-## Source Code Headers
+The Platform team approves an Application Configuration CRD and accompanying
+ webhooks (mutation/validation) admission controllers which all together 
+ set up the application operation environment definition.   
+ 
+The CRD builds the guardrails and allows integration with other pods and services.
+In our proposed environments, the guardrails include “least privileged” 
+for namespace both Network ACL and RBAC.  CRD and webhooks are built 
+using kubebuilder v2 (v2.0.0-alpha 4) (https://github.com/kubernetes-sigs/kubebuilder)
+which leverages the k8s controller framework.
+
+
+## High Level Diagram
+
+[[https://github.com/GoogleCloudPlatform/anthos-appconfig/wiki/images/global/ApplicationConfigTemplate.png|ApplicatinConfigTemplate High Level View]]
+
+
+### Source Code Headers
 
 Every file containing source code must include copyright and license
 information. This includes any JS/CSS files that you might be serving out to
