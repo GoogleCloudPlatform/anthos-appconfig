@@ -36,7 +36,11 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileNetworkPolicies(
 ) error {
 	names := make(map[types.NamespacedName]bool)
 
-	for _, np := range networkPolicies(in) {
+	nps, err := networkPolicies(in)
+	if err != nil {
+		return fmt.Errorf("building policies: %v", err)
+	}
+	for _, np := range nps {
 		if err := controllerutil.SetControllerReference(in, np, r.Scheme); err != nil {
 			return fmt.Errorf("setting controller reference: %v", err)
 		}
@@ -112,7 +116,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) garbageCollectNetworkPolicies(
 	return nil
 }
 
-func networkPolicies(in *appconfig.AppEnvConfigTemplateV2) []*netv1.NetworkPolicy {
+func networkPolicies(in *appconfig.AppEnvConfigTemplateV2) ([]*netv1.NetworkPolicy, error) {
 	var ps []*netv1.NetworkPolicy
 
 	for i := range in.Spec.Services {
@@ -122,9 +126,19 @@ func networkPolicies(in *appconfig.AppEnvConfigTemplateV2) []*netv1.NetworkPolic
 
 		clients := make([]netv1.NetworkPolicyPeer, 0)
 		for _, c := range in.Spec.Services[i].AllowedClients {
+			ns, app, err := parseAllowedClient(c.Name, in.Namespace)
+			if err != nil {
+				return nil, fmt.Errorf("parsing allowed client: %v", err)
+			}
+
+			// TODO: What to do with namespace? You can only select namespaces by labels,
+			// not name.
+			_ = ns
+
 			clients = append(clients, netv1.NetworkPolicyPeer{
+				NamespaceSelector: nil,
 				PodSelector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"app": c.Name},
+					MatchLabels: map[string]string{"app": app},
 				},
 			})
 		}
@@ -148,7 +162,7 @@ func networkPolicies(in *appconfig.AppEnvConfigTemplateV2) []*netv1.NetworkPolic
 			},
 		})
 	}
-	return ps
+	return ps, nil
 }
 
 func networkPolicyName(in *appconfig.AppEnvConfigTemplateV2, i int) string {

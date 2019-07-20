@@ -18,6 +18,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/onsi/gomega"
+	"github.com/stretchr/testify/require"
 	istionet "istio.io/api/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -87,6 +88,52 @@ func TestUnstructuredFromProto(t *testing.T) {
 
 			g.Expect(unstructuredFromProto(c.gvk, c.meta, c.spec)).
 				To(gomega.Equal(c.expectedUnstructured))
+		})
+	}
+}
+
+func TestParseAllowedClient(t *testing.T) {
+	const defaultNamespace = "default-namespace"
+	cases := []struct {
+		name               string
+		inputAllowedClient string
+		expectedNamespace  string
+		expectedAppLabel   string
+		expectError        bool
+	}{
+		{
+			name:               "Empty",
+			inputAllowedClient: "",
+			expectError:        true,
+		},
+		{
+			name:               "NonNamespaced",
+			inputAllowedClient: "my-app",
+			expectedNamespace:  "default-namespace",
+			expectedAppLabel:   "my-app",
+		},
+		{
+			name:               "Namespaced",
+			inputAllowedClient: "my-ns/my-app",
+			expectedNamespace:  "my-ns",
+			expectedAppLabel:   "my-app",
+		},
+		{
+			name:               "TooManySlashes",
+			inputAllowedClient: "a/b/c",
+			expectError:        true,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			ns, app, err := parseAllowedClient(c.inputAllowedClient, defaultNamespace)
+			require.Equal(t, c.expectedNamespace, ns)
+			require.Equal(t, c.expectedAppLabel, app)
+			if c.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }

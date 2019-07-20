@@ -37,7 +37,8 @@ func TestReconcileNetworkPolicies(t *testing.T) {
 			n++
 		}
 	}
-	nps := networkPolicies(in)
+	nps, err := networkPolicies(in)
+	require.NoError(t, err)
 	require.Len(t, nps, n)
 
 	for i, np := range nps {
@@ -112,6 +113,7 @@ func TestNewNetworkPolicies(t *testing.T) {
 		},
 	}
 
-	ps := networkPolicies(template)
+	ps, err := networkPolicies(template)
+	require.NoError(t, err)
 	require.EqualValues(t, expectedNetworkPolicies, ps)
 }
