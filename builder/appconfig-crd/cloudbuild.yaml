@@ -22,12 +22,10 @@ steps:
     entrypoint: 'bash'
     args:
       - '-c'
-      - |a
+      - |
         cp /builder/home/.ssh/id_rsa /root/.ssh/id_rsa
         cp /builder/home/.ssh/config /root/.ssh/config
         chmod 400 /root/.ssh/id_rsa
-        ls -la /root/.ssha
-        cat /root/.ssh/config
         git clone git@github.com:GoogleCloudPlatform/anthos-appconfig.git build-source
     volumes:
       - name: 'ssh'
@@ -39,8 +37,8 @@ steps:
       - |
         [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
         echo "$$MY_APP_VERSION" > _fileappversion_TAG.out
-
-        git checkout -b $BRANCH_NAME
+        git pull
+        git checkout $$MY_CHECKOUT_REF
     dir: "build-source"
     volumes:
       - name: 'ssh'
@@ -74,14 +72,14 @@ steps:
       - '-c'
       - |
         docker build -t gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$(cat ../_fileappversion_TAG.out)-$(cat _file_TAG.out) . || exit 1
+        docker push gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$(cat ../_fileappversion_TAG.out)-$(cat _file_TAG.out) || exit 1
     dir: "build-source/appconfigmgrv2"
   - name: "gcr.io/${PROJECT_ID}/appconfighelper-build:${_BUILDER_VERSION}"
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        sed -i'' -e 's@image: .*@image: '"gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$(cat ../_fileappversion_TAG.out)"'@' ./config/default/manager_image_patch.yaml
-        make manifests || exit 1
+        sed -i'' -e 's@image: .*@image: '"gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$(cat ../_fileappversion_TAG.out)-$(cat _file_TAG.out)"'@' ./config/default/manager_image_patch.yaml
         make kustomize || exit 1
     dir: "build-source/appconfigmgrv2"
   - name: "gcr.io/${PROJECT_ID}/acmsplit:${_BUILDER_VERSION}"
@@ -117,4 +115,13 @@ steps:
       - '-c'
       - |
         ls -r  examples/use-cases/*/deploy-apps.yaml | xargs -I '{}'  gsutil cp '{}' gs://anthos-appconfig_public/deploy/$(cat _fileappversion_TAG.out)/'{}'
+    dir: "build-source"
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+    args:
+      - '-c'
+      - |
+        [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME"; MY_APP_VERSION="b-$BRANCH_NAME"; MY_REF_PATH="*BRANCH-MANUAL*"
+        gcloud builds submit --config=tests/setup/cloudbuild.yaml  tests/setup/jobtemp --project ${PROJECT_ID} \
+            --substitutions="_BRANCH_NAME=$$MY_CHECKOUT_REF,_STEPS_X=CLUSTER1,_REF_PATH=$$MY_REF_PATH"
     dir: "build-source"

@@ -43,7 +43,7 @@ gcloud builds submit \
   --config=./builder/appconfig-crd/cloudbuild.yaml  \
     ./builder/appconfig-crd \
   --project anthos-appconfig \
-  --substitutions="_BRANCH_NAME=$RELEASE_NAME,_BUILDER_VERSION=v2.0.1,_APP_VERSION=v2.0.0" 
+  --substitutions="_BRANCH_NAME=master,_BUILDER_VERSION=v2.0.1,_APP_VERSION=v2.0.0" 
 ```
 
 ```bash

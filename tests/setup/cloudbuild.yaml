@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# gcloud builds submit --config=/Users/joseret/go112/src/github.com/GoogleCloudPlatform/anthos-appconfig/tests/setup/cloudbuild.yaml /Users/joseret/go112/src/github.com/GoogleCloudPlatform/anthos-appconfig/tests/setup --project anthos-appconfig
 timeout: 3600s
 steps:
   - name: gcr.io/cloud-builders/gsutil
     args: ['cp', '-DD', 'gs://${PROJECT_ID}_build/repo/keys/id_rsa_${PROJECT_ID}-repo', '/builder/home/.ssh/id_rsa']
+  - name: gcr.io/cloud-builders/gsutil
+    args: ['cp', '-DD', 'gs://${PROJECT_ID}_build/repo/github/build-ssh-config-git-hub', '/builder/home/.ssh/config']
   - name: gcr.io/cloud-builders/gsutil
     args: ['cp', '-DD', 'gs://${PROJECT_ID}_build/billing/billing_acount_testing.txt', '/builder/home/.ssh/billing_acount_testing.txt']
   - name: 'gcr.io/cloud-builders/git'
@@ -25,22 +26,24 @@ steps:
       - '-c'
       - |
         cp /builder/home/.ssh/id_rsa /root/.ssh/id_rsa
-        cp ./build-ssh-config-git-hub /root/.ssh/config
+        cp /builder/home/.ssh/config /root/.ssh/config
         chmod 400 /root/.ssh/id_rsa
-        ls -la /root/.ssh
-    #        env
-    #        rm -f /root/.ssh/known_hosts
-    #        ssh -Tv  git@github.com
-    #        cat /root/.ssh/known_hosts
+        git clone git@github.com:GoogleCloudPlatform/anthos-appconfig.git build-source
     volumes:
       - name: 'ssh'
         path: /root/.ssh
-  - name: gcr.io/cloud-builders/git
-    args: [
-      'clone', '--branch', '$_BRANCH_NAME',
-      'git@github.com:GoogleCloudPlatform/anthos-appconfig.git',
-      'build-source'
-    ]
+  - name: 'gcr.io/cloud-builders/git'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
+        [ "$_REF_PATH" == '*BRANCH-MANUAL*' ] && MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="b-$_BRANCH_NAME"
+        echo "$$MY_APP_VERSION" > _fileappversion_TAG.out
+        git pull
+        git checkout $$MY_CHECKOUT_REF
+
+    dir: "build-source"
     volumes:
       - name: 'ssh'
         path: /root/.ssh
@@ -49,27 +52,22 @@ steps:
       - "bash"
       - '-c'
       - |
-        mkdir -p build-source/tests/setup
-        ls -la build-source/tests/setup
-#  - name: ubuntu
-#    args:
-#      - "bash"
-#      - '-c'
-#      - |
-#        date "+%Y%m%d-%H%M%S" > _file_TAG.out
-#        date "+%Y%m%d-%H%M" > _filemin_TAG.out
-#    dir: "build-source/tests/setup"
+        ls -l
+    dir: "build-source"
   - name: ubuntu
     args:
       - "bash"
       - '-c'
       - |
+        date "+%Y%m%d-%H%M%S" > _fileat_TAG.out
         echo "20190712000300" > _file_TAG.out
         echo "201907120003" > _filemin_TAG.out
         echo "tst-appconfig-$(cat _filemin_TAG.out)" > _fileproj_TAG.out
         echo "test-1" > _fileclus_TAG.out
         echo "us-west1" > _filereg_TAG.out
         echo "us-west1-b" > _filezone_TAG.out
+        cp _fileat_TAG.out _filerepopath_TAG.out
+        echo "repo8" > _filerepo_TAG.out
     dir: "build-source/tests/setup"
   - name: google/cloud-sdk
     entrypoint: "bash"
@@ -77,7 +75,9 @@ steps:
     - '-c'
     - |
       set -x
+      [[ "$_STEPS_X" == *"CLUSTER1"* ]] && exit 0
       echo "PROJECT_NAME-$(cat _fileproj_TAG.out)"
+      TESTENV=$(date "+%Y%m%d-%H%M%S")
       gcloud config list  --quiet
       gcloud projects create --folder=611791615006 --name="$(cat _fileproj_TAG.out)" --quiet  || echo 0
       gcloud services enable cloudbilling.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
@@ -87,6 +87,7 @@ steps:
       gcloud services enable sourcerepo.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
       gcloud services enable monitoring.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
       gcloud services enable logging.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
+      echo "TESTENV=$$TESTENV"
       echo $(gcloud beta compute routers create r"$(cat _filereg_TAG.out)" --network=default --region "$(cat _filereg_TAG.out)" --project "$(cat _fileproj_TAG.out)" || echo 0)
       echo $(gcloud beta compute routers nats create "n$(cat _filereg_TAG.out)" --router "r$(cat _filereg_TAG.out)" --project "$(cat _fileproj_TAG.out)" --auto-allocate-nat-external-ips --nat-all-subnet-ip-ranges --router-region "$(cat _filereg_TAG.out)" || echo 0)
       echo $(gcloud container clusters describe $(cat _fileclus_TAG.out) --zone $(cat _filezone_TAG.out) --format="value(selfLink.basename())" --project "$(cat _fileproj_TAG.out)" || echo "") > out_cluster_TAG.out
@@ -121,10 +122,6 @@ steps:
       gcloud container clusters update "$(cat _fileclus_TAG.out)"  --zone "$(cat _filezone_TAG.out)" \
         --enable-master-authorized-networks \
         --master-authorized-networks 0.0.0.0/0 --zone "$(cat _filezone_TAG.out)" --project "$(cat _fileproj_TAG.out)"
-      echo $(gcloud source repos describe "$(cat _fileproj_TAG.out)-r" --format="value(selfLink.basename())" --project "$(cat _fileproj_TAG.out)" || echo "") > out_repos_TAG.out
-      echo "REPO-$(cat out_repos_TAG.out)"
-
-      [ ! -z  "$(cat out_repos_TAG.out)" ] || gcloud source repos create "$(cat _fileproj_TAG.out)-r" --project "$(cat _fileproj_TAG.out)"
 
 
       rm -f ./kubeconfig
@@ -132,7 +129,8 @@ steps:
 
       gcloud container clusters get-credentials "$(cat _fileclus_TAG.out)" --zone "$(cat _filezone_TAG.out)"  --project "$(cat _fileproj_TAG.out)"
 
-      kubectl create clusterrolebinding cluster-admin-binding \
+      [ ! -z  "$(kubectl get clusterrolebinding cluster-admin-binding --output 'jsonpath={.metadata.name}')" ] || kubectl \
+        create clusterrolebinding cluster-admin-binding \
         --clusterrole cluster-admin \
         --user $(gcloud config get-value core/account)
 
@@ -144,15 +142,199 @@ steps:
       - '-c'
       - |
         set -x
-        gcloud source repos clone  "$(cat _fileproj_TAG.out)-r" ./repo --project "$(cat _fileproj_TAG.out)"
+        [[ "$_STEPS_X" == *"CRD1"* ]] && exit 0
+
+        PARM_AT_SEC=$(cat setup/_fileat_TAG.out)
+        PARM_TS_SEC=$(cat setup/_file_TAG.out)
+        PARM_TS_MIN=$(cat _filemin_TAG.out)
+        PARM_PROJ="$(cat setup/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat setup/_fileclus_TAG.out)
+        PARM_REGION=$(cat setup/_filereg_TAG.out)
+        PARM_ZONE=$(cat setup/_filezone_TAG.out)
+        PARM_REPO=$(cat setup/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
+        PARM_BUILD_BRANCH="$(cat ../_fileappversion_TAG.out)"
+
+        echo $(gcloud source repos describe "$$PARM_REPO" --format="value(selfLink.basename())" --project "$$PARM_PROJ" || echo "") > out_repos_TAG.out
+        echo "REPO-$(cat out_repos_TAG.out)"
+
+        [ ! -z  "$(cat out_repos_TAG.out)" ] || gcloud source repos create "$$PARM_REPO" --project "$$PARM_PROJ"
+
+
+        gcloud source repos clone  $$PARM_REPO "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" --project "$$PARM_PROJ"
         curl -Lo acm-init.sh \
            https://storage.googleapis.com/anthos-appconfig_public/install/scripts/acm-init.sh
-        gsutil cp gs://anthos-appconfig_public/install/config-management-operator.yaml .
-        chmod +x acm-init.sh
+        chmod a+x acm-init.sh
+        curl -Lo crd-setup-helper.sh \
+           https://storage.googleapis.com/anthos-appconfig_public/install/scripts/crd-setup-helper.sh
+        chmod a+x crd-setup-helper.sh
+        rm -f ./kubeconfig
+        touch ./kubeconfig
+
+        gcloud container clusters get-credentials "$$PARM_CLUSTER" \
+          --zone "$$PARM_ZONE" \
+          --project "$$PARM_PROJ"
+
         kubectl get nodes
-        yes | ./acm-init.sh install
-        ls -lR
+
+        # Install column
+        apt-get install bsdmainutils -y
+
+        git config --global user.email $(gcloud config get-value core/account 2> /dev/null)
+        git config --global user.name  $(gcloud config get-value core/account 2> /dev/null)
+
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; echo "y\nyyyy" | ./crd-setup-helper.sh install -f
+
+        # TODO - Check for Istio Install
+        # kubectl get deployment  -o yaml -n istio-system | grep image:
+
+        gsutil cp gs://${PROJECT_ID}_build/repo/keys/id_rsa_test* .
+        gsutil cp gs://${PROJECT_ID}_build/repo/gcloud_user.txt .
+        cp ./id_rsa_test* /root/.ssh/
+
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; echo "yy" | ./crd-setup-helper.sh init-repo "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" "$(cat gcloud_user.txt)"
+
+        [ ! -z  "$(kubectl get secrets -n=config-management-system git-creds --output 'jsonpath={.metadata.name}')" ] || kubectl \
+          create secret generic -n=config-management-system git-creds \
+          --from-file=ssh=/root/.ssh/id_rsa_test
+
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; yes | bash acm-init.sh status
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH;  echo -e "y\n" | ./crd-setup-helper.sh init-demos "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" "$(cat gcloud_user.txt)"
+
+
+        echo "Done"
 
     dir: "build-source/tests"
-    env:
-      - 'KUBECONFIG=build-source/tests/kubeconfig'
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+    args:
+      - '-c'
+      - |
+        set -x
+        [[ "$_STEPS_X" == *"CRD1"* ]] && exit 0
+
+        PARM_AT_SEC=$(cat setup/_fileat_TAG.out)
+        PARM_TS_SEC=$(cat setup/_file_TAG.out)
+        PARM_TS_MIN=$(cat _filemin_TAG.out)
+        PARM_PROJ="$(cat setup/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat setup/_fileclus_TAG.out)
+        PARM_REGION=$(cat setup/_filereg_TAG.out)
+        PARM_ZONE=$(cat setup/_filezone_TAG.out)
+        PARM_REPO=$(cat setup/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
+        PARM_BUILD_BRANCH="$(cat ../_fileappversion_TAG.out)"
+
+        CHECK_SA1=$(gcloud iam service-accounts describe appconfigcrd-demo-sa1  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
+        [ -z  $$CHECK_SA1 ] || gcloud iam service-accounts create appconfigcrd-demo-sa1 --display-name=appconfigcrd-demo-sa1 --project --project $${PARM_PROJ}
+
+        CHECK_SA2=$(gcloud iam service-accounts describe appconfigcrd-demo-sa2  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
+        [ -z  $$CHECK_SA2 ] || gcloud iam service-accounts create appconfigcrd-demo-sa2 --display-name=appconfigcrd-demo-sa2 --project --project $${PARM_PROJ}
+
+
+        gcloud beta pubsub topics add-iam-policy-binding appconfigcrd-demo-topic1 --project $${PARM_PROJ}  \
+          --member=serviceAccount:appconfigcrd-demo-sa1@$${PARM_PROJ}.iam.gserviceaccount.com \
+          --role=roles/pubsub.publisher
+        gcloud beta pubsub topics add-iam-policy-binding appconfigcrd-demo-topic2 --project $${PARM_PROJ}  \
+          --member=serviceAccount:appconfigcrd-demo-sa2@$${PARM_PROJ}.iam.gserviceaccount.com \
+          --role=roles/pubsub.publisher
+
+        mkdir -p /root/home/.private/gsakeys
+        gsutil cp  "gs://anthos-appconfig_build/tests/gsakeys/$${PARM_PROJ}/*" /root/home/.private/gsakeys
+
+
+        kubectl create secret generic appconfigcrd-demo-sa1-secret \
+          -n appconfigmgrv2-system \
+          --from-file=key.json=/root/home/.private/gsakeys/sa1.json
+        kubectl create secret generic appconfigcrd-demo-sa2-secret \
+          -n appconfigmgrv2-system \
+          --from-file=key.json=/root/home/.private/gsakeys/sa2.json
+
+        PARM_PATH="gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases"
+        gsutil cat  "$$PARM_PATH/uc-allowed-services-k8s/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-allowed-services-istio/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-allowed-jwt-istio/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-secrets-k8s/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-secrets-istio/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-firebase/deploy-apps.yaml" | kubectl delete -f -
+
+        sleep 60
+
+        gsutil cat  "$$PARM_PATH/uc-allowed-services-k8s/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "$$PARM_PATH/uc-allowed-services-istio/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "$$PARM_PATH/uc-allowed-jwt-istio/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "$$PARM_PATH/uc-secrets-k8s/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "$$PARM_PATH/uc-secrets-istio/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "$$PARM_PATH/uc-firebase/deploy-apps.yaml" | kubectl apply -f -
+
+
+
+    dir: "build-source/tests"
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+    args:
+      - '-c'
+      - |
+        set -x
+        PARM_CLUSTER=$(cat setup/_fileclus_TAG.out)
+        PARM_PROJ="$(cat setup/_fileproj_TAG.out)"
+        PARM_ZONE="$(cat setup/_filezone_TAG.out)"
+        export KUBECONFIG=$(pwd)/kc
+
+        rm -f $$KUBECONFIG || touch $$KUBECONFIG
+
+        gcloud container clusters get-credentials "$$PARM_CLUSTER" \
+          --zone "$$PARM_ZONE" \
+          --project "$$PARM_PROJ"
+
+        kubectl config get-context
+        export INGRESS_ISTIO_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        export INGRESS_NO_ISTIO_HOST=$(kubectl -n devtest get service test-service-external -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        echo $$INGRESS_ISTIO_HOST > _fileout_test_istio_host.out
+        echo $$INGRESS_NO_ISTIO_HOST > _fileout_test_istio_no_host.out
+    dir: "build-source/tests"
+  - name: gcr.io/anthos-appconfig/pso-e2e-testing-py:v1.0.1
+    entrypoint: "bash"
+    args:
+      - '-c'
+      - |
+        set -x
+        [[ "$_STEPS_X" == *"TEST1"* ]] && exit 0
+        PARM_TS_SEC=$(cat setup/_file_TAG.out)
+        PARM_TS_MIN=$(cat _filemin_TAG.out)
+        PARM_PROJ="$(cat setup/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat setup/_fileclus_TAG.out)
+        PARM_REGION=$(cat setup/_filereg_TAG.out)
+        PARM_ZONE=$(cat setup/_filezone_TAG.out)
+        PARM_REPO=$(cat setup/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
+
+        export INGRESS_ISTIO_HOST=$(cat _fileout_test_istio_host.out)
+        export INGRESS_NO_ISTIO_HOST=$(cat _fileout_test_istio_no_host.out)
+        echo $(pwd)
+        ls -l
+        python all_tests.py || echo "0"
+    dir: "build-source/tests/artifacts/drivers/simple_hello"
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+    args:
+      - '-c'
+      - |
+        set -x
+        PARM_AT_SEC=$(cat  setup/_fileat_TAG.out)
+        PARM_TS_SEC=$(cat setup/_file_TAG.out)
+        PARM_TS_MIN=$(cat setup/_filemin_TAG.out)
+        PARM_PROJ="$(cat  setup/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat setup/_fileclus_TAG.out)
+        PARM_REGION=$(cat setup/_filereg_TAG.out)
+        PARM_ZONE=$(cat setup/_filezone_TAG.out)
+        PARM_REPO=$(cat setup/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
+
+        # Note different Path
+
+        PARM_BUILD_BRANCH="$(cat ../_fileappversion_TAG.out)"
+
+        gsutil cp '../_fileappversion_TAG.out' "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${PARM_AT_SEC}/app_version.txt"
+        gsutil cp  -R "../tests/artifacts/drivers/simple_hello/reports/temp/*" "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${PARM_AT_SEC}/reports/"
+
+    dir: "build-source/tests"
