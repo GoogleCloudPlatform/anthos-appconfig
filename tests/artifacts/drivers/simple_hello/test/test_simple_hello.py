@@ -72,7 +72,7 @@ class SimpleHelloTestCase(unittest.TestCase):
 
   def test_simple_hello_uc1_outbound_ok(self):
     uc = "uc-allowed-services-k8s"
-    self.assertTrue(len(os.environ['INGRESS_NO_ISTIO_HOST']) >  0, "INGRESS_ISTIO_HOST empty - len == 0")
+    self.assertTrue(len(os.environ['INGRESS_NO_ISTIO_HOST']) >  0, "INGRESS_NO_ISTIO_HOST empty - len == 0")
     full_url = "http://" + os.environ['INGRESS_NO_ISTIO_HOST'] + "/testcallseq?"
     full_url = full_url + self.util("1", "app-allowed-k8s-appconfigv2-service-sm-2", uc)
     full_url = full_url + "&" + self.util("2", "app-allowed-k8s-appconfigv2-service-sm-1", uc)
@@ -84,5 +84,169 @@ class SimpleHelloTestCase(unittest.TestCase):
     self.assertTrue(len(response) >  0, "response empty - len == 0")
     self.assertIn('"User-Agent": "python-requests/2.22.0"', response, "Failed Test")
     self.assertIn('"Host": "httpbin.org"', response, "Failed Test")
+
+  def test_simple_hello_uc1_service_blocked(self):
+    uc = "uc-allowed-services-k8s"
+    self.assertTrue(len(os.environ['INGRESS_NO_ISTIO_HOST']) >  0, "INGRESS_ISTIO_HOST empty - len == 0")
+    full_url = "http://" + os.environ['INGRESS_NO_ISTIO_HOST'] + "/testcallseq?"
+    full_url = full_url + self.util("1", "app-allowed-k8s-appconfigv2-service-sm-2", uc)
+    full_url = full_url + "&" + self.util("2", "app-allowed-k8s-appconfigv2-service-sm-3", uc)
+    full_url = full_url + "&call3=https://httpbin.org/get"
+
+
+    headers = {"Host": "test-simple-hello.example.com"}
+    try:
+      response = RestHelper(full_url).get_text(None,headers)
+    except:
+      print('exception')
+      return
+
+    self.fail('Should fail with Timeout')
+
+  def test_simple_hello_uc2_service_ok(self):
+    uc = "uc-allowed-services-istio"
+    self.assertTrue(len(os.environ['INGRESS_ISTIO_HOST']) >  0, "INGRESS_ISTIO_HOST empty - len == 0")
+    full_url = "http://" + os.environ['INGRESS_ISTIO_HOST'] + "/testcallseq?"
+    full_url = full_url + self.util("1", "app-allowed-istio-appconfigv2-service-sm-2", uc)
+    full_url = full_url + "&" + self.util("2", "app-allowed-istio-appconfigv2-service-sm-3", uc)
+
+    headers = {}
+    response = RestHelper(full_url).get_text(None,headers)
+    self.assertTrue(len(response) >  0, "response empty - len == 0")
+    self.assertNotIn('*Error*', response, "Failed Test")
+    self.assertNotIn('403', response, "Failed Test- 403")
+    self.assertNotIn('PERMISSION_DENIED', response, "Failed Test - Denied Text")
+
+  def test_simple_hello_uc2_service_blocked(self):
+    uc = "uc-allowed-services-istio"
+    self.assertTrue(len(os.environ['INGRESS_ISTIO_HOST']) >  0, "INGRESS_ISTIO_HOST empty - len == 0")
+    full_url = "http://" + os.environ['INGRESS_ISTIO_HOST'] + "/testcallseq?"
+    full_url = full_url + self.util("1", "app-allowed-istio-appconfigv2-service-sm-1", uc)
+    full_url = full_url + "&" + self.util("2", "app-allowed-istio-appconfigv2-service-sm-3", uc)
+
+    headers = {}
+    response = RestHelper(full_url).get_text(None,headers)
+    self.assertTrue(len(response) >  0, "response empty - len == 0")
+    self.assertIn('403', response, "Failed Test- 403")
+    self.assertIn('PERMISSION_DENIED', response, "Failed Test - Denied Text")
+
+  def test_simple_hello_uc4_outbound_ok(self):
+    uc = "uc-secrets-k8s"
+    self.assertTrue(len(os.environ['INGRESS_NO_ISTIO_HOST']) >  0, "INGRESS_NO_ISTIO_HOST empty - len == 0")
+    full_url = "http://" + os.environ['INGRESS_NO_ISTIO_HOST'] + "/testcallseq?"
+    full_url = full_url + self.util("1", "app-secrets-k8s-appconfigv2-service-sm-2", uc)
+    full_url = full_url + "&" + self.util("2", "app-secrets-k8s-appconfigv2-service-sm-1", uc)
+    full_url = full_url + "&call3=https://httpbin.org/get"
+
+
+    headers = {"Host": "test-simple-hello.example.com"}
+    response = RestHelper(full_url).get_text(None,headers)
+    self.assertTrue(len(response) >  0, "response empty - len == 0")
+    self.assertIn('"User-Agent": "python-requests/2.22.0"', response, "Failed Test")
+    self.assertIn('"Host": "httpbin.org"', response, "Failed Test")
+
+  def test_simple_hello_uc4_pubsub_ok(self):
+    uc = "uc-secrets-k8s"
+    self.assertIn('INGRESS_NO_ISTIO_HOST', os.environ, "INGRESS_NO_ISTIO_HOST environment variable not set")
+    self.assertTrue(len(os.environ['INGRESS_NO_ISTIO_HOST']) >  0, "INGRESS_NO_ISTIO_HOST empty - len == 0")
+    self.assertIn('PUBSUB_GCP_PROJECT', os.environ, "PUBSUB_GCP_PROJECT environment variable not set")
+    self.assertTrue(len(os.environ['PUBSUB_GCP_PROJECT']) >  0, "PUBSUB_GCP_PROJECT empty - len == 0")
+    full_url = "http://" + os.environ['INGRESS_NO_ISTIO_HOST'] + "/testcallseq?"
+    full_url = full_url + self.util("1", "app-secrets-k8s-appconfigv2-service-sm-2", uc)
+    full_url = full_url + "&" + self.util("2", "app-secrets-k8s-appconfigv2-service-sm-1", uc)
+    full_url = full_url + "&call3=http://app-secrets-k8s-appconfigv2-service-pubsub?"
+    full_url = full_url + "gcpProjectID=" + os.environ['PUBSUB_GCP_PROJECT']
+    full_url = full_url + "&topic=appconfigcrd-demo-topic1&message=hello1"
+
+
+    headers = {"Host": "test-simple-hello.example.com"}
+    response = RestHelper(full_url).get_text(None,headers)
+    self.assertTrue(len(response) >  0, "response empty - len == 0")
+    self.assertIn('Publish Success:', response, "Failed Test - Publish")
+
+  def test_simple_hello_uc4_pubsub_topic_acl_not_allowed(self):
+    uc = "uc-secrets-k8s"
+    self.assertIn('INGRESS_NO_ISTIO_HOST', os.environ, "INGRESS_NO_ISTIO_HOST environment variable not set")
+    self.assertTrue(len(os.environ['INGRESS_NO_ISTIO_HOST']) >  0, "INGRESS_NO_ISTIO_HOST empty - len == 0")
+    self.assertIn('PUBSUB_GCP_PROJECT', os.environ, "PUBSUB_GCP_PROJECT environment variable not set")
+    self.assertTrue(len(os.environ['PUBSUB_GCP_PROJECT']) >  0, "PUBSUB_GCP_PROJECT empty - len == 0")
+    full_url = "http://" + os.environ['INGRESS_NO_ISTIO_HOST'] + "/testcallseq?"
+    full_url = full_url + self.util("1", "app-secrets-k8s-appconfigv2-service-sm-2", uc)
+    full_url = full_url + "&" + self.util("2", "app-secrets-k8s-appconfigv2-service-sm-1", uc)
+    full_url = full_url + "&call3=http://app-secrets-k8s-appconfigv2-service-pubsub?"
+    full_url = full_url + "gcpProjectID=" + os.environ['PUBSUB_GCP_PROJECT']
+    full_url = full_url + "&topic=appconfigcrd-demo-topic2&message=hello1"
+
+
+    headers = {"Host": "test-simple-hello.example.com"}
+    response = RestHelper(full_url).get_text(None,headers)
+    self.assertTrue(len(response) >  0, "response empty - len == 0")
+    self.assertIn('PermissionDenied', response, "Failed Test - Publish")
+
+  def test_simple_hello_uc5_simple_call_ok(self):
+    uc = "uc-secrets-istio"
+    self.assertIn('INGRESS_ISTIO_HOST', os.environ, "INGRESS_ISTIO_HOST environment variable not set")
+    self.assertTrue(len(os.environ['INGRESS_ISTIO_HOST']) >  0, "INGRESS_ISTIO_HOST empty - len == 0")
+    full_url = "http://" + os.environ['INGRESS_ISTIO_HOST'] + "/testcallseq?"
+    full_url = full_url + self.util("1", "app-secrets-istio-appconfigv2-service-sm-2", uc)
+    full_url = full_url + "&" + self.util("2", "app-secrets-istio-appconfigv2-service-sm-3", None)
+
+
+    headers = {"Host": "test-simple-hello.example.com"}
+    response = RestHelper(full_url).get_text(None,headers)
+    self.assertTrue(len(response) >  0, "response empty - len == 0")
+    self.assertIn('appconfigv2-service-sm-3', response, "Failed Test - Last Call")
+    self.assertNotIn('*Error*', response, "Failed Test - Error?")
+
+  def test_simple_hello_uc5_simple_external_not_google_apis(self):
+    uc = "uc-secrets-istio"
+    self.assertIn('INGRESS_ISTIO_HOST', os.environ, "INGRESS_ISTIO_HOST environment variable not set")
+    self.assertTrue(len(os.environ['INGRESS_ISTIO_HOST']) >  0, "INGRESS_ISTIO_HOST empty - len == 0")
+    full_url = "http://" + os.environ['INGRESS_ISTIO_HOST'] + "/testcallseq?"
+    full_url = full_url + self.util("1", "app-secrets-istio-appconfigv2-service-sm-2", uc)
+    full_url = full_url + "&" + self.util("2", "app-secrets-istio-appconfigv2-service-sm-3", None)
+    full_url = full_url + "&call3=https://httpbin.org/get"
+
+    headers = {"Host": "test-simple-hello.example.com"}
+    response = RestHelper(full_url).get_text(None,headers)
+    self.assertTrue(len(response) >  0, "response empty - len == 0")
+    self.assertIn('*Error*', response, "Failed Test - Last Call")
+
+  def test_simple_hello_uc5_pubsub_ok(self):
+    uc = "uc-secrets-istio"
+    self.assertIn('INGRESS_ISTIO_HOST', os.environ, "INGRESS_ISTIO_HOST environment variable not set")
+    self.assertTrue(len(os.environ['INGRESS_ISTIO_HOST']) >  0, "INGRESS_ISTIO_HOST empty - len == 0")
+    self.assertIn('PUBSUB_GCP_PROJECT', os.environ, "PUBSUB_GCP_PROJECT environment variable not set")
+    self.assertTrue(len(os.environ['PUBSUB_GCP_PROJECT']) >  0, "PUBSUB_GCP_PROJECT empty - len == 0")
+    full_url = "http://" + os.environ['INGRESS_ISTIO_HOST'] + "/testcallseq?"
+    full_url = full_url + self.util("1", "app-secrets-istio-appconfigv2-service-sm-2", uc)
+    full_url = full_url + "&" + self.util("2", "app-secrets-istio-appconfigv2-service-sm-3", uc)
+    full_url = full_url + "&call3=http://app-secrets-istio-appconfigv2-service-pubsub?"
+    full_url = full_url + "gcpProjectID=" + os.environ['PUBSUB_GCP_PROJECT']
+    full_url = full_url + "&topic=appconfigcrd-demo-topic2&message=hello2"
+
+    headers = {"Host": "test-simple-hello.example.com"}
+    response = RestHelper(full_url).get_text(None,headers)
+    self.assertTrue(len(response) >  0, "response empty - len == 0")
+    self.assertIn('Publish Success:', response, "Failed Test - Publish")
+
+  def test_simple_hello_uc5_pubsub_topic_acl_not_allowed(self):
+    uc = "uc-secrets-istio"
+    self.assertIn('INGRESS_ISTIO_HOST', os.environ, "INGRESS_ISTIO_HOST environment variable not set")
+    self.assertTrue(len(os.environ['INGRESS_ISTIO_HOST']) >  0, "INGRESS_ISTIO_HOST empty - len == 0")
+    self.assertIn('PUBSUB_GCP_PROJECT', os.environ, "PUBSUB_GCP_PROJECT environment variable not set")
+    self.assertTrue(len(os.environ['PUBSUB_GCP_PROJECT']) >  0, "PUBSUB_GCP_PROJECT empty - len == 0")
+    full_url = "http://" + os.environ['INGRESS_ISTIO_HOST'] + "/testcallseq?"
+    full_url = full_url + self.util("1", "app-secrets-istio-appconfigv2-service-sm-2", uc)
+    full_url = full_url + "&" + self.util("2", "app-secrets-istio-appconfigv2-service-sm-3", uc)
+    full_url = full_url + "&call3=http://app-secrets-istio-appconfigv2-service-pubsub?"
+    full_url = full_url + "gcpProjectID=" + os.environ['PUBSUB_GCP_PROJECT']
+    full_url = full_url + "&topic=appconfigcrd-demo-topic1&message=hello2"
+
+    headers = {"Host": "test-simple-hello.example.com"}
+    response = RestHelper(full_url).get_text(None,headers)
+    self.assertTrue(len(response) >  0, "response empty - len == 0")
+    self.assertIn('PermissionDenied', response, "Failed Test - Publish")
+
 # if __name__ == '__main__':
 #   h = HtmlTestRunner.HTMLTestRunner(combine_reports=True, report_name="MyReport", add_timestamp=False).run(suite)
