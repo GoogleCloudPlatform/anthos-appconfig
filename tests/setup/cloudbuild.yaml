@@ -39,7 +39,7 @@ steps:
       - |
         [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
         [ "$_REF_PATH" == '*BRANCH-MANUAL*' ] && MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="b-$_BRANCH_NAME"
-        mkdir -p  /workspace/myenv
+        mkdir -p  /workspace/myenv/tests
         echo "$$MY_APP_VERSION" > /workspace/myenv/_fileappversion_TAG.out
         git pull
         git checkout $$MY_CHECKOUT_REF
@@ -331,7 +331,7 @@ steps:
         echo $(pwd)
         ls -l
 
-        export GOOGLE_ACCOUNT_CREDENTIALS=/root/home/.private/gsakeys/sa1.json
+        export GOOGLE_XAPPLICATION_CREDENTIALS=/root/home/.private/gsakeys/sa1.json
 
         TEST_RESULTS_ALL_1=$(python all_tests.py) || echo "0"
         echo $$TEST_RESULTS_ALL_1 > /workspace/myenv/tests/_filetest-results-all-1_TAG.out
