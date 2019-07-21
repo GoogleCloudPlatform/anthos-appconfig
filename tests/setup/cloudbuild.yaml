@@ -94,10 +94,10 @@ steps:
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
-        mkdir -p /root/home/private/gsa_keys
-        gsutil cp  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/*" /root/home/private/gsa_keys
+        mkdir -p /workspace/myroot/.private/gsa_keys
+        gsutil cp  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/*" /workspace/myroot/.private/gsa_keys
 
-        ls -lR /root/home/private/gsa_keys
+        ls -lR /workspace/myroot/.private/gsa_keys
 
 
 
@@ -284,11 +284,11 @@ steps:
 
         kubectl create secret generic appconfigcrd-demo-sa1-secret \
           -n appconfigmgrv2-system \
-          --from-file=key.json=/root/home/private/gsa_keys/sa1.json
+          --from-file=key.json=/workspace/myroot/.private/gsa_keys/sa1.json
 
         kubectl create secret generic appconfigcrd-demo-sa2-secret \
           -n appconfigmgrv2-system \
-          --from-file=key.json=/root/home/private/gsa_keys/sa2.json
+          --from-file=key.json=/workspace/myroot/.private/gsa_keys/sa2.json
 
         PARM_PATH="gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases"
         gsutil cat  "$$PARM_PATH/uc-allowed-services-k8s/deploy-apps.yaml" | kubectl delete -f -
@@ -362,7 +362,7 @@ steps:
         echo $(pwd)
         ls -l
 
-        export GOOGLE_APPLICATION_CREDENTIALS=/root/home/private/gsa_keys/sa1.json
+        export GOOGLE_APPLICATION_CREDENTIALS=/workspace/myroot/.private/gsa_keys/sa1.json
         export PUBSUB_GCP_PROJECT=$${PARM_PROJ}
         python all_tests.py;  TEST_RESULTS_ALL_1=$? || echo "0"
         echo $$TEST_RESULTS_ALL_1 > /workspace/myenv/tests/_filetest-results-all-1_TAG.out
