@@ -48,6 +48,9 @@ steps:
         echo "$$MY_APP_VERSION" > /workspace/myenv/_fileappversion_TAG.out
         git pull
         git checkout $$MY_CHECKOUT_REF
+        echo $(git rev-parse --verify HEAD) > /workspace/myenv/_fileappsha1_TAG.out
+
+
 
     dir: "build-source"
     volumes:
@@ -361,11 +364,18 @@ steps:
         PARM_REPO=$(cat /workspace/myenv/_filerepo_TAG.out)
         PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
+        PARM_BUILD_SHA="$(cat /workspace/myenv/_fileappsha_TAG.out)"
         TEST_RESULTS_ALL_1=$(cat /workspace/myenv/tests/_filetest-results-all-1_TAG.out)
 
-        gsutil cp '../_fileappversion_TAG.out' "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${PARM_AT_SEC}/app_version.txt"
-        gsutil cp  -R "../tests/artifacts/drivers/simple_hello/reports/temp/*" "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${PARM_AT_SEC}/reports/"
+        TEST_RESULTS_DIR='fail'
 
-        echo "TEST_RESULTS_ALL_1-$$TEST_RESULTS_ALL_1" 
+        echo "TEST_RESULTS_ALL_1-$$TEST_RESULTS_ALL_1"
+        if [ "$$TEST_RESULTS_ALL_1" == "0" ]; then
+          TEST_RESULTS_DIR='pass'
+        fi
+        TEST_RESULTS_FULL_DIR="gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${TEST_RESULTS_DIR}/$${PARM_AT_SEC}-sha-$${PARM_BUILD_SHA}"
+        gsutil cp '../_fileappversion_TAG.out' "$${TEST_RESULTS_FULL_DIR}/app_version.txt"
+        gsutil cp  -R "../tests/artifacts/drivers/simple_hello/reports/temp/*" "$${TEST_RESULTS_FULL_DIR}/reports/"
+
         exit $$TEST_RESULTS_ALL_1
     dir: "build-source/tests"
