@@ -45,6 +45,7 @@ steps:
     args:
       - '-c'
       - |
+        set -x
         [ "$_REF_PATH" == 'BRANCH_AUTO' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
         [ "$_REF_PATH" == 'BRANCH_MANUAL' ] && MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="b-$_BRANCH_NAME"
         [ "$_REF_PATH" == 'SHA_MANUAL_BR' ] && MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="b-$_BRANCH_NAME"
@@ -82,7 +83,7 @@ steps:
         echo "test-1" > /workspace/myenv/_fileclus_TAG.out
         echo "us-west1" > /workspace/myenv/_filereg_TAG.out
         echo "us-west1-b" > /workspace/myenv/_filezone_TAG.out
-        cp _fileat_TAG.out /workspace/myenv/_filerepopath_TAG.out
+        cp /workspace/myenv/_fileat_TAG.out /workspace/myenv/_filerepopath_TAG.out
         echo "repo8" > /workspace/myenv/_filerepo_TAG.out
 
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
