@@ -42,6 +42,8 @@ steps:
       - '-c'
       - |
         [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
+        [ "$_REF_PATH" == 'BRANCH_VERSION' ] && MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="$_POTENTIAL_VERSION"
+
         mkdir -p /workspace/myenv
         echo "$$MY_APP_VERSION" > /workspace/myenv/_fileappversion_TAG.out
         git pull
@@ -149,9 +151,9 @@ steps:
         PARM_BUILD_SHA="$(cat /workspace/myenv/_fileappsha1_TAG.out)"
         PARM_BUILD_SHA_LONG="$(cat /workspace/myenv/_fileappsha1_long_TAG.out)"
 
-        MY_CHECKOUT_REF="PARM_BUILD_SHA_LONG"; MY_APP_VERSION="b-$BRANCH_NAME"; MY_REF_PATH="*BRANCH-MANUAL*"
+        MY_CHECKOUT_REF="$$PARM_BUILD_SHA_LONG"; MY_APP_VERSION="b-$BRANCH_NAME"; MY_REF_PATH="*SHA-MANUAL-BR*"
 
         gcloud builds submit --config=tests/setup/cloudbuild.yaml  tests/setup/jobtemp --project ${PROJECT_ID} \
-            --substitutions="_REF_PATH=$$MY_REF_PATH,_BRANCH_NAME=$$PARM_BUILD_BRANCH,_INPUT_SHA_LONG=$$PARM_BUILD_SHA_LONG,_STEPS_X=CLUSTER1"
+            --substitutions="_REF_PATH=$$MY_REF_PATH,_BRANCH_NAME=$$PARM_BUILD_BRANCH,_INPUT_SHA_LONG=$$MY_CHECKOUT_REF,_STEPS_X=CLUSTER1"
 
     dir: "build-source"

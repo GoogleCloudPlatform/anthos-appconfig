@@ -20,11 +20,14 @@
 timeout: 3600s
 steps:
   - name: gcr.io/cloud-builders/gsutil
-    args: ['cp', '-DD', 'gs://${PROJECT_ID}_build/repo/keys/id_rsa_${PROJECT_ID}-repo', '/builder/home/.ssh/id_rsa']
-  - name: gcr.io/cloud-builders/gsutil
-    args: ['cp', '-DD', 'gs://${PROJECT_ID}_build/repo/github/build-ssh-config-git-hub', '/builder/home/.ssh/config']
-  - name: gcr.io/cloud-builders/gsutil
-    args: ['cp', '-DD', 'gs://${PROJECT_ID}_build/billing/billing_acount_testing.txt', '/builder/home/.ssh/billing_acount_testing.txt']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gsutil cp -DD "gs://${PROJECT_ID}_build/repo/keys/id_rsa_${PROJECT_ID}-repo" '/builder/home/.ssh/id_rsa'
+        gsutil cp -DD "gs://${PROJECT_ID}_build/repo/github/build-ssh-config-git-hub" '/builder/home/.ssh/config'
+        gsutil cp -DD "gs://${PROJECT_ID}_build/billing/billing_acount_testing.txt" '/builder/home/.ssh/billing_acount_testing.txt'
+
   - name: 'gcr.io/cloud-builders/git'
     entrypoint: 'bash'
     args:
@@ -45,6 +48,7 @@ steps:
         [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
         [ "$_REF_PATH" == '*BRANCH-MANUAL*' ] && MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="b-$_BRANCH_NAME"
         [ "$_REF_PATH" == '*SHA-MANUAL-BR*' ] && MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="b-$_BRANCH_NAME"
+        [ "$_REF_PATH" == 'SHA_MANUAL_RELEASE' ] && MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="$_POTENTIAL_VERSION"
         mkdir -p  /workspace/myenv/tests
         echo "$$MY_APP_VERSION" > /workspace/myenv/_fileappversion_TAG.out
         git pull
@@ -66,16 +70,9 @@ steps:
     volumes:
       - name: 'ssh'
         path: /root/.ssh
-  - name: ubuntu
+  - name: 'gcr.io/cloud-builders/git'
+    entrypoint: 'bash'
     args:
-      - "bash"
-      - '-c'
-      - |
-        ls -l
-    dir: "build-source"
-  - name: ubuntu
-    args:
-      - "bash"
       - '-c'
       - |
         date "+%Y%m%d-%H%M%S" > /workspace/myenv/_fileat_TAG.out
@@ -88,7 +85,19 @@ steps:
         cp _fileat_TAG.out /workspace/myenv/_filerepopath_TAG.out
         echo "repo8" > /workspace/myenv/_filerepo_TAG.out
 
+        PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
+        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
+
         bash setup/setup_mapping_execution.sh
+
+        PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
+        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
+
+        mkdir -p /root/home/.private/gsa_keys
+        gsutil cp  "gs://anthos-appconfig_build/tests/gsa_keys/PARM_PROJ/*" /root/home/.private/gsa_keys
+
+
+
 
     dir: "build-source/tests"
   - name: google/cloud-sdk
@@ -269,16 +278,14 @@ steps:
           --member=serviceAccount:appconfigcrd-demo-sa2@$${PARM_PROJ}.iam.gserviceaccount.com \
           --role=roles/pubsub.publisher
 
-        mkdir -p /root/home/.private/gsakeys
-        gsutil cp  "gs://anthos-appconfig_build/tests/gsakeys/$${PARM_PROJ}/*" /root/home/.private/gsakeys
 
 
         kubectl create secret generic appconfigcrd-demo-sa1-secret \
           -n appconfigmgrv2-system \
-          --from-file=key.json=/root/home/.private/gsakeys/sa1.json
+          --from-file=key.json=/root/home/.private/gsa_keys/sa1.json
         kubectl create secret generic appconfigcrd-demo-sa2-secret \
           -n appconfigmgrv2-system \
-          --from-file=key.json=/root/home/.private/gsakeys/sa2.json
+          --from-file=key.json=/root/home/.private/gsa_keys/sa2.json
 
         PARM_PATH="gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases"
         gsutil cat  "$$PARM_PATH/uc-allowed-services-k8s/deploy-apps.yaml" | kubectl delete -f -
@@ -352,7 +359,7 @@ steps:
         echo $(pwd)
         ls -l
 
-        export GOOGLE_APPLICATION_CREDENTIALS=/root/home/.private/gsakeys/sa1.json
+        export GOOGLE_APPLICATION_CREDENTIALS=/root/home/.private/gsa_keys/sa1.json
         export PUBSUB_GCP_PROJECT=$${PARM_PROJ}
         python all_tests.py;  TEST_RESULTS_ALL_1=$? || echo "0"
         echo $$TEST_RESULTS_ALL_1 > /workspace/myenv/tests/_filetest-results-all-1_TAG.out
