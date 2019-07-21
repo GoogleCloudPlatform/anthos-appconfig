@@ -39,7 +39,7 @@ steps:
       - |
         [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
         [ "$_REF_PATH" == '*BRANCH-MANUAL*' ] && MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="b-$_BRANCH_NAME"
-        mkdir -p  /workspace/myenv/
+        mkdir -p  /workspace/myenv
         echo "$$MY_APP_VERSION" > /workspace/myenv/_fileappversion_TAG.out
         git pull
         git checkout $$MY_CHECKOUT_REF
@@ -60,7 +60,6 @@ steps:
       - "bash"
       - '-c'
       - |
-        mkdir -p /workspace/myenv/_fileat_TAG.out
         date "+%Y%m%d-%H%M%S" > /workspace/myenv/_fileat_TAG.out
         echo "20190712000300" > /workspace/myenv/_file_TAG.out
         echo "201907120003" > /workspace/myenv/_filemin_TAG.out
