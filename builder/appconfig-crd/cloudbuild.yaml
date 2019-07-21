@@ -150,7 +150,14 @@ steps:
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
         PARM_BUILD_SHA="$(cat /workspace/myenv/_fileappsha1_TAG.out)"
         PARM_BUILD_SHA_LONG="$(cat /workspace/myenv/_fileappsha1_long_TAG.out)"
+        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
 
+        echo -e "AppVersion:[$$PARM_BUILD_BRANCH]\n" > /workspace/myenv/build_info.txt
+        echo; for v in PARM_BUILD_BRANCH PARM_BUILD_SHA PARM_BUILD_SHA_LONG PARM_TS_SEC PARM_PROJ PARM_CLUSTER PARM_REGION PARM_ZONE ; do
+          echo -e "${v}[${!v}]\n"  >> /workspace/myenv/tests/build_info.txt
+        done
+
+        gsutil cp '/workspace/myenv/tests/build_info.txt' "gs://${PROJECT_ID}_public/build_info/anthos-config-management/$$PARM_BUILD_BRANCH/$${PARM_TS_SEC}/build_info.txt"
         MY_CHECKOUT_REF="$$PARM_BUILD_SHA_LONG"; MY_APP_VERSION="b-$BRANCH_NAME"; MY_REF_PATH="*SHA-MANUAL-BR*"
 
         gcloud builds submit --config=tests/setup/cloudbuild.yaml  tests/setup/jobtemp --project ${PROJECT_ID} \

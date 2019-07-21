@@ -94,7 +94,7 @@ steps:
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
         mkdir -p /root/home/.private/gsa_keys
-        gsutil cp  "gs://anthos-appconfig_build/tests/gsa_keys/${PARM_PROJ}/*" /root/home/.private/gsa_keys
+        gsutil cp  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/*" /root/home/.private/gsa_keys
 
 
 
