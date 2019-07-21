@@ -75,9 +75,9 @@ steps:
         cp _fileat_TAG.out /workspace/myenv/_filerepopath_TAG.out
         echo "repo8" > /workspace/myenv/_filerepo_TAG.out
 
-        bash tests/setup/setup_mapping_execution.sh
+        bash setup/setup_mapping_execution.sh
 
-    dir: "build-source/tests/setup"
+    dir: "build-source/tests"
   - name: google/cloud-sdk
     entrypoint: "bash"
     args:
