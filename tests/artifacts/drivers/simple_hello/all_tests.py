@@ -19,7 +19,7 @@ runner = HtmlTestRunner.HTMLTestRunner(combine_reports=True, output="reports/tem
 results = runner.run(suite)
 
 print('results', results)
-print('results-errors', len(results.errors))
 
-if len(results.errors) > 0 or len(results.failures) > 0:
+
+if results.errors > 0 or results.failures > 0:
   sys.exit(1)
