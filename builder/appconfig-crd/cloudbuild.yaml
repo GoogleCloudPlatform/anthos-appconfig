@@ -72,7 +72,7 @@ steps:
       - "bash"
       - '-c'
       - |
-        date "+%Y%m%d-%H%M%S" > /workspace/myenv_file_TAG.out
+        date "+%Y%m%d-%H%M%S" > /workspace/myenv/_file_TAG.out
 
     dir: "build-source/appconfigmgrv2"
   - name: "gcr.io/${PROJECT_ID}/appconfighelper-build:${_BUILDER_VERSION}"
