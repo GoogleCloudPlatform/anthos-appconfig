@@ -97,7 +97,7 @@ steps:
         mkdir -p /root/home/.private/gsa_keys
         gsutil cp  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/*" /root/home/.private/gsa_keys
 
-        ls -LR /root/home/.private/gsa_keys
+        ls -lR /root/home/.private/gsa_keys
 
 
 
