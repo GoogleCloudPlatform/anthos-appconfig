@@ -69,6 +69,9 @@ steps:
         echo "us-west1-b" > /workspace/myenv/_filezone_TAG.out
         cp _fileat_TAG.out /workspace/myenv/_filerepopath_TAG.out
         echo "repo8" > /workspace/myenv/_filerepo_TAG.out
+
+        bash tests/setup/setup_mapping_execution.sh
+
     dir: "build-source/tests/setup"
   - name: google/cloud-sdk
     entrypoint: "bash"
