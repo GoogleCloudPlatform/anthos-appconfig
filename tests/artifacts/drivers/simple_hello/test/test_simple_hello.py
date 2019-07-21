@@ -72,7 +72,7 @@ class SimpleHelloTestCase(unittest.TestCase):
 
   def test_simple_hello_uc1_outbound_ok(self):
     uc = "uc-allowed-services-k8s"
-    self.assertTrue(len(os.environ['INGRESS_NO_ISTIO_HOST']) >  0, "INGRESS_ISTIO_HOST empty - len == 0")
+    self.assertTrue(len(os.environ['INGRESS_NO_ISTIO_HOST']) >  0, "INGRESS_NO_ISTIO_HOST empty - len == 0")
     full_url = "http://" + os.environ['INGRESS_NO_ISTIO_HOST'] + "/testcallseq?"
     full_url = full_url + self.util("1", "app-allowed-k8s-appconfigv2-service-sm-2", uc)
     full_url = full_url + "&" + self.util("2", "app-allowed-k8s-appconfigv2-service-sm-1", uc)
@@ -84,5 +84,34 @@ class SimpleHelloTestCase(unittest.TestCase):
     self.assertTrue(len(response) >  0, "response empty - len == 0")
     self.assertIn('"User-Agent": "python-requests/2.22.0"', response, "Failed Test")
     self.assertIn('"Host": "httpbin.org"', response, "Failed Test")
+
+  def test_simple_hello_uc1_service_blocked(self):
+    uc = "uc-allowed-services-k8s"
+    self.assertTrue(len(os.environ['INGRESS_NO_ISTIO_HOST']) >  0, "INGRESS_ISTIO_HOST empty - len == 0")
+    full_url = "http://" + os.environ['INGRESS_NO_ISTIO_HOST'] + "/testcallseq?"
+    full_url = full_url + self.util("1", "app-allowed-k8s-appconfigv2-service-sm-2", uc)
+    full_url = full_url + "&" + self.util("2", "app-allowed-k8s-appconfigv2-service-sm-3", uc)
+    full_url = full_url + "&call3=https://httpbin.org/get"
+
+
+    headers = {"Host": "test-simple-hello.example.com"}
+    response = RestHelper(full_url).get_text(None,headers)
+    self.assertTrue(len(response) >  0, "response empty - len == 0")
+    self.assertIn('"User-Agent": "python-requests/2.22.0"', response, "Failed Test")
+    self.assertIn('"Host": "httpbin.org"', response, "Failed Test")
+
+  def test_simple_hello_uc2_service_ok(self):
+    uc = "uc-allowed-services-istio"
+    self.assertTrue(len(os.environ['INGRESS_ISTIO_HOST']) >  0, "INGRESS_ISTIO_HOST empty - len == 0")
+    full_url = "http://" + os.environ['INGRESS_ISTIO_HOST'] + "/testcallseq?"
+    full_url = full_url + self.util("1", "app-allowed-istio-appconfigv2-service-sm-2", uc)
+    full_url = full_url + "&" + self.util("2", "app-allowed-istio-appconfigv2-service-sm-3", uc)
+
+    headers = {}
+    response = RestHelper(full_url).get_text(None,headers)
+    self.assertTrue(len(response) >  0, "response empty - len == 0")
+    self.assertNotIn('*Error*', response, "Failed Test")
+
+
 # if __name__ == '__main__':
 #   h = HtmlTestRunner.HTMLTestRunner(combine_reports=True, report_name="MyReport", add_timestamp=False).run(suite)

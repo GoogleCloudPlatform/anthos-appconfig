@@ -366,6 +366,6 @@ steps:
         gsutil cp '../_fileappversion_TAG.out' "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${PARM_AT_SEC}/app_version.txt"
         gsutil cp  -R "../tests/artifacts/drivers/simple_hello/reports/temp/*" "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${PARM_AT_SEC}/reports/"
 
-        echo "TEST_RESULTS_ALL_1-$$TEST_RESULTS_ALL_1"
-
+        echo "TEST_RESULTS_ALL_1-$$TEST_RESULTS_ALL_1" 
+        exit $$TEST_RESULTS_ALL_1
     dir: "build-source/tests"
