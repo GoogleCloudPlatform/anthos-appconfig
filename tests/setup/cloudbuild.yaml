@@ -39,7 +39,7 @@ steps:
       - |
         [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
         [ "$_REF_PATH" == '*BRANCH-MANUAL*' ] && MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="b-$_BRANCH_NAME"
-        echo "$$MY_APP_VERSION" > _fileappversion_TAG.out
+        echo "$$MY_APP_VERSION" > /workspace/myenv/_fileappversion_TAG.out
         git pull
         git checkout $$MY_CHECKOUT_REF
 
@@ -59,15 +59,16 @@ steps:
       - "bash"
       - '-c'
       - |
-        date "+%Y%m%d-%H%M%S" > _fileat_TAG.out
-        echo "20190712000300" > _file_TAG.out
-        echo "201907120003" > _filemin_TAG.out
-        echo "tst-appconfig-$(cat _filemin_TAG.out)" > _fileproj_TAG.out
-        echo "test-1" > _fileclus_TAG.out
-        echo "us-west1" > _filereg_TAG.out
-        echo "us-west1-b" > _filezone_TAG.out
-        cp _fileat_TAG.out _filerepopath_TAG.out
-        echo "repo8" > _filerepo_TAG.out
+        mkdir -p /workspace/myenv/_fileat_TAG.out
+        date "+%Y%m%d-%H%M%S" > /workspace/myenv/_fileat_TAG.out
+        echo "20190712000300" > /workspace/myenv/_file_TAG.out
+        echo "201907120003" > /workspace/myenv/_filemin_TAG.out
+        echo "tst-appconfig-$(cat /workspace/myenv/_filemin_TAG.out)" > /workspace/myenv/_fileproj_TAG.out
+        echo "test-1" > /workspace/myenv/_fileclus_TAG.out
+        echo "us-west1" > /workspace/myenv/_filereg_TAG.out
+        echo "us-west1-b" > /workspace/myenv/_filezone_TAG.out
+        cp _fileat_TAG.out /workspace/myenv/_filerepopath_TAG.out
+        echo "repo8" > /workspace/myenv/_filerepo_TAG.out
     dir: "build-source/tests/setup"
   - name: google/cloud-sdk
     entrypoint: "bash"
@@ -76,24 +77,34 @@ steps:
     - |
       set -x
       [[ "$_STEPS_X" == *"CLUSTER1"* ]] && exit 0
-      echo "PROJECT_NAME-$(cat _fileproj_TAG.out)"
-      TESTENV=$(date "+%Y%m%d-%H%M%S")
+      
+      PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
+      PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
+      PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
+      PARM_CLUSTER=$(cat /workspace/myenv/_fileclus_TAG.out)
+      PARM_REGION=$(cat /workspace/myenv/_filereg_TAG.out)
+      PARM_ZONE=$(cat /workspace/myenv/_filezone_TAG.out)
+      PARM_REPO=$(cat /workspace/myenv//_filerepo_TAG.out)
+      PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
+      PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
+
+
       gcloud config list  --quiet
-      gcloud projects create --folder=611791615006 --name="$(cat _fileproj_TAG.out)" --quiet  || echo 0
-      gcloud services enable cloudbilling.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
+      gcloud projects create --folder=611791615006 --name="$$PARM_PROJ" --quiet  || echo 0
+      gcloud services enable cloudbilling.googleapis.com --project "$$PARM_PROJ" --quiet
       gcloud beta billing projects link tst-appconfig-$(cat _filemin_TAG.out) --billing-account="$(cat /builder/home/.ssh/billing_acount_testing.txt)" --quiet
-      gcloud services enable compute.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
-      gcloud services enable container.googleapis.com  --project "$(cat _fileproj_TAG.out)" --quiet
-      gcloud services enable sourcerepo.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
-      gcloud services enable monitoring.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
-      gcloud services enable logging.googleapis.com --project "$(cat _fileproj_TAG.out)" --quiet
-      echo "TESTENV=$$TESTENV"
-      echo $(gcloud beta compute routers create r"$(cat _filereg_TAG.out)" --network=default --region "$(cat _filereg_TAG.out)" --project "$(cat _fileproj_TAG.out)" || echo 0)
-      echo $(gcloud beta compute routers nats create "n$(cat _filereg_TAG.out)" --router "r$(cat _filereg_TAG.out)" --project "$(cat _fileproj_TAG.out)" --auto-allocate-nat-external-ips --nat-all-subnet-ip-ranges --router-region "$(cat _filereg_TAG.out)" || echo 0)
-      echo $(gcloud container clusters describe $(cat _fileclus_TAG.out) --zone $(cat _filezone_TAG.out) --format="value(selfLink.basename())" --project "$(cat _fileproj_TAG.out)" || echo "") > out_cluster_TAG.out
+      gcloud services enable compute.googleapis.com --project "$$PARM_PROJ" --quiet
+      gcloud services enable container.googleapis.com  --project "$$PARM_PROJ" --quiet
+      gcloud services enable sourcerepo.googleapis.com --project "$$PARM_PROJ" --quiet
+      gcloud services enable monitoring.googleapis.com --project "$$PARM_PROJ" --quiet
+      gcloud services enable logging.googleapis.com --project "$$PARM_PROJ" --quiet
+
+      echo $(gcloud beta compute routers create r"$$PARM_REGION" --network=default --region "$$PARM_REGION" --project "$$PARM_PROJ" || echo 0)
+      echo $(gcloud beta compute routers nats create "n$$PARM_REGION" --router "r$$PARM_REGION" --project "$$PARM_PROJ" --auto-allocate-nat-external-ips --nat-all-subnet-ip-ranges --router-region "$$PARM_REGION" || echo 0)
+      echo $(gcloud container clusters describe $$PARM_CLUSTER --zone $$PARM_ZONE --format="value(selfLink.basename())" --project "$$PARM_PROJ" || echo "") > out_cluster_TAG.out
       echo "CLUS-$(cat out_cluster_TAG.out)"
-      [  ! -z  "$(cat out_cluster_TAG.out)" ] ||  gcloud beta container --project "$(cat _fileproj_TAG.out)" \
-          clusters create "$(cat _fileclus_TAG.out)" \
+      [  ! -z  "$(cat out_cluster_TAG.out)" ] ||  gcloud beta container --project "$$PARM_PROJ" \
+          clusters create "$$PARM_CLUSTER" \
           --disk-size "500" \
           --disk-type "pd-standard" \
           --enable-autorepair \
@@ -112,22 +123,22 @@ steps:
           --no-enable-basic-auth \
           --no-issue-client-certificate \
           --num-nodes "3" \
-          --network "projects/$(cat _fileproj_TAG.out)/global/networks/default" \
-          --subnetwork "projects/$(cat _fileproj_TAG.out)/regions/$(cat _filereg_TAG.out)/subnetworks/default" \
-          --zone "$(cat _filezone_TAG.out)"
+          --network "projects/$$PARM_PROJ/global/networks/default" \
+          --subnetwork "projects/$$PARM_PROJ/regions/$$PARM_REGION/subnetworks/default" \
+          --zone "$$PARM_ZONE"
 
-      echo $(gcloud container clusters describe "$(cat _fileclus_TAG.out)" --zone "$(cat _filezone_TAG.out)" --format="value(selfLink.basename())" --project "$(cat _fileproj_TAG.out)"  || echo "") > out2_cluster_TAG.out
+      echo $(gcloud container clusters describe "$$PARM_CLUSTER" --zone "$$PARM_ZONE" --format="value(selfLink.basename())" --project "$$PARM_PROJ"  || echo "") > out2_cluster_TAG.out
       echo "CLUS2-$(cat out2_cluster_TAG.out)"
 
-      gcloud container clusters update "$(cat _fileclus_TAG.out)"  --zone "$(cat _filezone_TAG.out)" \
+      gcloud container clusters update "$$PARM_CLUSTER"  --zone "$$PARM_ZONE" \
         --enable-master-authorized-networks \
-        --master-authorized-networks 0.0.0.0/0 --zone "$(cat _filezone_TAG.out)" --project "$(cat _fileproj_TAG.out)"
+        --master-authorized-networks 0.0.0.0/0 --zone "$$PARM_ZONE" --project "$$PARM_PROJ"
 
 
       rm -f ./kubeconfig
       touch ./kubeconfig
 
-      gcloud container clusters get-credentials "$(cat _fileclus_TAG.out)" --zone "$(cat _filezone_TAG.out)"  --project "$(cat _fileproj_TAG.out)"
+      gcloud container clusters get-credentials "$$PARM_CLUSTER" --zone "$$PARM_ZONE"  --project "$$PARM_PROJ"
 
       [ ! -z  "$(kubectl get clusterrolebinding cluster-admin-binding --output 'jsonpath={.metadata.name}')" ] || kubectl \
         create clusterrolebinding cluster-admin-binding \
@@ -144,19 +155,19 @@ steps:
         set -x
         [[ "$_STEPS_X" == *"CRD1"* ]] && exit 0
 
-        PARM_AT_SEC=$(cat setup/_fileat_TAG.out)
-        PARM_TS_SEC=$(cat setup/_file_TAG.out)
-        PARM_TS_MIN=$(cat _filemin_TAG.out)
-        PARM_PROJ="$(cat setup/_fileproj_TAG.out)"
-        PARM_CLUSTER=$(cat setup/_fileclus_TAG.out)
-        PARM_REGION=$(cat setup/_filereg_TAG.out)
-        PARM_ZONE=$(cat setup/_filezone_TAG.out)
-        PARM_REPO=$(cat setup/_filerepo_TAG.out)
-        PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
-        PARM_BUILD_BRANCH="$(cat ../_fileappversion_TAG.out)"
+        PARM_AT_SEC=$(cat /workspace/myenv_fileat_TAG.out)
+        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
+        PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
+        PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat /workspace/myenv/_fileclus_TAG.out)
+        PARM_REGION=$(cat /workspace/myenv/_filereg_TAG.out)
+        PARM_ZONE=$(cat /workspace/myenv/_filezone_TAG.out)
+        PARM_REPO=$(cat /workspace/myenv/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
+        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
         echo $(gcloud source repos describe "$$PARM_REPO" --format="value(selfLink.basename())" --project "$$PARM_PROJ" || echo "") > out_repos_TAG.out
-        echo "REPO-$(cat out_repos_TAG.out)"
+        echo "REPO-$(cat out_repo_TAG.out)"
 
         [ ! -z  "$(cat out_repos_TAG.out)" ] || gcloud source repos create "$$PARM_REPO" --project "$$PARM_PROJ"
 
@@ -213,16 +224,15 @@ steps:
         set -x
         [[ "$_STEPS_X" == *"CRD1"* ]] && exit 0
 
-        PARM_AT_SEC=$(cat setup/_fileat_TAG.out)
-        PARM_TS_SEC=$(cat setup/_file_TAG.out)
-        PARM_TS_MIN=$(cat _filemin_TAG.out)
-        PARM_PROJ="$(cat setup/_fileproj_TAG.out)"
-        PARM_CLUSTER=$(cat setup/_fileclus_TAG.out)
-        PARM_REGION=$(cat setup/_filereg_TAG.out)
-        PARM_ZONE=$(cat setup/_filezone_TAG.out)
-        PARM_REPO=$(cat setup/_filerepo_TAG.out)
-        PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
-        PARM_BUILD_BRANCH="$(cat ../_fileappversion_TAG.out)"
+        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
+        PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
+        PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat /workspace/myenv/_fileclus_TAG.out)
+        PARM_REGION=$(cat /workspace/myenv/_filereg_TAG.out)
+        PARM_ZONE=$(cat /workspace/myenv/_filezone_TAG.out)
+        PARM_REPO=$(cat /workspace/myenv/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
+        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
         CHECK_SA1=$(gcloud iam service-accounts describe appconfigcrd-demo-sa1  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
         [ -z  $$CHECK_SA1 ] || gcloud iam service-accounts create appconfigcrd-demo-sa1 --display-name=appconfigcrd-demo-sa1 --project --project $${PARM_PROJ}
@@ -275,9 +285,16 @@ steps:
       - '-c'
       - |
         set -x
-        PARM_CLUSTER=$(cat setup/_fileclus_TAG.out)
-        PARM_PROJ="$(cat setup/_fileproj_TAG.out)"
-        PARM_ZONE="$(cat setup/_filezone_TAG.out)"
+        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
+        PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
+        PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat /workspace/myenv/_fileclus_TAG.out)
+        PARM_REGION=$(cat /workspace/myenv/_filereg_TAG.out)
+        PARM_ZONE=$(cat /workspace/myenv/_filezone_TAG.out)
+        PARM_REPO=$(cat /workspace/myenv/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
+        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
+
         export KUBECONFIG=$(pwd)/kc
 
         rm -f $$KUBECONFIG || touch $$KUBECONFIG
@@ -289,8 +306,8 @@ steps:
         kubectl config get-context
         export INGRESS_ISTIO_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
         export INGRESS_NO_ISTIO_HOST=$(kubectl -n devtest get service test-service-external -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-        echo $$INGRESS_ISTIO_HOST > _fileout_test_istio_host.out
-        echo $$INGRESS_NO_ISTIO_HOST > _fileout_test_istio_no_host.out
+        echo $$INGRESS_ISTIO_HOST > /workspace/myenv/_fileout_test_istio_host.out
+        echo $$INGRESS_NO_ISTIO_HOST > /workspace/myenv/_fileout_test_istio_no_host.out
     dir: "build-source/tests"
   - name: gcr.io/anthos-appconfig/pso-e2e-testing-py:v1.0.1
     entrypoint: "bash"
@@ -299,17 +316,18 @@ steps:
       - |
         set -x
         [[ "$_STEPS_X" == *"TEST1"* ]] && exit 0
-        PARM_TS_SEC=$(cat setup/_file_TAG.out)
-        PARM_TS_MIN=$(cat _filemin_TAG.out)
-        PARM_PROJ="$(cat setup/_fileproj_TAG.out)"
-        PARM_CLUSTER=$(cat setup/_fileclus_TAG.out)
-        PARM_REGION=$(cat setup/_filereg_TAG.out)
-        PARM_ZONE=$(cat setup/_filezone_TAG.out)
-        PARM_REPO=$(cat setup/_filerepo_TAG.out)
-        PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
+        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
+        PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
+        PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat /workspace/myenv/_fileclus_TAG.out)
+        PARM_REGION=$(cat /workspace/myenv/_filereg_TAG.out)
+        PARM_ZONE=$(cat /workspace/myenv/_filezone_TAG.out)
+        PARM_REPO=$(cat /workspace/myenv/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
+        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
-        export INGRESS_ISTIO_HOST=$(cat _fileout_test_istio_host.out)
-        export INGRESS_NO_ISTIO_HOST=$(cat _fileout_test_istio_no_host.out)
+        export INGRESS_ISTIO_HOST=$(cat /workspace/myenv/_fileout_test_istio_host.out)
+        export INGRESS_NO_ISTIO_HOST=$(cat /workspace/myenv/_fileout_test_istio_no_host.out)
         echo $(pwd)
         ls -l
         python all_tests.py || echo "0"
@@ -320,19 +338,16 @@ steps:
       - '-c'
       - |
         set -x
-        PARM_AT_SEC=$(cat  setup/_fileat_TAG.out)
-        PARM_TS_SEC=$(cat setup/_file_TAG.out)
-        PARM_TS_MIN=$(cat setup/_filemin_TAG.out)
-        PARM_PROJ="$(cat  setup/_fileproj_TAG.out)"
-        PARM_CLUSTER=$(cat setup/_fileclus_TAG.out)
-        PARM_REGION=$(cat setup/_filereg_TAG.out)
-        PARM_ZONE=$(cat setup/_filezone_TAG.out)
-        PARM_REPO=$(cat setup/_filerepo_TAG.out)
-        PARM_REPO_LOCAL_PATH=$(cat setup/_filerepopath_TAG.out)
+        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
+        PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
+        PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat /workspace/myenv/_fileclus_TAG.out)
+        PARM_REGION=$(cat /workspace/myenv/_filereg_TAG.out)
+        PARM_ZONE=$(cat /workspace/myenv/_filezone_TAG.out)
+        PARM_REPO=$(cat /workspace/myenv/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
+        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
-        # Note different Path
-
-        PARM_BUILD_BRANCH="$(cat ../_fileappversion_TAG.out)"
 
         gsutil cp '../_fileappversion_TAG.out' "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${PARM_AT_SEC}/app_version.txt"
         gsutil cp  -R "../tests/artifacts/drivers/simple_hello/reports/temp/*" "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${PARM_AT_SEC}/reports/"
