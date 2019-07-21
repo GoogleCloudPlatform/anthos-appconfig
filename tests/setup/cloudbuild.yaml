@@ -96,6 +96,7 @@ steps:
         mkdir -p /root/home/.private/gsa_keys
         gsutil cp  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/*" /root/home/.private/gsa_keys
 
+        ls -LR /root/home/.private/gsa_keys
 
 
 
@@ -196,10 +197,10 @@ steps:
         PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
-        echo $(gcloud source repos describe "$$PARM_REPO" --format="value(selfLink.basename())" --project "$$PARM_PROJ" || echo "") > out_repos_TAG.out
+        echo $(gcloud source repos describe "$$PARM_REPO" --format="value(selfLink.basename())" --project "$$PARM_PROJ" || echo "") > out_repo_TAG.out
         echo "REPO-$(cat out_repo_TAG.out)"
 
-        [ ! -z  "$(cat out_repos_TAG.out)" ] || gcloud source repos create "$$PARM_REPO" --project "$$PARM_PROJ"
+        [ ! -z  "$(cat out_repo_TAG.out)" ] || gcloud source repos create "$$PARM_REPO" --project "$$PARM_PROJ"
 
 
         gcloud source repos clone  $$PARM_REPO "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" --project "$$PARM_PROJ"
