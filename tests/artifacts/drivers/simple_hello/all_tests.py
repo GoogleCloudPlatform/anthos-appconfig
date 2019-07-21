@@ -39,5 +39,5 @@ results = runner.run(suite)
 print('results', results)
 
 
-if results.errors > 0 or results.failures > 0:
+if len(results.errors) > 0 or len(results.failures) > 0:
   sys.exit(1)

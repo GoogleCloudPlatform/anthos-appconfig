@@ -163,7 +163,7 @@ steps:
         set -x
         [[ "$_STEPS_X" == *"CRD1"* ]] && exit 0
 
-        PARM_AT_SEC=$(cat /workspace/myenv_fileat_TAG.out)
+        PARM_AT_SEC=$(cat /workspace/myenv/_fileat_TAG.out)
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
@@ -341,7 +341,7 @@ steps:
 
         export GOOGLE_XAPPLICATION_CREDENTIALS=/root/home/.private/gsakeys/sa1.json
 
-        TEST_RESULTS_ALL_1=$(python all_tests.py) || echo "0"
+        python all_tests.py;  TEST_RESULTS_ALL_1=$? || echo "0"
         echo $$TEST_RESULTS_ALL_1 > /workspace/myenv/tests/_filetest-results-all-1_TAG.out
 
     dir: "build-source/tests/artifacts/drivers/simple_hello"
@@ -351,6 +351,7 @@ steps:
       - '-c'
       - |
         set -x
+        PARM_AT_SEC=$(cat /workspace/myenv/_fileat_TAG.out)
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
