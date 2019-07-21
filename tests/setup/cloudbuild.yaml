@@ -39,6 +39,7 @@ steps:
       - |
         [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
         [ "$_REF_PATH" == '*BRANCH-MANUAL*' ] && MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="b-$_BRANCH_NAME"
+        mkdir -p  /workspace/myenv/
         echo "$$MY_APP_VERSION" > /workspace/myenv/_fileappversion_TAG.out
         git pull
         git checkout $$MY_CHECKOUT_REF
@@ -276,7 +277,7 @@ steps:
         gsutil cat  "$$PARM_PATH/uc-secrets-istio/deploy-apps.yaml" | kubectl apply -f -
         gsutil cat  "$$PARM_PATH/uc-firebase/deploy-apps.yaml" | kubectl apply -f -
 
-
+        echo "CRD1-avoid last statment error"
 
     dir: "build-source/tests"
   - name: google/cloud-sdk
@@ -354,5 +355,5 @@ steps:
         gsutil cp  -R "../tests/artifacts/drivers/simple_hello/reports/temp/*" "gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${PARM_AT_SEC}/reports/"
 
         echo "TEST_RESULTS_ALL_1-$$TEST_RESULTS_ALL_1"
-        
+
     dir: "build-source/tests"
