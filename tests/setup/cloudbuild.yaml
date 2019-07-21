@@ -330,9 +330,12 @@ steps:
         export INGRESS_NO_ISTIO_HOST=$(cat /workspace/myenv/_fileout_test_istio_no_host.out)
         echo $(pwd)
         ls -l
+
+        export GOOGLE_ACCOUNT_CREDENTIALS=/root/home/.private/gsakeys/sa1.json
+
         TEST_RESULTS_ALL_1=$(python all_tests.py) || echo "0"
         echo $$TEST_RESULTS_ALL_1 > /workspace/myenv/tests/_filetest-results-all-1_TAG.out
-        
+
     dir: "build-source/tests/artifacts/drivers/simple_hello"
   - name: google/cloud-sdk
     entrypoint: "bash"
