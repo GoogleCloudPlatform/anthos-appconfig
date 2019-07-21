@@ -36,7 +36,8 @@ steps:
       - '-c'
       - |
         [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
-        echo "$$MY_APP_VERSION" > _fileappversion_TAG.out
+        mkdir -p /workspace/myenv
+        echo "$$MY_APP_VERSION" > /workspace/myenv/_fileappversion_TAG.out
         git pull
         git checkout $$MY_CHECKOUT_REF
     dir: "build-source"
@@ -55,7 +56,7 @@ steps:
       - "bash"
       - '-c'
       - |
-        date "+%Y%m%d-%H%M%S" > _file_TAG.out
+        date "+%Y%m%d-%H%M%S" > /workspace/myenv_file_TAG.out
 
     dir: "build-source/appconfigmgrv2"
   - name: "gcr.io/${PROJECT_ID}/appconfighelper-build:${_BUILDER_VERSION}"
@@ -71,15 +72,21 @@ steps:
     args:
       - '-c'
       - |
-        docker build -t gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$(cat ../_fileappversion_TAG.out)-$(cat _file_TAG.out) . || exit 1
-        docker push gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$(cat ../_fileappversion_TAG.out)-$(cat _file_TAG.out) || exit 1
+        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
+        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
+        PARM_BUILD_BRANCH_TS="$$PARM_BUILD_BRANCH-$$PARM_TS_SEC"
+        docker build -t gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$$PARM_BUILD_BRANCH_TS . || exit 1
+        docker push gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$$PARM_BUILD_BRANCH_TS || exit 1
     dir: "build-source/appconfigmgrv2"
   - name: "gcr.io/${PROJECT_ID}/appconfighelper-build:${_BUILDER_VERSION}"
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        sed -i'' -e 's@image: .*@image: '"gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$(cat ../_fileappversion_TAG.out)-$(cat _file_TAG.out)"'@' ./config/default/manager_image_patch.yaml
+        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
+        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
+        PARM_BUILD_BRANCH_TS="$$PARM_BUILD_BRANCH-$$PARM_TS_SEC"
+        sed -i'' -e 's@image: .*@image: '"gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$$PARM_BUILD_BRANCH_TS"'@' ./config/default/manager_image_patch.yaml
         make kustomize || exit 1
     dir: "build-source/appconfigmgrv2"
   - name: "gcr.io/${PROJECT_ID}/acmsplit:${_BUILDER_VERSION}"
@@ -105,16 +112,19 @@ steps:
     args:
       - '-c'
       - |
-        gsutil cp 'placeholder.txt' "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/"
-        gsutil rm -R "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/*"
-        gsutil cp -R 'anthos-config-management/*' "gs://${PROJECT_ID}_public/acm/anthos-config-management/$(cat _fileappversion_TAG.out)/"
+        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
+        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
+        PARM_BUILD_BRANCH_TS="$$PARM_BUILD_BRANCH-$$PARM_TS_SEC"
+        gsutil cp 'placeholder.txt' "gs://${PROJECT_ID}_public/acm/anthos-config-management/$$PARM_BUILD_BRANCH/"
+        gsutil rm -R "gs://${PROJECT_ID}_public/acm/anthos-config-management/$$PARM_BUILD_BRANCH/*"
+        gsutil cp -R 'anthos-config-management/*' "gs://${PROJECT_ID}_public/acm/anthos-config-management/$$PARM_BUILD_BRANCH/"
     dir: "build-source"
   - name: google/cloud-sdk
     entrypoint: "bash"
     args:
       - '-c'
       - |
-        ls -r  examples/use-cases/*/deploy-apps.yaml | xargs -I '{}'  gsutil cp '{}' gs://anthos-appconfig_public/deploy/$(cat _fileappversion_TAG.out)/'{}'
+        ls -r  examples/use-cases/*/deploy-apps.yaml | xargs -I '{}'  gsutil cp '{}' gs://anthos-appconfig_public/deploy/$$PARM_BUILD_BRANCH/'{}'
     dir: "build-source"
   - name: google/cloud-sdk
     entrypoint: "bash"
@@ -122,6 +132,8 @@ steps:
       - '-c'
       - |
         [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME"; MY_APP_VERSION="b-$BRANCH_NAME"; MY_REF_PATH="*BRANCH-MANUAL*"
+
         gcloud builds submit --config=tests/setup/cloudbuild.yaml  tests/setup/jobtemp --project ${PROJECT_ID} \
             --substitutions="_BRANCH_NAME=$$MY_CHECKOUT_REF,_STEPS_X=CLUSTER1,_REF_PATH=$$MY_REF_PATH"
+
     dir: "build-source"
