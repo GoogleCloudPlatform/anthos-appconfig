@@ -44,12 +44,22 @@ steps:
       - |
         [ "$_REF_PATH" == '*BRANCH*' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
         [ "$_REF_PATH" == '*BRANCH-MANUAL*' ] && MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="b-$_BRANCH_NAME"
+        [ "$_REF_PATH" == '*SHA-MANUAL-BR*' ] && MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="b-$_BRANCH_NAME"
         mkdir -p  /workspace/myenv/tests
         echo "$$MY_APP_VERSION" > /workspace/myenv/_fileappversion_TAG.out
         git pull
-        git checkout $$MY_CHECKOUT_REF
-        echo $(git rev-parse --verify HEAD) > /workspace/myenv/_fileappsha1_TAG.out
 
+        git checkout $$MY_CHECKOUT_REF
+        echo "GIT Info"
+
+
+        echo $(git rev-parse --verify HEAD) > /workspace/myenv/_fileappsha1_long_TAG.out
+        PARM_BUILD_SHA_LONG="$(cat /workspace/myenv/_fileappsha1_long_TAG.out)"
+        echo $(git rev-parse --short $${PARM_BUILD_SHA_LONG}) > /workspace/myenv/_fileappsha1_TAG.out
+        PARM_BUILD_SHA="$(cat /workspace/myenv/_fileappsha1_TAG.out)"
+        echo "Build-Info:[$${MY_CHECKOUT_REF}}]-[$${PARM_BUILD_SHA}]-[$${PARM_BUILD_SHA_LONG}]"
+        git status
+        echo "Build-Info:[$${MY_CHECKOUT_REF}}]-[$${PARM_BUILD_SHA}]-[$${PARM_BUILD_SHA_LONG}]"
 
 
     dir: "build-source"
@@ -342,8 +352,8 @@ steps:
         echo $(pwd)
         ls -l
 
-        export GOOGLE_XAPPLICATION_CREDENTIALS=/root/home/.private/gsakeys/sa1.json
-
+        export GOOGLE_APPLICATION_CREDENTIALS=/root/home/.private/gsakeys/sa1.json
+        export PUBSUB_GCP_PROJECT=$${PARM_PROJ}
         python all_tests.py;  TEST_RESULTS_ALL_1=$? || echo "0"
         echo $$TEST_RESULTS_ALL_1 > /workspace/myenv/tests/_filetest-results-all-1_TAG.out
 
@@ -364,7 +374,8 @@ steps:
         PARM_REPO=$(cat /workspace/myenv/_filerepo_TAG.out)
         PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
-        PARM_BUILD_SHA="$(cat /workspace/myenv/_fileappsha_TAG.out)"
+        PARM_BUILD_SHA="$(cat /workspace/myenv/_fileappsha1_TAG.out)"
+        PARM_BUILD_SHA_LONG="$(cat /workspace/myenv/_fileappsha1_long_TAG.out)"
         TEST_RESULTS_ALL_1=$(cat /workspace/myenv/tests/_filetest-results-all-1_TAG.out)
 
         TEST_RESULTS_DIR='fail'
@@ -373,8 +384,15 @@ steps:
         if [ "$$TEST_RESULTS_ALL_1" == "0" ]; then
           TEST_RESULTS_DIR='pass'
         fi
+        echo -e "AppVersion:[$$PARM_BUILD_BRANCH]\n" > /workspace/myenv/tests/build_info.txt
+        echo; for v in PARM_BUILD_BRANCH PARM_BUILD_SHA PARM_BUILD_SHA_LONG PARM_AT_SEC PARM_PROJ K8S_CONTEXT PARM_CLUSTER PARM_REGION PARM_ZONE ; do
+          echo -e "${v}[${!v}]\n"  >> /workspace/myenv/tests/build_info.txt
+        done
+
+
+
         TEST_RESULTS_FULL_DIR="gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${TEST_RESULTS_DIR}/$${PARM_AT_SEC}-sha-$${PARM_BUILD_SHA}"
-        gsutil cp '../_fileappversion_TAG.out' "$${TEST_RESULTS_FULL_DIR}/app_version.txt"
+        gsutil cp '/workspace/myenv/tests/build_info.txt' "$${TEST_RESULTS_FULL_DIR}/app_version.txt"
         gsutil cp  -R "../tests/artifacts/drivers/simple_hello/reports/temp/*" "$${TEST_RESULTS_FULL_DIR}/reports/"
 
         exit $$TEST_RESULTS_ALL_1
