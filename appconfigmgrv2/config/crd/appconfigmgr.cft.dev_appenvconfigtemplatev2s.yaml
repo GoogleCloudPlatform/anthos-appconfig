@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 
-# Copyright 2019 Google LLC. This software is provided as-is, 
+#
+# Copyright 2019 Google LLC. This software is provided as-is,
 # without warranty or representation for any use or purpose.#
 #
 
@@ -428,10 +428,34 @@ spec:
                   gcpAccess:
                     properties:
                       accessType:
+                        description: "accessType defines the type of gcpAccess auth granted to the application. Must be one of [secret,resource]"
                         type: string
+                      resources:
+                        description: "when accessType is 'resource', resources declares a one or more Kubernetes service accounts to be enabled for
+                          dynamic access to the provided Google Cloud resources with accompanying IAM roles"
+                        items:
+                          properties:
+                            serviceAccount:
+                              description: "Kubernetes service account to allow to enable dyamic credential generation for"
+                              type: string
+                            project:
+                              description: "Google Cloud project name"
+                              type: string
+                            resource:
+                              description: "target Google Cloud resource for IAM roles"
+                              type: string
+                            roles:
+                              description: "one or more Google Cloud IAM roles to grant"
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                        type: array
                       secretInfo:
+                        description: "when accessType is 'secret', secretInfo declares the properties of the secret resource."
                         properties:
                           name:
+                            description: "name is the secret resource name"
                             type: string
                           namespace:
                             type: string
