@@ -400,37 +400,12 @@ spec:
                 gcpAccess:
                   properties:
                     accessType:
-                      description: accessType defines the type of gcpAccess auth granted
-                        to the application. must be one of [secret,vault]
                       type: string
                     secretInfo:
-                      description: when accessType is 'secret', secretInfo declares
-                        the properties of the secret resource.
                       properties:
                         name:
-                          description: name is the secret resource name"
                           type: string
                         namespace:
-                          description: namespace where given secret resource name
-                            exists
-                          type: string
-                      type: object
-                    vaultInfo:
-                      description: when accessType is 'vault', vaultInfo declares
-                        the configured Google Cloud roleSet name(s) to be enabled
-                        via the given Kubernetes service accounts for use by the application.
-                        see https://www.vaultproject.io/docs/secrets/gcp/index.html
-                        for details on creating roleSets
-                      properties:
-                        roleSets:
-                          description: Vault Google Cloud Secrets Engine roleset name(s)
-                            to enable
-                          items:
-                            type: string
-                          type: array
-                        serviceAccount:
-                          description: Kubernetes service account to allow to enable
-                            dyamic credential generation for
                           type: string
                       type: object
                   type: object

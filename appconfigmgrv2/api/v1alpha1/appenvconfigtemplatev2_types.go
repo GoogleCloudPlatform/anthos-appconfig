@@ -11,10 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
-// Copyright 2019 Google LLC. This software is provided as-is,
+// 
+// Copyright 2019 Google LLC. This software is provided as-is, 
 // without warranty or representation for any use or purpose.
 //
+
 
 package v1alpha1
 
@@ -54,29 +55,13 @@ type AppEnvConfigTemplateJWT struct {
 }
 
 type AppEnvConfigTemplateGCPAccessSecretInfo struct {
-	// name is the secret resource name"
-	Name string `json:"name,omitempty"`
-	// namespace where given secret resource name exists
+	Name      string `json:"name,omitempty"`
 	Namespace string `json:"namespace,omitempty"`
 }
 
-type AppEnvConfigTemplateGCPAccessVaultInfo struct {
-	// Kubernetes service account to allow to enable dyamic credential generation for
-	ServiceAccount string `json:"serviceAccount,omitempty"`
-	// Vault Google Cloud Secrets Engine roleset name(s) to enable
-	RoleSets []string `json:"roleSets,omitempty"`
-}
-
 type AppEnvConfigTemplateGCPAccess struct {
-	// accessType defines the type of gcpAccess auth granted to the application.
-	// must be one of [secret,vault]
-	AccessType string `json:"accessType,omitempty"`
-	// when accessType is 'secret', secretInfo declares the properties of the secret resource.
+	AccessType string                                   `json:"accessType,omitempty"`
 	SecretInfo *AppEnvConfigTemplateGCPAccessSecretInfo `json:"secretInfo,omitempty"`
-	// when accessType is 'vault', vaultInfo declares the configured Google Cloud roleSet name(s)
-	// to be enabled via the given Kubernetes service accounts for use by the application.
-	// see https://www.vaultproject.io/docs/secrets/gcp/index.html for details on creating roleSets
-	VaultInfo *AppEnvConfigTemplateGCPAccessVaultInfo `json:"vaultInfo,omitempty"`
 }
 
 type AppEnvConfigTemplateAllowedEgress struct {
