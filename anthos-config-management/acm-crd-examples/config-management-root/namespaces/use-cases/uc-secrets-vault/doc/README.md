@@ -33,11 +33,14 @@ kubectl create secret generic vault-ca \
 Configure a Vault access policy for the ACM service account:
 ```bash
 cat > acm-controller-policy.hcl <<EOF
-path "sys/policy/acm-*" {
-  capabilities = ["create", "read", "update", "delete", "list"]
+path "sys/policy/*" {
+  capabilities = ["create", "read", "update", "delete", "list", "sudo"]
 }
-path "auth/kubernetes/role/acm-*" {
-  capabilities = ["create", "read", "update", "delete", "list"]
+path "sys/policies/acl/*" {
+  capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+}
+path "auth/kubernetes/*" {
+  capabilities = ["create", "read", "update", "delete", "list", "sudo"]
 }
 EOF
 
