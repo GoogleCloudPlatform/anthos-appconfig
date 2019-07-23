@@ -11,8 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-// 
-// Copyright 2019 Google LLC. This software is provided as-is, 
+//
+// Copyright 2019 Google LLC. This software is provided as-is,
 // without warranty or representation for any use or purpose.
 //
 
@@ -48,7 +48,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileIstioVirtualServices(
 			return err
 		}
 
-		if err := r.upsertUnstructured(ctx, vs, gvr); err != nil {
+		if err := r.upsertUnstructured(ctx, vs, gvr, true); err != nil {
 			return fmt.Errorf("reconciling: %v", err)
 		}
 	}

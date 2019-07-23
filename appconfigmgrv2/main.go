@@ -11,8 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-// 
-// Copyright 2019 Google LLC. This software is provided as-is, 
+//
+// Copyright 2019 Google LLC. This software is provided as-is,
 // without warranty or representation for any use or purpose.
 //
 
@@ -23,7 +23,6 @@ import (
 	"os"
 
 	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
-	"github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/webhooks"
 	"github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/controllers"
 
 	corev1 "k8s.io/api/core/v1"
@@ -88,7 +87,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	webhooks.SetupWebHooks(mgr)
+	// webhooks.SetupWebHooks(mgr)
 
 	// +kubebuilder:scaffold:builder
 

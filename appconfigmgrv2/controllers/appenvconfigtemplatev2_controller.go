@@ -11,8 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-// 
-// Copyright 2019 Google LLC. This software is provided as-is, 
+//
+// Copyright 2019 Google LLC. This software is provided as-is,
 // without warranty or representation for any use or purpose.
 //
 
@@ -20,6 +20,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 
@@ -50,6 +51,8 @@ type AppEnvConfigTemplateV2Reconciler struct {
 	Dynamic dynamic.Interface
 	Log     logr.Logger
 	Scheme  *runtime.Scheme
+
+	skipGatekeeper bool
 }
 
 // Reconcile takes an instance of an app config and issues create/update/delete requests
@@ -70,6 +73,12 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 			// For additional cleanup logic use finalizers.
 			return ctrl.Result{}, nil
 		}
+		// Error reading the object - requeue the request.
+		return ctrl.Result{}, err
+	}
+
+	instanceList := &appconfigmgrv1alpha1.AppEnvConfigTemplateV2List{}
+	if err := r.List(ctx, instanceList); err != nil {
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
 	}
@@ -123,6 +132,13 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 		log.Info("Reconciling", "resource", "networkpolicies")
 		if err := r.reconcileNetworkPolicies(ctx, instance); err != nil {
 			return ctrl.Result{}, fmt.Errorf("reconciling network policies: %v", err)
+		}
+	}
+
+	// Relies on OPA Gatekeeper.
+	if !r.skipGatekeeper {
+		if err := r.reconcileOPAContraints(ctx, instance, instanceList); err != nil {
+			return ctrl.Result{}, fmt.Errorf("reconciling opa constraints: %v", err)
 		}
 	}
 
@@ -208,8 +224,17 @@ func (r *AppEnvConfigTemplateV2Reconciler) upsertUnstructured(
 	ctx context.Context,
 	desired *unstructured.Unstructured,
 	gvr schema.GroupVersionResource,
+	namespaced bool,
 ) error {
-	client := r.Dynamic.Resource(gvr).Namespace(desired.GetNamespace())
+	var client dynamic.ResourceInterface
+	if namespaced {
+		client = r.Dynamic.Resource(gvr).Namespace(desired.GetNamespace())
+	} else {
+		client = r.Dynamic.Resource(gvr)
+	}
+
+	x, _ := json.MarshalIndent(desired, "  ", "  ")
+	fmt.Println(string(x))
 
 	found, err := client.Get(desired.GetName(), metav1.GetOptions{})
 	if err != nil {

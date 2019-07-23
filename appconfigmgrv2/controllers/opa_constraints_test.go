@@ -21,27 +21,29 @@ package controllers
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
 )
 
-func TestIstioServiceEntries(t *testing.T) {
+func TestOPAConstraints(t *testing.T) {
 	r, stop := startTestReconciler(t)
 	defer stop()
-	in, cleanup := createTestInstance(t, r.Client, true)
+	instance, cleanup := createTestInstance(t, r.Client, true)
 	defer cleanup()
 
-	cfg, err := r.getConfig()
-	require.NoError(t, err)
-
-	list, err := istioServiceEntries(cfg, in)
-	require.NoError(t, err)
-	require.Len(t, list, len(in.Spec.AllowedEgress))
-
-	gvr := istioServiceEntryGVR()
-
-	for i, entry := range list {
-		unstructuredShouldExist(t, r.Dynamic, gvr, entry)
-		removeAllowedEgressFromSpec(t, r.Client, in, i)
-		unstructuredShouldNotExist(t, r.Dynamic, gvr, entry)
+	list := &appconfig.AppEnvConfigTemplateV2List{
+		Items: []appconfig.AppEnvConfigTemplateV2{
+			*instance,
+		},
 	}
+
+	gvr := opaConstraintGVR()
+
+	c := opaDeploymentLabelConstraint(list)
+
+	_, _ = gvr, c
+	/*
+		TODO: Test existance of constraint. Requires dynamically generated CRD
+		to exist, something that a running Gatekeeper controller does.
+		unstructuredShouldExist(t, r.Dynamic, gvr, c)
+	*/
 }

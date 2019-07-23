@@ -11,8 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-// 
-// Copyright 2019 Google LLC. This software is provided as-is, 
+//
+// Copyright 2019 Google LLC. This software is provided as-is,
 // without warranty or representation for any use or purpose.
 //
 
@@ -76,6 +76,7 @@ func TestMain(m *testing.M) {
 		Paths: []string{
 			filepath.Join("..", "config", "crd", "bases"),
 			filepath.Join("..", "third_party", "istio", "v"+istioVersion, "crds"),
+			filepath.Join("..", "third_party", "opa", "crds"),
 		},
 		CRDs:               nil,
 		ErrorIfPathMissing: true,
@@ -98,10 +99,11 @@ func startTestReconciler(t *testing.T) (*AppEnvConfigTemplateV2Reconciler, func(
 	require.NoError(t, err)
 
 	r := &AppEnvConfigTemplateV2Reconciler{
-		Client:  mgr.GetClient(),
-		Dynamic: dynamic.NewForConfigOrDie(mgr.GetConfig()),
-		Log:     ctrl.Log.WithName("controllers").WithName("AppEnvConfigTemplateV2"),
-		Scheme:  mgr.GetScheme(),
+		Client:         mgr.GetClient(),
+		Dynamic:        dynamic.NewForConfigOrDie(mgr.GetConfig()),
+		Log:            ctrl.Log.WithName("controllers").WithName("AppEnvConfigTemplateV2"),
+		Scheme:         mgr.GetScheme(),
+		skipGatekeeper: true,
 	}
 	require.NoError(t, r.SetupWithManager(mgr))
 
