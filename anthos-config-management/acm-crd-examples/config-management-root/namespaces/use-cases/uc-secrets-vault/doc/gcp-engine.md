@@ -19,6 +19,7 @@ gcloud iam service-accounts create ${SERVICE_ACCOUNT} \
 
 gcloud iam service-accounts add-iam-policy-binding \
   --role roles/iam.serviceAccountAdmin \
+  --role roles/iam.serviceAccountKeyAdmin \
   --member serviceAccount:${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com \
   ${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com
 
