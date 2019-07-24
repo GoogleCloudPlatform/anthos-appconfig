@@ -20,8 +20,6 @@ package controllers
 
 import (
 	"testing"
-
-	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
 )
 
 func TestOPAConstraints(t *testing.T) {
@@ -30,15 +28,9 @@ func TestOPAConstraints(t *testing.T) {
 	instance, cleanup := createTestInstance(t, r.Client, true)
 	defer cleanup()
 
-	list := &appconfig.AppEnvConfigTemplateV2List{
-		Items: []appconfig.AppEnvConfigTemplateV2{
-			*instance,
-		},
-	}
-
 	gvr := opaConstraintGVR()
 
-	c := opaDeploymentLabelConstraint(list)
+	c := opaDeploymentLabelConstraint([]string{instance.Namespace})
 
 	_, _ = gvr, c
 	/*

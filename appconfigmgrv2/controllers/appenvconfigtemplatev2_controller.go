@@ -20,7 +20,6 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"reflect"
 
@@ -65,6 +64,24 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 	log.Info("Starting reconcile")
 	defer log.Info("Reconcile complete")
 
+	// Relies on OPA Gatekeeper.
+	if !r.skipGatekeeper {
+		/* TODO: Check that app labels are valid via listing instances.
+		instanceList := &appconfigmgrv1alpha1.AppEnvConfigTemplateV2List{}
+		if err := r.List(ctx, instanceList); err != nil {
+			return ctrl.Result{}, err
+		}
+		*/
+
+		opaNamespaces, err := r.opaNamespaces(ctx)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("listing opa namespaces: %v", err)
+		}
+		if err := r.reconcileOPAContraints(ctx, opaNamespaces); err != nil {
+			return ctrl.Result{}, fmt.Errorf("reconciling opa constraints: %v", err)
+		}
+	}
+
 	instance := &appconfigmgrv1alpha1.AppEnvConfigTemplateV2{}
 	err := r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
@@ -73,12 +90,6 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 			// For additional cleanup logic use finalizers.
 			return ctrl.Result{}, nil
 		}
-		// Error reading the object - requeue the request.
-		return ctrl.Result{}, err
-	}
-
-	instanceList := &appconfigmgrv1alpha1.AppEnvConfigTemplateV2List{}
-	if err := r.List(ctx, instanceList); err != nil {
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
 	}
@@ -135,13 +146,6 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 		}
 	}
 
-	// Relies on OPA Gatekeeper.
-	if !r.skipGatekeeper {
-		if err := r.reconcileOPAContraints(ctx, instance, instanceList); err != nil {
-			return ctrl.Result{}, fmt.Errorf("reconciling opa constraints: %v", err)
-		}
-	}
-
 	// TODO: Reconcile istio/non-istio resources on namespace istio injection label update?
 	// i.e. NetworkPolicies vs istio Rules
 
@@ -152,6 +156,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 func (r *AppEnvConfigTemplateV2Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	c := ctrl.NewControllerManagedBy(mgr).
 		For(&appconfigmgrv1alpha1.AppEnvConfigTemplateV2{}).
+		For(&corev1.Namespace{}). // Watch namespaces for enforcing opa constraints.
 		Owns(&corev1.Service{}).
 		Owns(&netv1.NetworkPolicy{})
 
@@ -218,6 +223,23 @@ func (r *AppEnvConfigTemplateV2Reconciler) istioAutoInjectEnabled(ctx context.Co
 	return ns.Labels["istio-injection"] == "enabled", nil
 }
 
+// opaNamespaces returns a list of namespaces to enforce opa constraints on.
+func (r *AppEnvConfigTemplateV2Reconciler) opaNamespaces(ctx context.Context) ([]string, error) {
+	names := make([]string, 0)
+
+	var list corev1.NamespaceList
+	if err := r.Client.List(ctx, &list); err != nil {
+		return nil, err
+	}
+	for _, ns := range list.Items {
+		if ns.Annotations["mutating-create-update-pod-appconfig-cft-dev"] == "enabled" {
+			names = append(names, ns.Name)
+		}
+	}
+
+	return names, nil
+}
+
 // upsertUnstructured creates/updates unstructured objects based on spec
 // comparisons.
 func (r *AppEnvConfigTemplateV2Reconciler) upsertUnstructured(
@@ -232,9 +254,6 @@ func (r *AppEnvConfigTemplateV2Reconciler) upsertUnstructured(
 	} else {
 		client = r.Dynamic.Resource(gvr)
 	}
-
-	x, _ := json.MarshalIndent(desired, "  ", "  ")
-	fmt.Println(string(x))
 
 	found, err := client.Get(desired.GetName(), metav1.GetOptions{})
 	if err != nil {

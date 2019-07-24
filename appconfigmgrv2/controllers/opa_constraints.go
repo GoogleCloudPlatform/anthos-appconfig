@@ -22,8 +22,6 @@ import (
 	"context"
 	"fmt"
 
-	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -32,13 +30,12 @@ import (
 // which are enforced by Gatekeeper.
 func (r *AppEnvConfigTemplateV2Reconciler) reconcileOPAContraints(
 	ctx context.Context,
-	in *appconfig.AppEnvConfigTemplateV2,
-	list *appconfig.AppEnvConfigTemplateV2List,
+	namespaces []string,
 ) error {
 	gvr := opaConstraintGVR()
 
 	for _, ct := range []*unstructured.Unstructured{
-		opaDeploymentLabelConstraint(list),
+		opaDeploymentLabelConstraint(namespaces),
 	} {
 		/*
 			TODO: What to do about owner? Constraint is not owned by a single instance.
@@ -55,12 +52,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileOPAContraints(
 	return nil
 }
 
-func opaDeploymentLabelConstraint(list *appconfig.AppEnvConfigTemplateV2List) *unstructured.Unstructured {
-	namespaces := make([]string, 0)
-	for _, item := range list.Items {
-		namespaces = append(namespaces, item.Namespace)
-	}
-
+func opaDeploymentLabelConstraint(namespaces []string) *unstructured.Unstructured {
 	u := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"metadata": map[string]interface{}{
