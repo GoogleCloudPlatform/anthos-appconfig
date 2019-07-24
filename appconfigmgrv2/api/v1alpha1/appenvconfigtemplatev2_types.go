@@ -54,13 +54,29 @@ type AppEnvConfigTemplateJWT struct {
 }
 
 type AppEnvConfigTemplateGCPAccessSecretInfo struct {
-	Name      string `json:"name,omitempty"`
+	// name is the secret resource name"
+	Name string `json:"name,omitempty"`
+	// namespace where given secret resource name exists
 	Namespace string `json:"namespace,omitempty"`
 }
 
+type AppEnvConfigTemplateGCPAccessVaultInfo struct {
+	// Kubernetes service account to allow to enable dyamic credential generation for
+	ServiceAccount string `json:"serviceAccount,omitempty"`
+	// Vault Google Cloud Secrets Engine roleset name to enable
+	RoleSet string `json:"roleSet,omitempty"`
+}
+
 type AppEnvConfigTemplateGCPAccess struct {
-	AccessType string                                   `json:"accessType,omitempty"`
+	// accessType defines the type of gcpAccess auth granted to the application.
+	// must be one of [secret,vault]
+	AccessType string `json:"accessType,omitempty"`
+	// when accessType is 'secret', secretInfo declares the properties of the secret resource.
 	SecretInfo *AppEnvConfigTemplateGCPAccessSecretInfo `json:"secretInfo,omitempty"`
+	// when accessType is 'vault', vaultInfo declares the configured Google Cloud roleSet name
+	// to be enabled via the given Kubernetes service accounts for use by the application.
+	// see https://www.vaultproject.io/docs/secrets/gcp/index.html for details on creating roleSets
+	VaultInfo *AppEnvConfigTemplateGCPAccessVaultInfo `json:"vaultInfo,omitempty"`
 }
 
 type AppEnvConfigTemplateAllowedEgress struct {
