@@ -113,7 +113,7 @@ steps:
     - |
       set -x
       [[ "$_STEPS_X" == *"CLUSTER1"* ]] && exit 0
-      
+      MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
       PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
       PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
       PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"

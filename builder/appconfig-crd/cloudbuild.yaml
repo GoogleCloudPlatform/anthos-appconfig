@@ -29,8 +29,8 @@ steps:
     args:
       - '-c'
       - |
-        mkdir -p $${MYENV_DIR}
-        echo "$${MYENV_DIR}" > /workspace/myenv/_rootdir_TAG.out
+        mkdir -p /workspace/myenv
+        echo "/workspace/myenv" > /workspace/myenv/_rootdir_TAG.out
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         cp /builder/home/.ssh/id_rsa /root/.ssh/id_rsa
         cp /builder/home/.ssh/config /root/.ssh/config
