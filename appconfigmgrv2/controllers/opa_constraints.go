@@ -37,13 +37,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileOPAContraints(
 	for _, ct := range []*unstructured.Unstructured{
 		opaDeploymentLabelConstraint(namespaces),
 	} {
-		/*
-			TODO: What to do about owner? Constraint is not owned by a single instance.
-			if err := controllerutil.SetControllerReference(in, ct, r.Scheme); err != nil {
-				return fmt.Errorf("setting controller reference: %v", err)
-			}
-		*/
-
+		// TODO: What to do about owner?
 		if err := r.upsertUnstructured(ctx, ct, gvr, false); err != nil {
 			return fmt.Errorf("reconciling: %v", err)
 		}
