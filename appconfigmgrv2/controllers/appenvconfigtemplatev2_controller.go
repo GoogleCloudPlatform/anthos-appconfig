@@ -228,13 +228,13 @@ func (r *AppEnvConfigTemplateV2Reconciler) opaNamespaces(ctx context.Context) ([
 	names := make([]string, 0)
 
 	var list corev1.NamespaceList
-	if err := r.Client.List(ctx, &list); err != nil {
+	if err := r.Client.List(ctx, &list, client.MatchingLabels(map[string]string{
+		"mutating-create-update-pod-appconfig-cft-dev": "enabled",
+	})); err != nil {
 		return nil, err
 	}
 	for _, ns := range list.Items {
-		if ns.Annotations["mutating-create-update-pod-appconfig-cft-dev"] == "enabled" {
-			names = append(names, ns.Name)
-		}
+		names = append(names, ns.Name)
 	}
 
 	return names, nil
