@@ -29,8 +29,8 @@ steps:
     args:
       - '-c'
       - |
-        mkdir -p /workspace/myenv
-        echo "/workspace/myenv" > /workspace/myenv/_rootdir_TAG.out
+        mkdir -p $${MYENV_DIR}
+        echo "$${MYENV_DIR}" > /workspace/myenv/_rootdir_TAG.out
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         cp /builder/home/.ssh/id_rsa /root/.ssh/id_rsa
         cp /builder/home/.ssh/config /root/.ssh/config
@@ -45,17 +45,17 @@ steps:
       - '-c'
       - |
         [ "$_REF_PATH" == 'BRANCH_AUTO' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
-        [ "$_REF_PATH" == 'BRANCH_MANUAL' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
+        [ "$_REF_PATH" == 'BRANCH_MANUAL' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$_BRANCH_NAME"
         [ "$_REF_PATH" == 'BRANCH_VERSION' ] && MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="$_POTENTIAL_VERSION"
 
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
-        echo "$$MY_APP_VERSION" > $${MYENV_DIR}_fileappversion_TAG.out
+        echo "$$MY_APP_VERSION" > $${MYENV_DIR}/_fileappversion_TAG.out
         git pull
         git checkout $$MY_CHECKOUT_REF
-        echo $(git rev-parse --verify HEAD) > /workspace/myenv/_fileappsha1_long_TAG.out
-        PARM_BUILD_SHA_LONG="$(cat /workspace/myenv/_fileappsha1_long_TAG.out)"
-        echo $(git rev-parse --short $${PARM_BUILD_SHA_LONG}) > /workspace/myenv/_fileappsha1_TAG.out
-        PARM_BUILD_SHA="$(cat /workspace/myenv/_fileappsha1_TAG.out)"
+        echo $(git rev-parse --verify HEAD) > $${MYENV_DIR}/_fileappsha1_long_TAG.out
+        PARM_BUILD_SHA_LONG="$(cat $${MYENV_DIR}/_fileappsha1_long_TAG.out)"
+        echo $(git rev-parse --short $${PARM_BUILD_SHA_LONG}) > $${MYENV_DIR}/_fileappsha1_TAG.out
+        PARM_BUILD_SHA="$(cat $${MYENV_DIR}/_fileappsha1_TAG.out)"
         echo "Build-Info:[$${MY_CHECKOUT_REF}}]-[$${PARM_BUILD_SHA}]-[$${PARM_BUILD_SHA_LONG}]"
         git status
         echo "Build-Info:[$${MY_CHECKOUT_REF}}]-[$${PARM_BUILD_SHA}]-[$${PARM_BUILD_SHA_LONG}]"
@@ -76,7 +76,8 @@ steps:
       - "bash"
       - '-c'
       - |
-        date "+%Y%m%d-%H%M%S" > /workspace/myenv/_file_TAG.out
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+        date "+%Y%m%d-%H%M%S" > $${MYENV_DIR}/_file_TAG.out
 
     dir: "build-source/appconfigmgrv2"
   - name: "gcr.io/${PROJECT_ID}/appconfighelper-build:${_BUILDER_VERSION}"
@@ -84,6 +85,8 @@ steps:
     args:
       - '-c'
       - |
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+
         make || exit 1
         make test || exit 1
     dir: "build-source/appconfigmgrv2"
@@ -92,8 +95,10 @@ steps:
     args:
       - '-c'
       - |
-        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
-        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+
+        PARM_TS_SEC=$(cat $${MYENV_DIR}/_file_TAG.out)
+        PARM_BUILD_BRANCH="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
         PARM_BUILD_BRANCH_TS="$$PARM_BUILD_BRANCH-$$PARM_TS_SEC"
         docker build -t gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$$PARM_BUILD_BRANCH_TS . || exit 1
         docker push gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$$PARM_BUILD_BRANCH_TS || exit 1
@@ -103,8 +108,10 @@ steps:
     args:
       - '-c'
       - |
-        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
-        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+
+        PARM_TS_SEC=$(cat $${MYENV_DIR}/_file_TAG.out)
+        PARM_BUILD_BRANCH="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
         PARM_BUILD_BRANCH_TS="$$PARM_BUILD_BRANCH-$$PARM_TS_SEC"
         sed -i'' -e 's@image: .*@image: '"gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$$PARM_BUILD_BRANCH_TS"'@' ./config/default/manager_image_patch.yaml
         make kustomize || exit 1
@@ -120,6 +127,7 @@ steps:
     args:
       - '-c'
       - |
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         cp appconfigmgrv2/config/generated/all-cluster.yaml anthos-config-management/acm-crd/config-management-root/cluster
         cp appconfigmgrv2/config/generated/all-other.yaml anthos-config-management/acm-crd/config-management-root/namespaces/appconfigmgrv2-system
         echo "" > placeholder.txt
@@ -132,8 +140,9 @@ steps:
     args:
       - '-c'
       - |
-        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
-        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+        PARM_TS_SEC=$(cat $${MYENV_DIR}/_file_TAG.out)
+        PARM_BUILD_BRANCH="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
         PARM_BUILD_BRANCH_TS="$$PARM_BUILD_BRANCH-$$PARM_TS_SEC"
         gsutil cp 'placeholder.txt' "gs://${PROJECT_ID}_public/acm/anthos-config-management/$$PARM_BUILD_BRANCH/"
         gsutil rm -R "gs://${PROJECT_ID}_public/acm/anthos-config-management/$$PARM_BUILD_BRANCH/*"
@@ -144,7 +153,8 @@ steps:
     args:
       - '-c'
       - |
-        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+        PARM_BUILD_BRANCH="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
         ls -r  examples/use-cases/*/deploy-apps.yaml | xargs -I '{}'  gsutil cp '{}' gs://anthos-appconfig_public/deploy/$$PARM_BUILD_BRANCH/'{}'
     dir: "build-source"
   - name: google/cloud-sdk
@@ -152,17 +162,18 @@ steps:
     args:
       - '-c'
       - |
-        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
-        PARM_BUILD_SHA="$(cat /workspace/myenv/_fileappsha1_TAG.out)"
-        PARM_BUILD_SHA_LONG="$(cat /workspace/myenv/_fileappsha1_long_TAG.out)"
-        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+        PARM_BUILD_BRANCH="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
+        PARM_BUILD_SHA="$(cat $${MYENV_DIR}/_fileappsha1_TAG.out)"
+        PARM_BUILD_SHA_LONG="$(cat $${MYENV_DIR}/_fileappsha1_long_TAG.out)"
+        PARM_TS_SEC=$(cat $${MYENV_DIR}/_file_TAG.out)
 
-        echo -e "AppVersion:[$$PARM_BUILD_BRANCH]\n" > /workspace/myenv/build_info.txt
+        echo -e "AppVersion:[$$PARM_BUILD_BRANCH]\n" > $${MYENV_DIR}/build_info.txt
         echo; for v in PARM_BUILD_BRANCH PARM_BUILD_SHA PARM_BUILD_SHA_LONG PARM_TS_SEC PARM_PROJ PARM_CLUSTER PARM_REGION PARM_ZONE ; do
-          echo -e "${v}[${!v}]\n"  >> /workspace/myenv/build_info.txt
+          echo -e "${v}[${!v}]\n"  >> $${MYENV_DIR}/build_info.txt
         done
 
-        gsutil cp '/workspace/myenv/build_info.txt' "gs://${PROJECT_ID}_public/build_info/anthos-config-management/$$PARM_BUILD_BRANCH/$${PARM_TS_SEC}/build_info.txt"
+        gsutil cp '$${MYENV_DIR}/build_info.txt' "gs://${PROJECT_ID}_public/build_info/anthos-config-management/$$PARM_BUILD_BRANCH/$${PARM_TS_SEC}/build_info.txt"
 
 
 
