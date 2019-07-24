@@ -22,10 +22,12 @@ run: generate fmt vet
 # Install CRDs into a cluster
 install: manifests
 	kubectl apply -f config/crd/bases
+	kubectl apply -f config/opa/bases
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests
 	kubectl apply -f config/crd/bases
+	kubectl apply -f config/opa/bases
 	kustomize build config/default | kubectl apply -f -
 
 
