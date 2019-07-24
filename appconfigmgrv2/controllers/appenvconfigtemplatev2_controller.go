@@ -129,6 +129,18 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 	// TODO: Reconcile istio/non-istio resources on namespace istio injection label update?
 	// i.e. NetworkPolicies vs istio Rules
 
+	vaultEnabled, err := r.vaultInjectEnabled(ctx, instance.Spec.Auth)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("checking for vault injection config: %v", err)
+	}
+
+	if vaultEnabled {
+		vaultInfo := instance.Spec.Auth.GCPAccess.VaultInfo
+		if err := r.reconcileVault(ctx, instance.ObjectMeta, vaultInfo); err != nil {
+			return ctrl.Result{}, fmt.Errorf("reconciling vault: %v", err)
+		}
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -200,6 +212,32 @@ func (r *AppEnvConfigTemplateV2Reconciler) istioAutoInjectEnabled(ctx context.Co
 		return false, err
 	}
 	return ns.Labels["istio-injection"] == "enabled", nil
+}
+
+// vaultInjectEnabled checks the AppEnvConfigTemplateV2 auth spec for
+// existing vaultInfo type and fields with basic validation
+func (r *AppEnvConfigTemplateV2Reconciler) vaultInjectEnabled(
+	ctx context.Context,
+	auth *appconfigmgrv1alpha1.AppEnvConfigTemplateAuth,
+) (bool, error) {
+	if auth == nil || auth.GCPAccess == nil || auth.GCPAccess.AccessType != "vault" {
+		return false, nil
+	}
+
+	vaultInfo := auth.GCPAccess.VaultInfo
+	if vaultInfo == nil {
+		return false, fmt.Errorf("vaultInfo not configured")
+	}
+
+	if vaultInfo.ServiceAccount == "" {
+		return false, fmt.Errorf("vaultInfo missing serviceAccount key")
+	}
+
+	if vaultInfo.RoleSet == "" {
+		return false, fmt.Errorf("vaultInfo missing roleSet key")
+	}
+
+	return true, nil
 }
 
 // upsertUnstructured creates/updates unstructured objects based on spec
