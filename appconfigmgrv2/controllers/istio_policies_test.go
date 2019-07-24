@@ -30,7 +30,7 @@ import (
 func TestIstioPolicies(t *testing.T) {
 	r, stop := startTestReconciler(t)
 	defer stop()
-	in, cleanup := createTestInstance(t, r.Client, true)
+	in, cleanup := createTestInstance(t, true)
 	defer cleanup()
 
 	list, err := istioPolicies(in)

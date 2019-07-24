@@ -25,14 +25,14 @@ import (
 func TestOPAConstraints(t *testing.T) {
 	r, stop := startTestReconciler(t)
 	defer stop()
-	instance, cleanup := createTestInstance(t, r.Client, true)
+	instance, cleanup := createTestInstance(t, true)
 	defer cleanup()
 
 	gvr := opaConstraintGVR()
 
 	c := opaDeploymentLabelConstraint([]string{instance.Namespace})
 
-	_, _ = gvr, c
+	_, _, _ = r, gvr, c
 	/*
 		TODO: Test existance of constraint. Requires dynamically generated CRD
 		to exist, something that a running Gatekeeper controller does.

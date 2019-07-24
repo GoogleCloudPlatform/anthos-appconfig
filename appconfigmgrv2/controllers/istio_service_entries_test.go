@@ -27,7 +27,7 @@ import (
 func TestIstioServiceEntries(t *testing.T) {
 	r, stop := startTestReconciler(t)
 	defer stop()
-	in, cleanup := createTestInstance(t, r.Client, true)
+	in, cleanup := createTestInstance(t, true)
 	defer cleanup()
 
 	cfg, err := r.getConfig()
