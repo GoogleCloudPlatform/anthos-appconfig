@@ -36,6 +36,8 @@ import (
 	"k8s.io/client-go/dynamic"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
 	appconfigmgrv1alpha1 "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
@@ -155,8 +157,9 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 // SetupWithManager registers the reconciler with a manager.
 func (r *AppEnvConfigTemplateV2Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	c := ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.Namespace{}). // Watch namespaces for enforcing opa constraints.
 		For(&appconfigmgrv1alpha1.AppEnvConfigTemplateV2{}).
+		// Watch namespaces for enforcing opa constraints.
+		Watches(&source.Kind{Type: &corev1.Namespace{}}, &handler.EnqueueRequestForObject{}).
 		Owns(&corev1.Service{}).
 		Owns(&netv1.NetworkPolicy{})
 
