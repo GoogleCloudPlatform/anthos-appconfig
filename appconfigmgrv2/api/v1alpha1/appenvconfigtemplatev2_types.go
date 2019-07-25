@@ -65,6 +65,8 @@ type AppEnvConfigTemplateGCPAccessVaultInfo struct {
 	ServiceAccount string `json:"serviceAccount,omitempty"`
 	// Vault Google Cloud Secrets Engine roleset name to enable
 	RoleSet string `json:"roleSet,omitempty"`
+	// Cluster-specific Vault path where Kubernetes Auth Method is enabled
+	RolePath string `json:"rolePath,omitempty"`
 }
 
 type AppEnvConfigTemplateGCPAccess struct {
