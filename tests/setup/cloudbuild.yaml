@@ -26,7 +26,7 @@ steps:
       - |
         echo 'STEP-START'
         echo; for v in _REF_PATH _POTENTIAL_VERSION _BRANCH_NAME PARM_AT_SEC _INPUT_SHA_LONG _STEPS_X  ; do
-          echo -e "${v}[${!v}]\n"
+          echo -e "${v}[{!v}]\n"
         done
 
         mkdir -p /workspace/myenv
@@ -62,7 +62,7 @@ steps:
         [ "$_REF_PATH" == 'SHA_MANUAL_RELEASE' ] && { MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="$_POTENTIAL_VERSION"; }
 
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
-        echo "$_INPUT_SHA_LONG" > $${MYENV_DIR}/_fileappsha1_long_TAG.out)
+        echo "$_INPUT_SHA_LONG" > $${MYENV_DIR}/_fileappsha1_long_TAG.out
 
         mkdir -p  /workspace/myenv/tests
         echo "$$MY_APP_VERSION" > /workspace/myenv/_fileappversion_TAG.out
@@ -70,7 +70,7 @@ steps:
 
         git checkout $$MY_CHECKOUT_REF
 
-        echo "$(git rev-parse --short HEAD)" >  $${MYENV_DIR}/_fileappsha1_TAG.out)
+        echo "$(git rev-parse --short HEAD)" >  $${MYENV_DIR}/_fileappsha1_TAG.out
 
         PARM_GIT_LAST_COMMIT_EMAIL=$(git log -1 --pretty=format:'%ae')
         echo "$${PARM_GIT_LAST_COMMIT_EMAIL%@*}"  > $${MYENV_DIR}/_file_email_TAG.out
