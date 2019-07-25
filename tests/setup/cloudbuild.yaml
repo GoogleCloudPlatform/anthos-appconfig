@@ -127,7 +127,7 @@ steps:
       gcloud config list  --quiet
       gcloud projects create --folder=611791615006 --name="$$PARM_PROJ" --quiet  || echo 0
       gcloud services enable cloudbilling.googleapis.com --project "$$PARM_PROJ" --quiet
-      gcloud beta billing projects link tst-appconfig-$(cat _filemin_TAG.out) --billing-account="$(cat /builder/home/.ssh/billing_acount_testing.txt)" --quiet
+      gcloud beta billing projects link "$$PARM_PROJ" --billing-account="$(cat /builder/home/.ssh/billing_acount_testing.txt)" --quiet
       gcloud services enable compute.googleapis.com --project "$$PARM_PROJ" --quiet
       gcloud services enable container.googleapis.com  --project "$$PARM_PROJ" --quiet
       gcloud services enable sourcerepo.googleapis.com --project "$$PARM_PROJ" --quiet
