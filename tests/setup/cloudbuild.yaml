@@ -53,12 +53,16 @@ steps:
         [ "$_REF_PATH" == 'BRANCH_MANUAL' ] && MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="b-$_BRANCH_NAME"
         [ "$_REF_PATH" == 'SHA_MANUAL_BR' ] && MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="b-$_BRANCH_NAME"
         [ "$_REF_PATH" == 'SHA_MANUAL_RELEASE' ] && MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="$_POTENTIAL_VERSION"
+
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+
         mkdir -p  /workspace/myenv/tests
         echo "$$MY_APP_VERSION" > /workspace/myenv/_fileappversion_TAG.out
         git pull
 
         git checkout $$MY_CHECKOUT_REF
         PARM_GIT_LAST_COMMIT_EMAIL=$(git log -1 --pretty=format:'%ae')
+        echo "$${PARM_GIT_LAST_COMMIT_EMAIL%@*}"  > $${MYENV_DIR}/_file_email_TAG.out
         PARM_BUILD_SHA_LONG="$(cat /workspace/myenv/_fileappsha1_long_TAG.out)"
         PARM_BUILD_SHA="$(cat /workspace/myenv/_fileappsha1_TAG.out)"
 
@@ -80,9 +84,14 @@ steps:
       - |
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         date "+%Y%m%d-%H%M%S" > $$MYENV_DIR/_fileat_TAG.out
+        date "+%Y%m%d-%H" > $$MYENV_DIR/_file_at_hr_TAG.out
         echo "20190724000300" > /workspace/myenv/_file_TAG.out
         echo "201907240003" > /workspace/myenv/_filemin_TAG.out
-        echo "tst-appconfig-$(cat /workspace/myenv/_filemin_TAG.out)" > /workspace/myenv/_fileproj_TAG.out
+        PARM_EMAIL=$(cat $${MYENV_DIR}/_file_email_TAG.out)
+        PARM_AT_HOUR=$(cat $${MYENV_DIR}/_file_at_hr_TAG.out)
+        #echo "tst-appconfig-$(cat /workspace/myenv/_filemin_TAG.out)" > /workspace/myenv/_fileproj_TAG.out
+        echo "appcrd-$$PARM_EMAIL-$$PARM_AT_HOUR > /workspace/myenv/_fileproj_TAG.out
+
         echo "test-1" > /workspace/myenv/_fileclus_TAG.out
         echo "us-west1" > /workspace/myenv/_filereg_TAG.out
         echo "us-west1-b" > /workspace/myenv/_filezone_TAG.out
