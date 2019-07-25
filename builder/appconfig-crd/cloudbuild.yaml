@@ -167,7 +167,9 @@ steps:
       - '-c'
       - |
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+        MY_APP_VERSION="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
         PARM_BUILD_BRANCH="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
+
         PARM_BUILD_SHA="$(cat $${MYENV_DIR}/_fileappsha1_TAG.out)"
         PARM_BUILD_SHA_LONG="$(cat $${MYENV_DIR}/_fileappsha1_long_TAG.out)"
         PARM_TS_SEC=$(cat $${MYENV_DIR}/_file_TAG.out)
