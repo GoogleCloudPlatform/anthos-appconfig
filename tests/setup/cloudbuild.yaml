@@ -24,6 +24,11 @@ steps:
     args:
       - '-c'
       - |
+        echo 'STEP-START'
+        echo; for v in _REF_PATH _POTENTIAL_VERSION _BRANCH_NAME PARM_AT_SEC _INPUT_SHA_LONG _STEPS_X  ; do
+          echo -e "${v}[{!v}]\n"  >> /workspace/myenv/tests/build_info.txt
+        done
+
         mkdir -p /workspace/myenv
         echo "/workspace/myenv" > /workspace/myenv/_rootdir_TAG.out
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
@@ -36,6 +41,7 @@ steps:
     args:
       - '-c'
       - |
+        echo 'STEP-GIT-SETUP'
         cp /builder/home/.ssh/id_rsa /root/.ssh/id_rsa
         cp /builder/home/.ssh/config /root/.ssh/config
         chmod 400 /root/.ssh/id_rsa
@@ -48,7 +54,8 @@ steps:
     args:
       - '-c'
       - |
-        set -x
+        echo 'STEP-GIT-CHECKOUT'
+        #set -x
         [ "$_REF_PATH" == 'BRANCH_AUTO' ] && { MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"; }
         [ "$_REF_PATH" == 'BRANCH_MANUAL' ] &&  { MY_CHECKOUT_REF="$_BRANCH_NAME"; MY_APP_VERSION="$_BRANCH_NAME"; }
         [ "$_REF_PATH" == 'SHA_MANUAL_BR' ] && { MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="b-$_BRANCH_NAME"; }
@@ -82,6 +89,7 @@ steps:
     args:
       - '-c'
       - |
+        echo 'STEP-DEFINE-ENVIRONMENT-INFO'
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         date "+%Y%m%d-%H%M%S" > $$MYENV_DIR/_fileat_TAG.out
         date "+%Y%m%d-%H" > $$MYENV_DIR/_file_at_hr_TAG.out
@@ -120,8 +128,12 @@ steps:
     args:
     - '-c'
     - |
-      set -x
-      [[ "$_STEPS_X" == *"CLUSTER1"* ]] && exit 0
+
+      echo 'STEP-CLUSTER1'
+      [[ "$_STEPS_X" == *"CLUSTER1"* ]] && { echo 'STEP-CLUSTER1*SKIP*'; exit 0; }
+
+      #set -x
+
       MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
       PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
       PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
@@ -135,8 +147,8 @@ steps:
 
 
       gcloud config list  --quiet
-      gcloud projects create --folder=611791615006 --name="$$PARM_PROJ" --quiet  || echo 0
-      gcloud services enable cloudbilling.googleapis.com --project "$$PARM_PROJ" --name "$$PARM_PROJ" --quiet
+      gcloud projects create --folder=611791615006  $$PARM_PROJ --name="$$PARM_PROJ" --quiet  || echo 0
+      gcloud services enable cloudbilling.googleapis.com --project "$$PARM_PROJ" --quiet
       gcloud beta billing projects link "$$PARM_PROJ" --billing-account="$(cat /builder/home/.ssh/billing_acount_testing.txt)" --quiet
       gcloud services enable compute.googleapis.com --project "$$PARM_PROJ" --quiet
       gcloud services enable container.googleapis.com  --project "$$PARM_PROJ" --quiet
@@ -197,8 +209,9 @@ steps:
     args:
       - '-c'
       - |
-        set -x
-        [[ "$_STEPS_X" == *"CRD1"* ]] && exit 0
+        echo 'STEP-CRD1'
+        [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1*SKIP*'; exit 0; }
+        #set -x
 
         PARM_AT_SEC=$(cat /workspace/myenv/_fileat_TAG.out)
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
@@ -266,8 +279,8 @@ steps:
     args:
       - '-c'
       - |
-        set -x
-        [[ "$_STEPS_X" == *"CRD1"* ]] && exit 0
+        echo 'STEP-CRD1-b'
+        [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1-b*SKIP*'; exit 0; }
 
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
@@ -359,8 +372,10 @@ steps:
     args:
       - '-c'
       - |
-        set -x
-        [[ "$_STEPS_X" == *"TEST1"* ]] && exit 0
+        echo 'STEP-TEST'
+
+        #set -x
+
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
@@ -387,7 +402,9 @@ steps:
     args:
       - '-c'
       - |
-        set -x
+        echo 'STEP-TEST-RESULTS'
+
+        #set -x
         PARM_AT_SEC=$(cat /workspace/myenv/_fileat_TAG.out)
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
