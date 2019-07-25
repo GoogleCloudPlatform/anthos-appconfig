@@ -45,7 +45,7 @@ steps:
       - '-c'
       - |
         [ "$_REF_PATH" == 'BRANCH_AUTO' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
-        [ "$_REF_PATH" == 'BRANCH_MANUAL' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$_BRANCH_NAME"
+        [ "$_REF_PATH" == 'BRANCH_MANUAL' ] && MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="b-$_BRANCH_NAME"
         [ "$_REF_PATH" == 'BRANCH_VERSION' ] && MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="$_POTENTIAL_VERSION"
 
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
