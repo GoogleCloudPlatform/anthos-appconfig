@@ -60,6 +60,10 @@ steps:
         git status
         echo "Build-Info:[$${MY_CHECKOUT_REF}}]-[$${PARM_BUILD_SHA}]-[$${PARM_BUILD_SHA_LONG}]"
 
+        for v in MYENV_DIR PARM_BUILD_BRANCH MY_APP_VERSION MY_CHECKOUT_REF PARM_BUILD_SHA PARM_BUILD_SHA_LONG PARM_TS_SEC PARM_PROJ PARM_CLUSTER PARM_REGION PARM_ZONE ; do
+          echo -e "${v}[${!v}]\n"
+        done
+
     dir: "build-source"
     volumes:
       - name: 'ssh'
