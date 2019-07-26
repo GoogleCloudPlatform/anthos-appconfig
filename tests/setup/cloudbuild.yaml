@@ -74,6 +74,8 @@ steps:
 
         PARM_GIT_LAST_COMMIT_EMAIL=$(git log -1 --pretty=format:'%ae')
         echo "$${PARM_GIT_LAST_COMMIT_EMAIL%@*}"  > $${MYENV_DIR}/_file_email_TAG.out
+        PARM_GIT_FIRST_COMMIT_NAME=$(git for-each-ref --format='%(committerdate) %09 %(authorname) %09 %(refname)' | sort -k5n -k2M -k3n -k4n | grep "$${MY_CHECKOUT_REF}" | head -n 1 | awk '{ print tolower($8)}')
+        echo "$${PARM_GIT_FIRST_COMMIT_NAME%@*}"  > $${MYENV_DIR}/_file_email_TAG.out
 
         PARM_BUILD_SHA_LONG="$(cat $${MYENV_DIR}/_fileappsha1_long_TAG.out)"
         PARM_BUILD_SHA="$(cat $${MYENV_DIR}/_fileappsha1_TAG.out)"
