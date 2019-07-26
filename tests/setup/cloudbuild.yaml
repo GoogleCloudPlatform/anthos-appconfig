@@ -291,7 +291,7 @@ steps:
       - |
         echo 'STEP-CRD1-b'
         [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1-b*SKIP*'; exit 0; }
-
+        set -x
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
