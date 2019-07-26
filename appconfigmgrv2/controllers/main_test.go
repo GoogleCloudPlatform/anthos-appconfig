@@ -76,7 +76,6 @@ func TestMain(m *testing.M) {
 		Paths: []string{
 			filepath.Join("..", "config", "crd", "bases"),
 			filepath.Join("..", "third_party", "istio", "v"+istioVersion, "crds"),
-			filepath.Join("..", "third_party", "opa", "crds"),
 		},
 		CRDs:               nil,
 		ErrorIfPathMissing: true,
