@@ -164,6 +164,9 @@ steps:
       echo $(gcloud beta compute routers create r"$$PARM_REGION" --network=default --region "$$PARM_REGION" --project "$$PARM_PROJ" || echo 0)
       echo $(gcloud beta compute routers nats create "n$$PARM_REGION" --router "r$$PARM_REGION" --project "$$PARM_PROJ" --auto-allocate-nat-external-ips --nat-all-subnet-ip-ranges --router-region "$$PARM_REGION" || echo 0)
       echo $(gcloud container clusters describe $$PARM_CLUSTER --zone $$PARM_ZONE --format="value(selfLink.basename())" --project "$$PARM_PROJ" || echo "") > out_cluster_TAG.out
+
+      PARM_SUBNET_MASTER_INC=$(gcloud container clusters list --format 'table[no-heading](name)'  --project "$$PARM_PROJ" | wc -l)
+      PARM_SUBNET_MASTER="$((28 + $$PARM_SUBNET_MASTER_INC))"
       echo "CLUS-$(cat out_cluster_TAG.out)"
       [  ! -z  "$(cat out_cluster_TAG.out)" ] ||  gcloud beta container --project "$$PARM_PROJ" \
           clusters create "$$PARM_CLUSTER" \
@@ -179,7 +182,7 @@ steps:
           --enable-stackdriver-kubernetes \
           --image-type "COS" \
           --machine-type "n1-standard-4" \
-          --master-ipv4-cidr "172.28.0.0/28" \
+          --master-ipv4-cidr "172.$${PARM_SUBNET_MASTER}.0.0/28" \
           --metadata disable-legacy-endpoints=true \
           --no-enable-autoupgrade \
           --no-enable-basic-auth \
@@ -315,11 +318,13 @@ steps:
         if [ ! -f /workspace/myroot/.private/gsa_keys/sa1.json ] ; then
           gcloud iam service-accounts keys create '/workspace/myroot/.private/gsa_keys/sa1.json' --project $${PARM_PROJ} \
             --iam-account=appconfigcrd-demo-sa1@$${PARM_PROJ}.iam.gserviceaccount.com
+          gsutil cp  '/workspace/myroot/.private/gsa_keys/sa1.json'  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/sa1.json"
         fi
 
         if [ ! -f /workspace/myroot/.private/gsa_keys/sa2.json ] ; then
           gcloud iam service-accounts keys create '/workspace/myroot/.private/gsa_keys/sa2.json' --project $${PARM_PROJ} \
             --iam-account=appconfigcrd-demo-sa2@$${PARM_PROJ}.iam.gserviceaccount.com
+          gsutil cp  '/workspace/myroot/.private/gsa_keys/sa1.json'  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/sa2.json"
         fi
 
         kubectl create secret generic appconfigcrd-demo-sa1-secret \
