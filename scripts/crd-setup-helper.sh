@@ -165,7 +165,7 @@ init-repo() {
 
   [[ -a $ACM_ENV_ROOT ]] && echo "WARN:config root exists: $ACM_ENV_ROOT"
 
-  _output "initializing cluster config root"
+  _output "initializing cluster config root-$(pwd)"
 
   mkdir -p ${ACM_ENV_ROOT}
   gsutil -m cp -R "${TEMPLATE_BUCKET}/*" ${ACM_ENV_ROOT}/
@@ -243,7 +243,7 @@ EOF
     git commit -am "auto-initialize $ACM_CLUSTER_REGISTRY_NAME" || echo "git commit - might be empty - should be ok"
     echo "git push"
     git push -q --set-upstream ${REPO_REMOTE} ${REPO_BRANCH}
-    echo "kubectl apply"
+    echo "kubectl apply $(pwd)"
     kubectl apply -f ${ACM_ENV_ROOT}/config-management.yaml
     echo "Instructions for keys"
 
@@ -371,6 +371,7 @@ _cmo_status() {
   local n
   echo -ne '\nconfig-management-crds: '
   n=$(kubectl get crds | grep -c configmanagement.gke.io 2> /dev/null) || n=0
+  echo "config-management-crds(status): $n"
   if [[ "$n" -eq 0 ]]; then
     _red "MISSING\n"
   elif [[ "$n" -eq $CM_CRD_COUNT ]]; then
@@ -384,6 +385,7 @@ _cmo_status() {
     --namespace=kube-system \
     -o='go-template' \
     --template='{{.status.readyReplicas}}' 2> /dev/null) || n=""
+  echo "config-management-operator(status): $n"
   if [[ -z "$n" ]]; then
     _red "MISSING\n"
   elif [[ "$n" -ge 1 ]]; then
@@ -454,7 +456,7 @@ install_operator() {
   _output "installing config management operator to cluster"
   gsutil ls ${CM_OPERATOR_BUCKET} || gsutil cat "gs://anthos-appconfig_build/sw/acm/config-management-operator.yaml"  | kubectl \
     apply -f - || _errexit "No access to config management operator, whitelisted?"
-#  gsutil cat ${CM_OPERATOR_BUCKET}  | kubectl apply -f -
+  gsutil ls ${CM_OPERATOR_BUCKET} && gsutil cat ${CM_OPERATOR_BUCKET} | kubectl apply -f -
 }
 
 install_istio() {

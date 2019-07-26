@@ -24,6 +24,14 @@ steps:
     args:
       - '-c'
       - |
+        echo 'STEP-START'
+        for v in "REF_PATH[${_REF_PATH}]" "_POTENTIAL_VERSION[${_POTENTIAL_VERSION}]" "_BRANCH_NAME[${_BRANCH_NAME}]"  "_INPUT_SHA_LONG[${_INPUT_SHA_LONG}]" "_STEPS_X[${_STEPS_X}]"  ; do
+          echo -e "${v}"
+        done
+
+        mkdir -p /workspace/myenv
+        echo "/workspace/myenv" > /workspace/myenv/_rootdir_TAG.out
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         gsutil cp -DD "gs://${PROJECT_ID}_build/repo/keys/id_rsa_${PROJECT_ID}-repo" '/builder/home/.ssh/id_rsa'
         gsutil cp -DD "gs://${PROJECT_ID}_build/repo/github/build-ssh-config-git-hub" '/builder/home/.ssh/config'
         gsutil cp -DD "gs://${PROJECT_ID}_build/billing/billing_acount_testing.txt" '/builder/home/.ssh/billing_acount_testing.txt'
@@ -33,6 +41,7 @@ steps:
     args:
       - '-c'
       - |
+        echo 'STEP-GIT-SETUP'
         cp /builder/home/.ssh/id_rsa /root/.ssh/id_rsa
         cp /builder/home/.ssh/config /root/.ssh/config
         chmod 400 /root/.ssh/id_rsa
@@ -45,26 +54,35 @@ steps:
     args:
       - '-c'
       - |
-        set -x
-        [ "$_REF_PATH" == 'BRANCH_AUTO' ] && MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"
-        [ "$_REF_PATH" == 'BRANCH_MANUAL' ] && MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="b-$_BRANCH_NAME"
-        [ "$_REF_PATH" == 'SHA_MANUAL_BR' ] && MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="b-$_BRANCH_NAME"
-        [ "$_REF_PATH" == 'SHA_MANUAL_RELEASE' ] && MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="$_POTENTIAL_VERSION"
+        echo 'STEP-GIT-CHECKOUT'
+        #set -x
+        [ "$_REF_PATH" == 'BRANCH_AUTO' ] && { MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"; }
+        [ "$_REF_PATH" == 'BRANCH_MANUAL' ] &&  { MY_CHECKOUT_REF="$_BRANCH_NAME"; MY_APP_VERSION="b-$_BRANCH_NAME"; }
+        [ "$_REF_PATH" == 'SHA_MANUAL_BR' ] && { MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="b-$_BRANCH_NAME"; }
+        [ "$_REF_PATH" == 'SHA_MANUAL_RELEASE' ] && { MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="$_POTENTIAL_VERSION"; }
+
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+        echo "$_INPUT_SHA_LONG" > $${MYENV_DIR}/_fileappsha1_long_TAG.out
+
         mkdir -p  /workspace/myenv/tests
         echo "$$MY_APP_VERSION" > /workspace/myenv/_fileappversion_TAG.out
         git pull
 
         git checkout $$MY_CHECKOUT_REF
-        echo "GIT Info"
 
+        echo "$(git rev-parse --short HEAD)" >  $${MYENV_DIR}/_fileappsha1_TAG.out
 
-        echo $(git rev-parse --verify HEAD) > /workspace/myenv/_fileappsha1_long_TAG.out
-        PARM_BUILD_SHA_LONG="$(cat /workspace/myenv/_fileappsha1_long_TAG.out)"
-        echo $(git rev-parse --short $${PARM_BUILD_SHA_LONG}) > /workspace/myenv/_fileappsha1_TAG.out
-        PARM_BUILD_SHA="$(cat /workspace/myenv/_fileappsha1_TAG.out)"
-        echo "Build-Info:[$${MY_CHECKOUT_REF}}]-[$${PARM_BUILD_SHA}]-[$${PARM_BUILD_SHA_LONG}]"
+        PARM_GIT_LAST_COMMIT_EMAIL=$(git log -1 --pretty=format:'%ae')
+        echo "$${PARM_GIT_LAST_COMMIT_EMAIL%@*}"  > $${MYENV_DIR}/_file_email_TAG.out
+
+        PARM_BUILD_SHA_LONG="$(cat $${MYENV_DIR}/_fileappsha1_long_TAG.out)"
+        PARM_BUILD_SHA="$(cat $${MYENV_DIR}/_fileappsha1_TAG.out)"
+
         git status
-        echo "Build-Info:[$${MY_CHECKOUT_REF}}]-[$${PARM_BUILD_SHA}]-[$${PARM_BUILD_SHA_LONG}]"
+
+        echo; for v in MY_APP_VERSION MY_CHECKOUT_REF PARM_BUILD_SHA PARM_BUILD_SHA_LONG PARM_GIT_LAST_COMMIT_EMAIL ; do
+          echo -e "${v}[${!v}]"
+        done
 
 
     dir: "build-source"
@@ -76,11 +94,19 @@ steps:
     args:
       - '-c'
       - |
-        date "+%Y%m%d-%H%M%S" > /workspace/myenv/_fileat_TAG.out
-        echo "20190712000300" > /workspace/myenv/_file_TAG.out
-        echo "201907120003" > /workspace/myenv/_filemin_TAG.out
-        echo "tst-appconfig-$(cat /workspace/myenv/_filemin_TAG.out)" > /workspace/myenv/_fileproj_TAG.out
-        echo "test-1" > /workspace/myenv/_fileclus_TAG.out
+        echo 'STEP-DEFINE-ENVIRONMENT-INFO'
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+        date "+%Y%m%d-%H%M%S" > $$MYENV_DIR/_fileat_TAG.out
+        date "+%Y%m%d-%H" > $$MYENV_DIR/_file_at_hr_TAG.out
+        date "+%Y%m%d" > $$MYENV_DIR/_file_at_day_TAG.out
+        echo "20190724000300" > /workspace/myenv/_file_TAG.out
+        echo "201907240003" > /workspace/myenv/_filemin_TAG.out
+        PARM_EMAIL=$(cat $${MYENV_DIR}/_file_email_TAG.out)
+        PARM_AT_HOUR=$(cat $${MYENV_DIR}/_file_at_hr_TAG.out)
+        PARM_AT_DAY=$(cat $${MYENV_DIR}/_file_at_day_TAG.out)
+        #echo "tst-appconfig-$(cat /workspace/myenv/_filemin_TAG.out)" > /workspace/myenv/_fileproj_TAG.out
+        echo "appcrd-$$PARM_EMAIL-$$PARM_AT_DAY" > /workspace/myenv/_fileproj_TAG.out
+        echo "c-$(cat /workspace/myenv/_fileappversion_TAG.out)-$$PARM_AT_HOUR" > /workspace/myenv/_fileclus_TAG.out
         echo "us-west1" > /workspace/myenv/_filereg_TAG.out
         echo "us-west1-b" > /workspace/myenv/_filezone_TAG.out
         cp /workspace/myenv/_fileat_TAG.out /workspace/myenv/_filerepopath_TAG.out
@@ -107,9 +133,13 @@ steps:
     args:
     - '-c'
     - |
-      set -x
-      [[ "$_STEPS_X" == *"CLUSTER1"* ]] && exit 0
-      
+
+      echo 'STEP-CLUSTER1'
+      [[ "$_STEPS_X" == *"CLUSTER1"* ]] && { echo 'STEP-CLUSTER1*SKIP*'; exit 0; }
+
+      #set -x
+
+      MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
       PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
       PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
       PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
@@ -122,9 +152,9 @@ steps:
 
 
       gcloud config list  --quiet
-      gcloud projects create --folder=611791615006 --name="$$PARM_PROJ" --quiet  || echo 0
+      gcloud projects create --folder=611791615006  $$PARM_PROJ --name="$$PARM_PROJ" --quiet  || echo 0
       gcloud services enable cloudbilling.googleapis.com --project "$$PARM_PROJ" --quiet
-      gcloud beta billing projects link tst-appconfig-$(cat _filemin_TAG.out) --billing-account="$(cat /builder/home/.ssh/billing_acount_testing.txt)" --quiet
+      gcloud beta billing projects link "$$PARM_PROJ" --billing-account="$(cat /builder/home/.ssh/billing_acount_testing.txt)" --quiet
       gcloud services enable compute.googleapis.com --project "$$PARM_PROJ" --quiet
       gcloud services enable container.googleapis.com  --project "$$PARM_PROJ" --quiet
       gcloud services enable sourcerepo.googleapis.com --project "$$PARM_PROJ" --quiet
@@ -134,6 +164,9 @@ steps:
       echo $(gcloud beta compute routers create r"$$PARM_REGION" --network=default --region "$$PARM_REGION" --project "$$PARM_PROJ" || echo 0)
       echo $(gcloud beta compute routers nats create "n$$PARM_REGION" --router "r$$PARM_REGION" --project "$$PARM_PROJ" --auto-allocate-nat-external-ips --nat-all-subnet-ip-ranges --router-region "$$PARM_REGION" || echo 0)
       echo $(gcloud container clusters describe $$PARM_CLUSTER --zone $$PARM_ZONE --format="value(selfLink.basename())" --project "$$PARM_PROJ" || echo "") > out_cluster_TAG.out
+
+      PARM_SUBNET_MASTER_INC=$(gcloud container clusters list --format 'table[no-heading](name)'  --project "$$PARM_PROJ" | wc -l)
+      PARM_SUBNET_MASTER="$((28 + $$PARM_SUBNET_MASTER_INC))"
       echo "CLUS-$(cat out_cluster_TAG.out)"
       [  ! -z  "$(cat out_cluster_TAG.out)" ] ||  gcloud beta container --project "$$PARM_PROJ" \
           clusters create "$$PARM_CLUSTER" \
@@ -149,7 +182,7 @@ steps:
           --enable-stackdriver-kubernetes \
           --image-type "COS" \
           --machine-type "n1-standard-4" \
-          --master-ipv4-cidr "172.28.0.0/28" \
+          --master-ipv4-cidr "172.$${PARM_SUBNET_MASTER}.0.0/28" \
           --metadata disable-legacy-endpoints=true \
           --no-enable-autoupgrade \
           --no-enable-basic-auth \
@@ -184,8 +217,9 @@ steps:
     args:
       - '-c'
       - |
-        set -x
-        [[ "$_STEPS_X" == *"CRD1"* ]] && exit 0
+        echo 'STEP-CRD1'
+        [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1*SKIP*'; exit 0; }
+        #set -x
 
         PARM_AT_SEC=$(cat /workspace/myenv/_fileat_TAG.out)
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
@@ -253,8 +287,8 @@ steps:
     args:
       - '-c'
       - |
-        set -x
-        [[ "$_STEPS_X" == *"CRD1"* ]] && exit 0
+        echo 'STEP-CRD1-b'
+        [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1-b*SKIP*'; exit 0; }
 
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
@@ -267,10 +301,10 @@ steps:
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
         CHECK_SA1=$(gcloud iam service-accounts describe appconfigcrd-demo-sa1@$${PARM_PROJ}.iam.gserviceaccount.com  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
-        [ -z  $$CHECK_SA1 ] || gcloud iam service-accounts create appconfigcrd-demo-sa1 --display-name=appconfigcrd-demo-sa1 --project --project $${PARM_PROJ}
+        [ -z  $$CHECK_SA1 ] || gcloud iam service-accounts create appconfigcrd-demo-sa1 --display-name=appconfigcrd-demo-sa1 --project $${PARM_PROJ}
 
         CHECK_SA2=$(gcloud iam service-accounts describe appconfigcrd-demo-sa2@$${PARM_PROJ}.iam.gserviceaccount.com  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
-        [ -z  $$CHECK_SA2 ] || gcloud iam service-accounts create appconfigcrd-demo-sa2 --display-name=appconfigcrd-demo-sa2 --project --project $${PARM_PROJ}
+        [ -z  $$CHECK_SA2 ] || gcloud iam service-accounts create appconfigcrd-demo-sa2 --display-name=appconfigcrd-demo-sa2 --project $${PARM_PROJ}
 
 
         gcloud beta pubsub topics add-iam-policy-binding appconfigcrd-demo-topic1 --project $${PARM_PROJ}  \
@@ -281,6 +315,17 @@ steps:
           --role=roles/pubsub.publisher
 
 
+        if [ ! -f /workspace/myroot/.private/gsa_keys/sa1.json ] ; then
+          gcloud iam service-accounts keys create '/workspace/myroot/.private/gsa_keys/sa1.json' --project $${PARM_PROJ} \
+            --iam-account=appconfigcrd-demo-sa1@$${PARM_PROJ}.iam.gserviceaccount.com
+          gsutil cp  '/workspace/myroot/.private/gsa_keys/sa1.json'  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/sa1.json"
+        fi
+
+        if [ ! -f /workspace/myroot/.private/gsa_keys/sa2.json ] ; then
+          gcloud iam service-accounts keys create '/workspace/myroot/.private/gsa_keys/sa2.json' --project $${PARM_PROJ} \
+            --iam-account=appconfigcrd-demo-sa2@$${PARM_PROJ}.iam.gserviceaccount.com
+          gsutil cp  '/workspace/myroot/.private/gsa_keys/sa1.json'  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/sa2.json"
+        fi
 
         kubectl create secret generic appconfigcrd-demo-sa1-secret \
           -n appconfigmgrv2-system \
@@ -346,8 +391,10 @@ steps:
     args:
       - '-c'
       - |
-        set -x
-        [[ "$_STEPS_X" == *"TEST1"* ]] && exit 0
+        echo 'STEP-TEST'
+
+        #set -x
+
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
@@ -374,7 +421,9 @@ steps:
     args:
       - '-c'
       - |
-        set -x
+        echo 'STEP-TEST-RESULTS'
+
+        #set -x
         PARM_AT_SEC=$(cat /workspace/myenv/_fileat_TAG.out)
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
