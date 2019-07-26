@@ -25,8 +25,8 @@ steps:
       - '-c'
       - |
         echo 'STEP-START'
-        for v in "_REF_PATH" "_POTENTIAL_VERSION" "_BRANCH_NAME" "PARM_AT_SEC" "_INPUT_SHA_LONG" "_STEPS_X"  ; do
-          echo -e "${v}[${!v}]\n"
+        for v in "REF_PATH[${_REF_PATH}]" "_POTENTIAL_VERSION[${_POTENTIAL_VERSION}]" "_BRANCH_NAME[${_BRANCH_NAME}]"  "_INPUT_SHA_LONG[${_INPUT_SHA_LONG}]" "_STEPS_X[${_STEPS_X}]"  ; do
+          echo -e "${v}"
         done
 
         mkdir -p /workspace/myenv
@@ -57,7 +57,7 @@ steps:
         echo 'STEP-GIT-CHECKOUT'
         #set -x
         [ "$_REF_PATH" == 'BRANCH_AUTO' ] && { MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"; }
-        [ "$_REF_PATH" == 'BRANCH_MANUAL' ] &&  { MY_CHECKOUT_REF="$_BRANCH_NAME"; MY_APP_VERSION="$_BRANCH_NAME"; }
+        [ "$_REF_PATH" == 'BRANCH_MANUAL' ] &&  { MY_CHECKOUT_REF="$_BRANCH_NAME"; MY_APP_VERSION="b-$_BRANCH_NAME"; }
         [ "$_REF_PATH" == 'SHA_MANUAL_BR' ] && { MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="b-$_BRANCH_NAME"; }
         [ "$_REF_PATH" == 'SHA_MANUAL_RELEASE' ] && { MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="$_POTENTIAL_VERSION"; }
 
@@ -81,7 +81,7 @@ steps:
         git status
 
         echo; for v in MY_APP_VERSION MY_CHECKOUT_REF PARM_BUILD_SHA PARM_BUILD_SHA_LONG PARM_GIT_LAST_COMMIT_EMAIL ; do
-          echo -e "${v}[${!v}]\n"
+          echo -e "${v}[${!v}]"
         done
 
 
