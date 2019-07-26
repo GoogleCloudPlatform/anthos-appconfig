@@ -298,10 +298,10 @@ steps:
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
         CHECK_SA1=$(gcloud iam service-accounts describe appconfigcrd-demo-sa1@$${PARM_PROJ}.iam.gserviceaccount.com  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
-        [ -z  $$CHECK_SA1 ] || gcloud iam service-accounts create appconfigcrd-demo-sa1 --display-name=appconfigcrd-demo-sa1 --project --project $${PARM_PROJ}
+        [ -z  $$CHECK_SA1 ] || gcloud iam service-accounts create appconfigcrd-demo-sa1 --display-name=appconfigcrd-demo-sa1 --project $${PARM_PROJ}
 
         CHECK_SA2=$(gcloud iam service-accounts describe appconfigcrd-demo-sa2@$${PARM_PROJ}.iam.gserviceaccount.com  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
-        [ -z  $$CHECK_SA2 ] || gcloud iam service-accounts create appconfigcrd-demo-sa2 --display-name=appconfigcrd-demo-sa2 --project --project $${PARM_PROJ}
+        [ -z  $$CHECK_SA2 ] || gcloud iam service-accounts create appconfigcrd-demo-sa2 --display-name=appconfigcrd-demo-sa2 --project $${PARM_PROJ}
 
 
         gcloud beta pubsub topics add-iam-policy-binding appconfigcrd-demo-topic1 --project $${PARM_PROJ}  \
@@ -312,6 +312,15 @@ steps:
           --role=roles/pubsub.publisher
 
 
+        if [ ! -f /workspace/myroot/.private/gsa_keys/sa1.json ] ; then
+          gcloud iam service-accounts keys create '/workspace/myroot/.private/gsa_keys/sa1.json' --project $${PARM_PROJ} \
+            --iam-account=appconfigcrd-demo-sa1@$${PARM_PROJ}.iam.gserviceaccount.com
+        fi
+
+        if [ ! -f /workspace/myroot/.private/gsa_keys/sa2.json ] ; then
+          gcloud iam service-accounts keys create '/workspace/myroot/.private/gsa_keys/sa2.json' --project $${PARM_PROJ} \
+            --iam-account=appconfigcrd-demo-sa2@$${PARM_PROJ}.iam.gserviceaccount.com
+        fi
 
         kubectl create secret generic appconfigcrd-demo-sa1-secret \
           -n appconfigmgrv2-system \
