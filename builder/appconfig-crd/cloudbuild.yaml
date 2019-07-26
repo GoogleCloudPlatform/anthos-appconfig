@@ -50,8 +50,10 @@ steps:
 
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         echo "$$MY_APP_VERSION" > $${MYENV_DIR}/_fileappversion_TAG.out
+        echo "$$MY_CHECKOUT_REF" >> $${MYENV_DIR}/_file_checkout_TAG.out
         git pull
         git checkout $$MY_CHECKOUT_REF
+
         echo $(git rev-parse --verify HEAD) > $${MYENV_DIR}/_fileappsha1_long_TAG.out
         PARM_BUILD_SHA_LONG="$(cat $${MYENV_DIR}/_fileappsha1_long_TAG.out)"
         echo $(git rev-parse --short $${PARM_BUILD_SHA_LONG}) > $${MYENV_DIR}/_fileappsha1_TAG.out
@@ -168,6 +170,7 @@ steps:
       - |
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         MY_APP_VERSION="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
+        MY_CHECKOUT_REF="$(cat $${MYENV_DIR}/_file_checkout_TAG.out)"
         PARM_BUILD_BRANCH="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
 
         PARM_BUILD_SHA="$(cat $${MYENV_DIR}/_fileappsha1_TAG.out)"
@@ -193,7 +196,7 @@ steps:
           MY_REF_PATH="BRANCH_MANUAL"
           MY_STEPS_X=""
           gcloud builds submit --config=tests/setup/cloudbuild.yaml  tests/setup/jobtemp --project ${PROJECT_ID} \
-            --substitutions="_REF_PATH=$$MY_REF_PATH,_POTENTIAL_VERSION=$$MY_APP_VERSION,_BRANCH_NAME=$$MY_APP_VERSION,_INPUT_SHA_LONG=$$PARM_BUILD_SHA_LONG,_STEPS_X=$$MY_STEPS_X"
+            --substitutions="_REF_PATH=$$MY_REF_PATH,_POTENTIAL_VERSION=$$MY_APP_VERSION,_BRANCH_NAME=$$MY_CHECKOUT_REF,_INPUT_SHA_LONG=$$PARM_BUILD_SHA_LONG,_STEPS_X=$$MY_STEPS_X"
         fi
 
     dir: "build-source"
