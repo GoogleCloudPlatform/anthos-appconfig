@@ -65,11 +65,17 @@ load-ctxvars() {
   # set cluster variables
   [[ -z $PROJECT_NAME ]] && _errexit "missing Project Name context"
   [[ -z $RELEASE_NAME ]] && _errexit "missing Release Name (use master) context"
-  export K8S_CONTEXT=$(kubectl config current-context)
-  export ACM_CLUSTER_REGISTRY_NAME=${K8S_CONTEXT//_/-}
-  export ACM_ENV_ROOT=./env/${ACM_CLUSTER_REGISTRY_NAME}
-  [[ -z $K8S_CONTEXT ]] ||  [[ -z $K8S_CONTEXT ]] || [[ -z $K8S_CONTEXT ]] || return 0
-   _errexit "missing k8s context"
+  if [[ "${ACTION}" == 'pre-install' ]]; then
+    export K8S_CONTEXT="dummy"
+  else
+    export K8S_CONTEXT=$(kubectl config current-context)
+    export ACM_CLUSTER_REGISTRY_NAME=${K8S_CONTEXT//_/-}
+    export ACM_ENV_ROOT=./env/${ACM_CLUSTER_REGISTRY_NAME}
+    [[ -z $K8S_CONTEXT ]] ||  [[ -z $K8S_CONTEXT ]] || [[ -z $K8S_CONTEXT ]] || return 0
+     _errexit "missing k8s context"
+  fi
+
+
 }
 
 load-repovars() {
@@ -148,6 +154,7 @@ init-repo() {
   for opt in ${OPTS[@]}; do
     case $opt in
       -c) create=1 ;;
+      -external) echo "option-external";;
       *) _errexit "unknown install option \"$opt\"";;
     esac
   done
@@ -419,9 +426,11 @@ install() {
   for opt in ${OPTS[@]}; do
     case $opt in
       -f) force=1; _output "force install enabled" ;;
+      -external) echo "option-external";;
       *) _errexit "unknown install option \"$opt\"";;
     esac
   done
+  CRD_SETUP_ISTIO_PREINSTALL_DIR="${ARGS[0]}"
 
   echo; for v in K8S_CONTEXT ACM_CLUSTER_REGISTRY_NAME PROJECT_NAME; do
     echo -e "\033[32m${v}\033[0m\t| ${!v}"
@@ -452,6 +461,16 @@ install() {
   _output "done"
 }
 
+pre-install() {
+  load-ctxvars
+
+  CRD_SETUP_ISTIO_PREINSTALL_DIR="${ARGS[0]}"
+  install_istio && _output "istio manual install OK ${CRD_SETUP_ISTIO_PREINSTALL_DIR}"
+
+  _output "done"
+
+}
+
 install_operator() {
   _output "installing config management operator to cluster"
   gsutil ls ${CM_OPERATOR_BUCKET} || gsutil cat "gs://anthos-appconfig_build/sw/acm/config-management-operator.yaml"  | kubectl \
@@ -460,63 +479,97 @@ install_operator() {
 }
 
 install_istio() {
-  local x tmpdir shacmd
+  local x tmpdir shacmd forcedir genexternal
   _output "installing istio to cluster"
+  forcedir=0
+  genexternal=0
+  for opt in ${OPTS[@]}; do
+    case $opt in
+      -external) forcedir=1; _output "force install istio from dir current dir $(pwd)/istio-external" ;;
+      -genexternal) genexternal=1; _output "general install istio from dir current dir $(pwd)/istio-external" ;;
+    esac
+  done
 
-  istio_version=$(curl -L -s https://api.github.com/repos/istio/istio/releases | \
-    grep -E 'tag_name.*1\.1\.' | grep -vE '(\-rc|\-snapshot)' | \
-    sed "s/ *\"tag_name\": *\"\\(.*\\)\",*/\\1/" | head -1)
-  prompt=$(echo -ne "istio version to install? \033[32m($istio_version)\033[0m ")
-  read -p "$prompt" x
-  [[ -z "$x" ]] || istio_version=$x
-
-  tmpdir=$(mktemp -d $(pwd)/.acm-init-XXXXXX)
-  istio_dir="${tmpdir}/istio-${istio_version}"
-
-  _output "fetching istio v${istio_version}"
-  target="istio-${istio_version}-linux.tar.gz"
-  url="https://github.com/istio/istio/releases/download/${istio_version}/${target}"
-  curl -Lo ${tmpdir}/${target} --progress-bar $url
-  curl -Lo ${tmpdir}/${target}.sha256 --progress-bar ${url}.sha256
-
-  # checksum validation
-  _installed sha256sum && shacmd="sha256sum"
-  _installed gsha256sum && shacmd="gsha256sum"
-  if [[ -z "$shacmd" ]]; then
-    _confirm "sha256sum command not found; skip checksum validation?" || exit 0
-  else
-    _output "validating checksums"
-    ( cd ${tmpdir} && $shacmd -c ${target}.sha256 || _errexit "checksum validation failed" )
+  if [ "${genexternal}" == "1" ]; then
+    tmpdir="${CRD_SETUP_ISTIO_PREINSTALL_DIR}"
+    rmdir -rf "$(pwd)/istio-external"
+    mkdir -p ${tmpdir}
+    istio_dir="${tmpdir}/istio-generated"
   fi
 
-  ( cd ${tmpdir} && _output "installing" && tar xfz ${target} )
 
-  (kubectl get namespaces | grep -q istio-system) || {
-    kubectl create namespace istio-system
-    kubectl label namespace istio-system appconfigmgr.cft.dev/trusted="true"
-  }
+  if [ "${forcedir}" == "1" ] ; then
+    (kubectl get namespaces | grep -q istio-system) || {
+      kubectl create namespace istio-system
+      kubectl label namespace istio-system appconfigmgr.cft.dev/trusted="true"
+    }
+    cat ${CRD_SETUP_ISTIO_PREINSTALL_DIR}/istio-init.yaml | kubectl apply -f -
+    cat ${CRD_SETUP_ISTIO_PREINSTALL_DIR}/istio.yaml | kubectl apply -f -
+  else
+    istio_version=$(curl -L -s https://api.github.com/repos/istio/istio/releases | \
+      grep -E 'tag_name.*1\.1\.' | grep -vE '(\-rc|\-snapshot)' | \
+      sed "s/ *\"tag_name\": *\"\\(.*\\)\",*/\\1/" | head -1)
+    prompt=$(echo -ne "istio version to install? \033[32m($istio_version)\033[0m ")
+    read -p "$prompt" x
+    [[ -z "$x" ]] || istio_version=$x
 
-  docker run --rm -ti -v ${istio_dir}:/apps \
-    ${HELM_IMAGE} template \
-      install/kubernetes/helm/istio-init \
-      --name istio-init \
-      --namespace istio-system | kubectl apply -f -
+    if [ -z "${tmpdir}" ]; then
+     tmpdir=$(mktemp -d $(pwd)/.acm-init-XXXXXX)
+     istio_dir="${tmpdir}/istio-${istio_version}"
+    fi
 
-  docker run --rm -ti -v ${istio_dir}:/apps \
-    ${HELM_IMAGE} template \
-      install/kubernetes/helm/istio \
-      --name istio \
-      --namespace istio-system \
-      --set global.mtls.enabled=true \
-      --set grafana.enabled=true \
-      --set kiali-enabled=true \
-      --set tracing.enabled=true \
-      --set global.k8sIngress.enableHttps=true  \
-      --set global.disablePolicyChecks=false \
-      --set global.outboundTrafficPolicy.mode=REGISTRY_ONLY \
-      --values install/kubernetes/helm/istio/values-istio-demo-auth.yaml | kubectl apply -f -
 
-  rm -rf $tmpdir
+    _output "fetching istio v${istio_version}"
+    target="istio-${istio_version}-linux.tar.gz"
+    url="https://github.com/istio/istio/releases/download/${istio_version}/${target}"
+    curl -Lo ${tmpdir}/${target} --progress-bar $url
+    curl -Lo ${tmpdir}/${target}.sha256 --progress-bar ${url}.sha256
+
+    # checksum validation
+    _installed sha256sum && shacmd="sha256sum"
+    _installed gsha256sum && shacmd="gsha256sum"
+    if [[ -z "$shacmd" ]]; then
+      _confirm "sha256sum command not found; skip checksum validation?" || exit 0
+    else
+      _output "validating checksums"
+      ( cd ${tmpdir} && $shacmd -c ${target}.sha256 || _errexit "checksum validation failed" )
+    fi
+
+    ( cd ${tmpdir} && _output "installing" && tar xfz ${target} )
+
+    if [ "${genexternal}" == "1" ]; then
+      echo "skipping-due to external generation of yaml"
+      mv ${tmpdir}/istio-${istio_version} ${tmpdir}/istio-build
+#      ls -lR ${tmpdir}
+    else
+      (kubectl get namespaces | grep -q istio-system) || {
+        kubectl create namespace istio-system
+        kubectl label namespace istio-system appconfigmgr.cft.dev/trusted="true"
+      }
+
+      docker run --rm -ti -v ${istio_dir}:/apps \
+        ${HELM_IMAGE} template \
+          install/kubernetes/helm/istio-init \
+          --name istio-init \
+          --namespace istio-system | kubectl apply -f -
+
+      docker run --rm -ti -v ${istio_dir}:/apps \
+        ${HELM_IMAGE} template \
+          install/kubernetes/helm/istio \
+          --name istio \
+          --namespace istio-system \
+          --set global.mtls.enabled=true \
+          --set grafana.enabled=true \
+          --set kiali-enabled=true \
+          --set tracing.enabled=true \
+          --set global.k8sIngress.enableHttps=true  \
+          --set global.disablePolicyChecks=false \
+          --set global.outboundTrafficPolicy.mode=REGISTRY_ONLY \
+          --values install/kubernetes/helm/istio/values-istio-demo-auth.yaml | kubectl apply -f -
+
+      rm -rf $tmpdir
+    fi
+  fi
 }
 
 usage() {
@@ -557,10 +610,12 @@ _parseopts() {
 _parseopts $@
 
 echo "main - args - ${ARGS[@]} - opts -${OPTS[@]}"
+#set -x
 
 case $ACTION in
   help) usage ;;
   status) status ;;
+  pre-install) pre-install ;;
   install) install ;;
   init-repo) init-repo ;;
   init-demos) init-demos ;;
