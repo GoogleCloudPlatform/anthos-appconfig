@@ -264,7 +264,7 @@ steps:
         git config --global user.email $(gcloud config get-value core/account 2> /dev/null)
         git config --global user.name  $(gcloud config get-value core/account 2> /dev/null)
 
-        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; echo "y\nyyyy" | ./crd-setup-helper.sh install -f
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; echo -e "y\nyyyy" | ./crd-setup-helper.sh install -f
 
         # TODO - Check for Istio Install
         # kubectl get deployment  -o yaml -n istio-system | grep image:
