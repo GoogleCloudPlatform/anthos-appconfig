@@ -26,16 +26,16 @@ gsutil acl ch -u 20604585440@cloudbuild.gserviceaccount.com:R  gs://anthos-appco
 gcloud builds submit \
   --config=./builder/kubebuilder-build/cloudbuild.yaml  \
     ./builder/kubebuilder-build \
-  --project anthos-appconfig --substitutions="_BUILDER_VERSION=v2.0.0" 
+  --project anthos-appconfig --substitutions="_BUILDER_VERSION=v2.0.1" 
   
   gsutil iam ch allUsers:objectViewer gs://artifacts.anthos-appconfig.appspot.com
 ```
 
 ```bash
 gcloud builds submit \
-  --config=./builder/utils/acmsplit/build/cloudbuild.yaml  \
-    ./builder/utils/acmsplit \
-  --project anthos-appconfig --substitutions="_BUILDER_VERSION=v2.0.0" 
+  --config=./kubebuilder-build/builder/utils/acmsplit/build/cloudbuild.yaml  \
+  ./kubebuilder-build/builder/utils/acmsplit \
+  --project anthos-appconfig --substitutions="_BUILDER_VERSION=v2.0.1" 
 ```
 
 ```bash
