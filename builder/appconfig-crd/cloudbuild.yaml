@@ -19,6 +19,8 @@
 
 
 timeout: 3600s
+options:
+  machineType: N1_HIGHCPU_8
 steps:
   - name: gcr.io/cloud-builders/gsutil
     args: ['cp', '-DD', 'gs://${PROJECT_ID}_build/repo/keys/id_rsa_${PROJECT_ID}-repo', '/builder/home/.ssh/id_rsa']
@@ -198,5 +200,10 @@ steps:
           gcloud builds submit --config=tests/setup/cloudbuild.yaml  tests/setup/jobtemp --project ${PROJECT_ID} \
             --substitutions="_REF_PATH=$$MY_REF_PATH,_POTENTIAL_VERSION=$$MY_APP_VERSION,_BRANCH_NAME=$$MY_CHECKOUT_REF,_INPUT_SHA_LONG=$$PARM_BUILD_SHA_LONG,_STEPS_X=$$MY_STEPS_X"
         fi
-
+        if [ "$_REF_PATH" == 'BRANCH_AUTO' ]; then
+          MY_REF_PATH="BRANCH_AUTO"
+          MY_STEPS_X=""
+          gcloud builds submit --config=tests/setup/cloudbuild.yaml  tests/setup/jobtemp --project ${PROJECT_ID} \
+            --substitutions="_REF_PATH=$$MY_REF_PATH,_POTENTIAL_VERSION=$$MY_APP_VERSION,_BRANCH_NAME=$$MY_CHECKOUT_REF,_INPUT_SHA_LONG=$$PARM_BUILD_SHA_LONG,_STEPS_X=$$MY_STEPS_X"
+        fi
     dir: "build-source"

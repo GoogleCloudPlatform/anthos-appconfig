@@ -18,6 +18,8 @@
 
 
 timeout: 3600s
+options:
+  machineType: N1_HIGHCPU_8
 steps:
   - name: gcr.io/cloud-builders/gsutil
     entrypoint: 'bash'
@@ -32,6 +34,12 @@ steps:
         mkdir -p /workspace/myenv
         echo "/workspace/myenv" > /workspace/myenv/_rootdir_TAG.out
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+
+        MYENV_TEST_DIR="$(cat /workspace/myenv/_rootdir_TAG.out)/tests"
+        mkdir -p "$${MYENV_TEST_DIR}"
+        echo "$${MYENV_TEST_DIR}" > /workspace/myenv/_testdir_TAG.out
+        MYENV_TEST_DIR=$(cat /workspace/myenv/_testdir_TAG.out)
+
         gsutil cp -DD "gs://${PROJECT_ID}_build/repo/keys/id_rsa_${PROJECT_ID}-repo" '/builder/home/.ssh/id_rsa'
         gsutil cp -DD "gs://${PROJECT_ID}_build/repo/github/build-ssh-config-git-hub" '/builder/home/.ssh/config'
         gsutil cp -DD "gs://${PROJECT_ID}_build/billing/billing_acount_testing.txt" '/builder/home/.ssh/billing_acount_testing.txt'
@@ -56,7 +64,7 @@ steps:
       - |
         echo 'STEP-GIT-CHECKOUT'
         #set -x
-        [ "$_REF_PATH" == 'BRANCH_AUTO' ] && { MY_CHECKOUT_REF="$BRANCH_NAME";MY_APP_VERSION="b-$BRANCH_NAME"; }
+        [ "$_REF_PATH" == 'BRANCH_AUTO' ] && { MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="b-$_BRANCH_NAME"; }
         [ "$_REF_PATH" == 'BRANCH_MANUAL' ] &&  { MY_CHECKOUT_REF="$_BRANCH_NAME"; MY_APP_VERSION="b-$_BRANCH_NAME"; }
         [ "$_REF_PATH" == 'SHA_MANUAL_BR' ] && { MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="b-$_BRANCH_NAME"; }
         [ "$_REF_PATH" == 'SHA_MANUAL_RELEASE' ] && { MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="$_POTENTIAL_VERSION"; }
@@ -133,6 +141,76 @@ steps:
   - name: google/cloud-sdk
     entrypoint: "bash"
     args:
+      - '-c'
+      - |
+
+        echo 'STEP-PREPARE-STEP-GENERATE-ARTIFACTS'
+
+
+        set -x
+
+
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+        MYENV_TEST_DIR=$(cat $${MYENV_DIR}/_testdir_TAG.out)
+        PARM_TS_SEC=$(cat $${MYENV_DIR}/_file_TAG.out)
+        PARM_TS_MIN=$(cat $${MYENV_DIR}/_filemin_TAG.out)
+        PARM_PROJ="$(cat $${MYENV_DIR}/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat$${MYENV_DIR}/_fileclus_TAG.out)
+        PARM_REGION=$(cat $${MYENV_DIR}/_filereg_TAG.out)
+        PARM_ZONE=$(cat $${MYENV_DIR}/_filezone_TAG.out)
+        PARM_REPO=$(cat $${MYENV_DIR}/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat $${MYENV_DIR}/_filerepopath_TAG.out)
+        PARM_BUILD_BRANCH="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
+
+        curl -Lo acm-init.sh \
+           https://storage.googleapis.com/anthos-appconfig_public/install/scripts/acm-init.sh
+        chmod a+x acm-init.sh
+        curl -Lo $${MYENV_TEST_DIR}/crd-setup-helper.sh \
+           https://storage.googleapis.com/anthos-appconfig_public/install/scripts/crd-setup-helper.sh
+        chmod a+x $${MYENV_TEST_DIR}/crd-setup-helper.sh
+
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH;$${MYENV_TEST_DIR}/crd-setup-helper.sh pre-install "$${MYENV_TEST_DIR}/generated/istio" -genexternal
+
+
+
+    dir: "build-source/tests"
+  - name: alpine/helm:2.13.1
+    entrypoint: "/bin/sh"
+    args:
+      - '-c'
+      - |
+        echo 'STEP-GENERATE-ARTIFACTS'
+
+        set -x
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+        MYENV_TEST_DIR=$(cat /workspace/myenv/_testdir_TAG.out)
+
+
+        mkdir -p $${MYENV_TEST_DIR}/generated/yaml
+
+        helm template \
+        $${MYENV_TEST_DIR}/generated/istio/istio-build/install/kubernetes/helm/istio-init \
+        --name istio-init \
+        --namespace istio-system > $${MYENV_TEST_DIR}/generated/yaml/istio-init.yaml
+
+        helm template \
+        $${MYENV_TEST_DIR}/generated/istio/istio-build/install/kubernetes/helm/istio \
+        --name istio \
+        --namespace istio-system \
+        --set global.mtls.enabled=true \
+        --set grafana.enabled=true \
+        --set kiali-enabled=true \
+        --set tracing.enabled=true \
+        --set global.k8sIngress.enableHttps=true  \
+        --set global.disablePolicyChecks=false \
+        --set global.outboundTrafficPolicy.mode=REGISTRY_ONLY \
+        --values  $${MYENV_TEST_DIR}/generated/istio/istio-build/install/kubernetes/helm/istio/values-istio-demo-auth.yaml \
+        > $${MYENV_TEST_DIR}/generated/yaml/istio.yaml
+
+    dir: "build-source/tests/setup"
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+    args:
     - '-c'
     - |
 
@@ -148,7 +226,7 @@ steps:
       PARM_CLUSTER=$(cat /workspace/myenv/_fileclus_TAG.out)
       PARM_REGION=$(cat /workspace/myenv/_filereg_TAG.out)
       PARM_ZONE=$(cat /workspace/myenv/_filezone_TAG.out)
-      PARM_REPO=$(cat /workspace/myenv//_filerepo_TAG.out)
+      PARM_REPO=$(cat /workspace/myenv/_filerepo_TAG.out)
       PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
       PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
@@ -234,6 +312,8 @@ steps:
         PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
+        MYENV_TEST_DIR=$(cat /workspace/myenv/_testdir_TAG.out)
+
         echo $(gcloud source repos describe "$$PARM_REPO" --format="value(selfLink.basename())" --project "$$PARM_PROJ" || echo "") > out_repo_TAG.out
         echo "REPO-$(cat out_repo_TAG.out)"
 
@@ -262,7 +342,7 @@ steps:
         git config --global user.email $(gcloud config get-value core/account 2> /dev/null)
         git config --global user.name  $(gcloud config get-value core/account 2> /dev/null)
 
-        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; echo "y\nyyyy" | ./crd-setup-helper.sh install -f
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; echo -e "y\nyyyy" | ./crd-setup-helper.sh install  $${MYENV_TEST_DIR}/generated/yaml -f -external
 
         # TODO - Check for Istio Install
         # kubectl get deployment  -o yaml -n istio-system | grep image:
@@ -329,7 +409,7 @@ steps:
         if [ ! -f /workspace/myroot/.private/gsa_keys/sa2.json ] ; then
           gcloud iam service-accounts keys create '/workspace/myroot/.private/gsa_keys/sa2.json' --project $${PARM_PROJ} \
             --iam-account=appconfigcrd-demo-sa2@$${PARM_PROJ}.iam.gserviceaccount.com
-          gsutil cp  '/workspace/myroot/.private/gsa_keys/sa1.json'  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/sa2.json"
+          gsutil cp  '/workspace/myroot/.private/gsa_keys/sa2.json'  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/sa2.json"
         fi
 
         kubectl create secret generic appconfigcrd-demo-sa1-secret \
@@ -357,7 +437,7 @@ steps:
         gsutil cat  "$$PARM_PATH/uc-secrets-istio/deploy-apps.yaml" | kubectl apply -f -
         gsutil cat  "$$PARM_PATH/uc-firebase/deploy-apps.yaml" | kubectl apply -f -
 
-        sleep 60
+        sleep 120
 
 
     dir: "build-source/tests"
