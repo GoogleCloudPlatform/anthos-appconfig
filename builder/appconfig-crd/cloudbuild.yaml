@@ -19,6 +19,8 @@
 
 
 timeout: 3600s
+options:
+  machineType: N1_HIGHCPU_8
 steps:
   - name: gcr.io/cloud-builders/gsutil
     args: ['cp', '-DD', 'gs://${PROJECT_ID}_build/repo/keys/id_rsa_${PROJECT_ID}-repo', '/builder/home/.ssh/id_rsa']

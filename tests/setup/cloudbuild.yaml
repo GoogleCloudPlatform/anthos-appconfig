@@ -18,6 +18,8 @@
 
 
 timeout: 3600s
+options:
+  machineType: N1_HIGHCPU_8
 steps:
   - name: gcr.io/cloud-builders/gsutil
     entrypoint: 'bash'
