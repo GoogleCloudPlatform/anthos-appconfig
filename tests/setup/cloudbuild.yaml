@@ -284,6 +284,9 @@ steps:
         echo "Done"
 
     dir: "build-source/tests"
+    volumes:
+      - name: 'ssh'
+        path: /root/.ssh
   - name: google/cloud-sdk
     entrypoint: "bash"
     args:
