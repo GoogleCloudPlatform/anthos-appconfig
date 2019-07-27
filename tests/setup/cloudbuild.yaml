@@ -74,6 +74,8 @@ steps:
 
         PARM_GIT_LAST_COMMIT_EMAIL=$(git log -1 --pretty=format:'%ae')
         echo "$${PARM_GIT_LAST_COMMIT_EMAIL%@*}"  > $${MYENV_DIR}/_file_email_TAG.out
+        PARM_GIT_FIRST_COMMIT_NAME=$(git for-each-ref --format='%(committerdate) %09 %(authorname) %09 %(refname)' | sort -k5n -k2M -k3n -k4n | grep "$${MY_CHECKOUT_REF}" | head -n 1 | awk '{ print tolower($8)}')
+        echo "$${PARM_GIT_FIRST_COMMIT_NAME%@*}"  > $${MYENV_DIR}/_file_email_TAG.out
 
         PARM_BUILD_SHA_LONG="$(cat $${MYENV_DIR}/_fileappsha1_long_TAG.out)"
         PARM_BUILD_SHA="$(cat $${MYENV_DIR}/_fileappsha1_TAG.out)"
@@ -106,7 +108,7 @@ steps:
         PARM_AT_DAY=$(cat $${MYENV_DIR}/_file_at_day_TAG.out)
         #echo "tst-appconfig-$(cat /workspace/myenv/_filemin_TAG.out)" > /workspace/myenv/_fileproj_TAG.out
         echo "appcrd-$$PARM_EMAIL-$$PARM_AT_DAY" > /workspace/myenv/_fileproj_TAG.out
-        echo "c-$(cat /workspace/myenv/_fileappversion_TAG.out)-$$PARM_AT_HOUR" > /workspace/myenv/_fileclus_TAG.out
+        echo "c-$(cat /workspace/myenv/_fileappversion_TAG.out)" > /workspace/myenv/_fileclus_TAG.out
         echo "us-west1" > /workspace/myenv/_filereg_TAG.out
         echo "us-west1-b" > /workspace/myenv/_filezone_TAG.out
         cp /workspace/myenv/_fileat_TAG.out /workspace/myenv/_filerepopath_TAG.out
@@ -282,6 +284,9 @@ steps:
         echo "Done"
 
     dir: "build-source/tests"
+    volumes:
+      - name: 'ssh'
+        path: /root/.ssh
   - name: google/cloud-sdk
     entrypoint: "bash"
     args:
@@ -289,7 +294,7 @@ steps:
       - |
         echo 'STEP-CRD1-b'
         [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1-b*SKIP*'; exit 0; }
-
+        set -x
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
@@ -301,10 +306,10 @@ steps:
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
         CHECK_SA1=$(gcloud iam service-accounts describe appconfigcrd-demo-sa1@$${PARM_PROJ}.iam.gserviceaccount.com  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
-        [ -z  $$CHECK_SA1 ] || gcloud iam service-accounts create appconfigcrd-demo-sa1 --display-name=appconfigcrd-demo-sa1 --project $${PARM_PROJ}
+        [ ! -z  $$CHECK_SA1 ] || gcloud iam service-accounts create appconfigcrd-demo-sa1 --display-name=appconfigcrd-demo-sa1 --project $${PARM_PROJ}
 
         CHECK_SA2=$(gcloud iam service-accounts describe appconfigcrd-demo-sa2@$${PARM_PROJ}.iam.gserviceaccount.com  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
-        [ -z  $$CHECK_SA2 ] || gcloud iam service-accounts create appconfigcrd-demo-sa2 --display-name=appconfigcrd-demo-sa2 --project $${PARM_PROJ}
+        [ ! -z  $$CHECK_SA2 ] || gcloud iam service-accounts create appconfigcrd-demo-sa2 --display-name=appconfigcrd-demo-sa2 --project $${PARM_PROJ}
 
 
         gcloud beta pubsub topics add-iam-policy-binding appconfigcrd-demo-topic1 --project $${PARM_PROJ}  \
