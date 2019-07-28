@@ -193,6 +193,8 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: istio-system
+  labels:
+    appconfigmgr.cft.dev/trusted: "true"
 EOF
 
   fpath="${ACM_ENV_ROOT}/system/README.md"

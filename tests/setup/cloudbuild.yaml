@@ -82,7 +82,7 @@ steps:
 
         PARM_GIT_LAST_COMMIT_EMAIL=$(git log -1 --pretty=format:'%ae')
         echo "$${PARM_GIT_LAST_COMMIT_EMAIL%@*}"  > $${MYENV_DIR}/_file_email_TAG.out
-        PARM_GIT_FIRST_COMMIT_NAME=$(git for-each-ref --format='%(committerdate) %09 %(authorname) %09 %(refname)' | sort -k5n -k2M -k3n -k4n | grep "$${MY_CHECKOUT_REF}" | head -n 1 | awk '{ print tolower($8)}')
+        PARM_GIT_FIRST_COMMIT_NAME=$(git log master..bug-137780937-opa-labels --oneline  --pretty=format:'%ae' | tail -n 1)
         echo "$${PARM_GIT_FIRST_COMMIT_NAME%@*}"  > $${MYENV_DIR}/_file_email_TAG.out
 
         PARM_BUILD_SHA_LONG="$(cat $${MYENV_DIR}/_fileappsha1_long_TAG.out)"
@@ -412,13 +412,46 @@ steps:
           gsutil cp  '/workspace/myroot/.private/gsa_keys/sa2.json'  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/sa2.json"
         fi
 
-        kubectl create secret generic appconfigcrd-demo-sa1-secret \
+        NEXT_WAIT_TIME=0
+        until [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa1-secret --output 'jsonpath={.metadata.name}')" ] || [ $$NEXT_WAIT_TIME -eq 4 ]; do
+          kubectl create secret generic appconfigcrd-demo-sa1-secret \
           -n appconfigmgrv2-system \
           --from-file=key.json=/workspace/myroot/.private/gsa_keys/sa1.json
-
-        kubectl create secret generic appconfigcrd-demo-sa2-secret \
+          sleep $(( NEXT_WAIT_TIME++ ))
+        done
+        NEXT_WAIT_TIME=0
+        until [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa2-secret --output 'jsonpath={.metadata.name}')" ] || [ $$NEXT_WAIT_TIME -eq 4 ]; do
+          kubectl create secret generic appconfigcrd-demo-sa2-secret \
           -n appconfigmgrv2-system \
           --from-file=key.json=/workspace/myroot/.private/gsa_keys/sa2.json
+          sleep $(( NEXT_WAIT_TIME++ ))
+        done
+
+        [ -z  "$(kubectl get secret appconfigcrd-demo-sa1-secret --output 'jsonpath={.metadata.name}')" ] || exit 1
+        [ -z  "$(kubectl get secret appconfigcrd-demo-sa2-secret --output 'jsonpath={.metadata.name}')" ] || exit 1
+
+
+
+
+
+    dir: "build-source/tests"
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+    args:
+      - '-c'
+      - |
+        echo 'STEP-CRD1-c'
+        [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1-c*SKIP*'; exit 0; }
+        set -x
+        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
+        PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
+        PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat /workspace/myenv/_fileclus_TAG.out)
+        PARM_REGION=$(cat /workspace/myenv/_filereg_TAG.out)
+        PARM_ZONE=$(cat /workspace/myenv/_filezone_TAG.out)
+        PARM_REPO=$(cat /workspace/myenv/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
+        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
         PARM_PATH="gs://anthos-appconfig_public/deploy/$${PARM_BUILD_BRANCH}/examples/use-cases"
         gsutil cat  "$$PARM_PATH/uc-allowed-services-k8s/deploy-apps.yaml" | kubectl delete -f -
@@ -438,8 +471,6 @@ steps:
         gsutil cat  "$$PARM_PATH/uc-firebase/deploy-apps.yaml" | kubectl apply -f -
 
         sleep 120
-
-
     dir: "build-source/tests"
   - name: google/cloud-sdk
     entrypoint: "bash"
