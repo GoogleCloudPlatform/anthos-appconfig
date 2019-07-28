@@ -82,7 +82,7 @@ steps:
 
         PARM_GIT_LAST_COMMIT_EMAIL=$(git log -1 --pretty=format:'%ae')
         echo "$${PARM_GIT_LAST_COMMIT_EMAIL%@*}"  > $${MYENV_DIR}/_file_email_TAG.out
-        PARM_GIT_FIRST_COMMIT_NAME=$(git log master..bug-137780937-opa-labels --oneline  --pretty=format:'%ae' | tail -n 1)
+        PARM_GIT_FIRST_COMMIT_NAME=$(git log  master..$${MY_CHECKOUT_REF} --oneline  --pretty=format:'%ae' | tail -n 1)
         echo "$${PARM_GIT_FIRST_COMMIT_NAME%@*}"  > $${MYENV_DIR}/_file_email_TAG.out
 
         PARM_BUILD_SHA_LONG="$(cat $${MYENV_DIR}/_fileappsha1_long_TAG.out)"
