@@ -83,6 +83,9 @@ steps:
         PARM_GIT_LAST_COMMIT_EMAIL=$(git log -1 --pretty=format:'%ae')
         echo "$${PARM_GIT_LAST_COMMIT_EMAIL%@*}"  > $${MYENV_DIR}/_file_email_TAG.out
         PARM_GIT_FIRST_COMMIT_NAME=$(git log  master..$${MY_CHECKOUT_REF} --oneline  --pretty=format:'%ae' | tail -n 1)
+        if [ -z "$${PARM_GIT_FIRST_COMMIT_NAME}" ]; then
+          PARM_GIT_FIRST_COMMIT_NAME=$${PARM_GIT_LAST_COMMIT_EMAIL}
+        fi
         echo "$${PARM_GIT_FIRST_COMMIT_NAME%@*}"  > $${MYENV_DIR}/_file_email_TAG.out
 
         PARM_BUILD_SHA_LONG="$(cat $${MYENV_DIR}/_fileappsha1_long_TAG.out)"
@@ -357,6 +360,16 @@ steps:
           create secret generic -n=config-management-system git-creds \
           --from-file=ssh=/root/.ssh/id_rsa_test
 
+        NEXT_WAIT_TIME=0
+        until [ ! -z  "$(kubectl get ns appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || [ $$NEXT_WAIT_TIME -gt 10 ]; do
+          echo "Waiting for ACM to get going... - $(date '+%Y%m%d-%H%M%S')"
+          sleep $(( 5*NEXT_WAIT_TIME++ ))
+        done
+
+        if [ -z  "$(kubectl get ns appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ]; then
+          echo "Waited and AppConfig Controller was not created!"; exit 1
+        fi
+
         export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; yes | bash acm-init.sh status
         export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH;  echo -e "y\n" | ./crd-setup-helper.sh init-demos "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" "$(cat gcloud_user.txt)"
 
@@ -413,22 +426,22 @@ steps:
         fi
 
         NEXT_WAIT_TIME=0
-        until [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa1-secret --output 'jsonpath={.metadata.name}')" ] || [ $$NEXT_WAIT_TIME -eq 4 ]; do
+        until [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa1-secret -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || [ $$NEXT_WAIT_TIME -gt 10 ]; do
           kubectl create secret generic appconfigcrd-demo-sa1-secret \
           -n appconfigmgrv2-system \
           --from-file=key.json=/workspace/myroot/.private/gsa_keys/sa1.json
-          sleep $(( NEXT_WAIT_TIME++ ))
+          sleep $(( 5*NEXT_WAIT_TIME++ ))
         done
         NEXT_WAIT_TIME=0
-        until [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa2-secret --output 'jsonpath={.metadata.name}')" ] || [ $$NEXT_WAIT_TIME -eq 4 ]; do
+        until [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa2-secret -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || [ $$NEXT_WAIT_TIME -gt 10 ]; do
           kubectl create secret generic appconfigcrd-demo-sa2-secret \
           -n appconfigmgrv2-system \
           --from-file=key.json=/workspace/myroot/.private/gsa_keys/sa2.json
-          sleep $(( NEXT_WAIT_TIME++ ))
+          sleep $(( 5*NEXT_WAIT_TIME++ ))
         done
 
-        [ -z  "$(kubectl get secret appconfigcrd-demo-sa1-secret --output 'jsonpath={.metadata.name}')" ] || exit 1
-        [ -z  "$(kubectl get secret appconfigcrd-demo-sa2-secret --output 'jsonpath={.metadata.name}')" ] || exit 1
+        [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa1-secret -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || exit 1
+        [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa2-secret -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || exit 1
 
 
 
