@@ -38,9 +38,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-var log = ctrl.Log.WithName("webhooks-builtins-pod")
-var TODO_FIND_NAMESPACE = "appconfigmgrv2-system"
-var localMgr ctrl.Manager
+const (
+	VAULT_CONFIGMAP_NAME = "vault"
+	VAULT_CA_SECRET_NAME = "vault-ca"
+	TODO_FIND_NAMESPACE  = "appconfigmgrv2-system"
+)
+
+var (
+	log      = ctrl.Log.WithName("webhooks-builtins-pod")
+	localMgr ctrl.Manager
+)
 
 func SetupWebHook(mgr ctrl.Manager) {
 
@@ -236,14 +243,159 @@ func updateContainerEnv(container *corev1.Container, containerName string, envNa
 }
 
 func (a *podAnnotator) handleGCPSecretIfNeeded(ctx context.Context, pod *corev1.Pod, app *appconfig.AppEnvConfigTemplateV2) error {
-
 	log.Info("podAnnotator:handleGCPSecretIfNeeded")
-	if app.Spec.Auth == nil ||
-		app.Spec.Auth.GCPAccess == nil ||
-		app.Spec.Auth.GCPAccess.AccessType != "secret" {
-
+	switch {
+	case app.Spec.Auth == nil, app.Spec.Auth.GCPAccess == nil:
+		return nil
+	case app.Spec.Auth.GCPAccess.AccessType == "vault":
+		return a.handleGCPVault(ctx, pod, app)
+	case app.Spec.Auth.GCPAccess.AccessType == "secret":
+		return a.handleGCPSecret(ctx, pod, app)
+	default:
+		log.Error(fmt.Errorf("invalid GCPAccess value"), "\"%s\"", app.Spec.Auth.GCPAccess.AccessType)
 		return nil
 	}
+}
+
+func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app *appconfig.AppEnvConfigTemplateV2) error {
+	log.Info("podAnnotator:handleGCPVault")
+
+	var (
+		caVolName  = VAULT_CA_SECRET_NAME + "-vol"
+		gcpVolName = "google-auth-token"
+		vaultInfo  = app.Spec.Auth.GCPAccess.VaultInfo
+	)
+
+	log.Info("handleGCPVault:loadConfig")
+
+	// read vaultInfo from AppEnvConfigTemplateV2 spec
+	if vaultInfo == nil {
+		return fmt.Errorf("vaultInfo not configured")
+	}
+
+	if vaultInfo.ServiceAccount == "" {
+		return fmt.Errorf("vaultInfo missing serviceAccount field")
+	}
+
+	if vaultInfo.GCPPath == "" {
+		return fmt.Errorf("vaultInfo missing GCPPath field")
+	}
+
+	if vaultInfo.K8SPath == "" {
+		return fmt.Errorf("vaultInfo missing K8SPath field")
+	}
+
+	// get vault configMap, validate
+	log.Info("handleGCPVault:loadConfig", "ConfigMap", VAULT_CONFIGMAP_NAME)
+	config, err := getConfigMap(ctx, VAULT_CONFIGMAP_NAME, TODO_FIND_NAMESPACE)
+	if err != nil {
+		return err
+	}
+
+	if config.Data["vault-addr"] == "" {
+		return fmt.Errorf("ConfigMap missing vault-addr")
+	}
+
+	// get provided serviceAccount JWT token
+	log.Info("handleGCPVault:loadConfig", "ServiceAccount", vaultInfo.ServiceAccount)
+	ksaToken, err := svcAcctJWT(ctx, vaultInfo.ServiceAccount, TODO_FIND_NAMESPACE)
+	if err != nil {
+		return err
+	}
+
+	// copy vault CA cert into app namespace
+	VAULT_CA_SECRET_NAME := "vault-ca"
+	log.Info("handleGCPVault:applyConfig", "Secret", VAULT_CA_SECRET_NAME)
+	if err := copySecret(ctx, VAULT_CA_SECRET_NAME, app); err != nil {
+		return err
+	}
+
+	// add vault CA cert secret to pod volumes
+	log.Info("handleGCPVault:applyConfig", "Volume", VAULT_CA_SECRET_NAME)
+	injectVolume(pod, corev1.Volume{
+		Name: caVolName,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: VAULT_CA_SECRET_NAME,
+			},
+		},
+	})
+
+	log.Info("handleGCPVault:injectInitContainer", "Container", "vault-gcp-auth")
+	// inject vault-gcp init container
+	injectInitContainer(pod, corev1.Container{
+		Name:            "vault-gcp-auth",
+		Image:           "gcr.io/anthos-appconfig/vault-gcp-init:latest",
+		ImagePullPolicy: corev1.PullAlways,
+		Env: []corev1.EnvVar{
+			{
+				Name:  "KSA_JWT",
+				Value: ksaToken,
+			},
+			{
+				Name:  "INIT_GCP_KEYPATH",
+				Value: vaultInfo.GCPPath,
+			},
+			{
+				Name:  "INIT_K8S_KEYPATH",
+				Value: vaultInfo.K8SPath,
+			},
+			{
+				Name:  "VAULT_ADDR",
+				Value: config.Data["vault-addr"],
+			},
+			{
+				Name:  "VAULT_CAPATH",
+				Value: "/var/run/secrets/vault/ca.pem",
+			},
+			{
+				Name:  "GOOGLE_APPLICATION_CREDENTIALS",
+				Value: "/var/run/secrets/google/token/key.json",
+			},
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      caVolName,
+				MountPath: "/var/run/secrets/vault",
+			},
+			{
+				Name:      gcpVolName,
+				MountPath: "/var/run/secrets/google/token",
+			},
+		},
+	})
+
+	// add GCP token volume to pod
+	log.Info("handleGCPVault:applyConfig", "Volume", gcpVolName)
+	injectVolume(pod, corev1.Volume{
+		Name: gcpVolName,
+		VolumeSource: corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{
+				Medium: corev1.StorageMediumMemory,
+			},
+		},
+	})
+
+	// inject volume mount for all pod containers
+	log.Info("handleGCPVault:applyConfig", "VolumeMount", gcpVolName)
+	injectVolumeMount(pod, corev1.VolumeMount{
+		Name:      gcpVolName,
+		ReadOnly:  true,
+		MountPath: "/var/run/secrets/google/token",
+	})
+
+	// inject app credential env var for all pod containers
+	log.Info("handleGCPVault:applyConfig", "EnvVar", "GOOGLE_APPLICATION_CREDENTIALS")
+	injectEnvVar(pod, corev1.EnvVar{
+		Name:  "GOOGLE_APPLICATION_CREDENTIALS",
+		Value: "/var/run/secrets/google/token/key.json",
+	})
+
+	return nil
+}
+
+func (a *podAnnotator) handleGCPSecret(ctx context.Context, pod *corev1.Pod, app *appconfig.AppEnvConfigTemplateV2) error {
+	log.Info("podAnnotator:handleGCPSecret")
 
 	secretName := app.Spec.Auth.GCPAccess.SecretInfo.Name
 	secretNamespace := TODO_FIND_NAMESPACE
