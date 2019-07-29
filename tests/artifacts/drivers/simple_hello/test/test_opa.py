@@ -18,28 +18,26 @@
 
 import os
 import sys
+import unittest
 
-sys.path.append(os.path.abspath('..'))
+# sys.path.append(os.path.abspath('../simple_hello'))
+# from auth_helper import GCPAuthHelper
 
-from unittest import TestLoader, TestSuite
-import HtmlTestRunner
-from test.test_simple_hello import SimpleHelloTestCase
-from test.test_opa import OpaTestCase
+from kubernetes import client, config
+from pprint import pprint
 
-the_testing_list = []
+config.load_kube_config()
+core_v1 = client.CoreV1Api()
+namespace = "uc-opa"
 
-the_testing_list.append(TestLoader().loadTestsFromTestCase(SimpleHelloTestCase))
-the_testing_list.append(TestLoader().loadTestsFromTestCase(OpaTestCase))
+class OpaTestCase(unittest.TestCase):
 
+  def test_pod_creation(self):
+    should_exist = core_v1.list_namespaced_pod(namespace, label_selector="app=satisfies-labels")
+    should_not_exist = core_v1.list_namespaced_pod(namespace, label_selector="app=missing-version-label-on-pods")
+    self.assertEqual(len(should_exist.items), 3)
+    self.assertEqual(len(should_not_exist.items), 0)
 
-suite = TestSuite(the_testing_list)
+if __name__ == '__main__':
+  unittest.main()
 
-runner = HtmlTestRunner.HTMLTestRunner(combine_reports=True, output="reports/temp", report_name="all_tests", add_timestamp=False)
-
-results = runner.run(suite)
-
-print('results', results)
-
-
-if len(results.errors) > 0 or len(results.failures) > 0:
-  sys.exit(1)
