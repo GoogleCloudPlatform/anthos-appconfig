@@ -423,16 +423,12 @@ spec:
                         for details on creating roleSets
                       properties:
                         GCPPath:
-                          description: Cluster-specific Vault path where Kubernetes
-                            Auth Method is enabled
+                          description: Vault Google Cloud Secrets Engine roleset key
+                            path to retrieve credentials from
                           type: string
                         K8SPath:
-                          description: Cluster-specific Vault path where GCP Secrets
-                            Engine is enabled
-                          type: string
-                        roleSet:
-                          description: Vault Google Cloud Secrets Engine roleset name
-                            to enable
+                          description: Vault Kubernetes Auth Method role path for
+                            Vault login
                           type: string
                         serviceAccount:
                           description: Kubernetes service account to allow to enable
