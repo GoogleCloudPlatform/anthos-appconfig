@@ -224,3 +224,23 @@ rules:
   - get
   - update
   - patch
+- apiGroups:
+  - constraints.gatekeeper.sh
+  resources:
+  - appconfigrequiredlabels
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - constraints.gatekeeper.sh
+  resources:
+  - appconfigrequiredlabels/status
+  verbs:
+  - get
+  - update
+  - patch

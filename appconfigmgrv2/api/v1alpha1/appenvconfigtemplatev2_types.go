@@ -145,6 +145,8 @@ type AppEnvConfigTemplateV2 struct {
 // +kubebuilder:rbac:groups=networking.istio.io,resources=virtualservices/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=networking.istio.io,resources=serviceentries,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.istio.io,resources=serviceentries/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=constraints.gatekeeper.sh,resources=appconfigrequiredlabels,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=constraints.gatekeeper.sh,resources=appconfigrequiredlabels/status,verbs=get;update;patch
 
 // AppEnvConfigTemplateV2List contains a list of AppEnvConfigTemplateV2
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
