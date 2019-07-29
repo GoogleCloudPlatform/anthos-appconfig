@@ -492,7 +492,7 @@ install_operator() {
 }
 
 install_gatekeeper() {
-  kubectl apply -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/v2.0.1/deploy/gatekeeper.yaml
+  kubectl apply -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml
 }
 
 install_istio() {
