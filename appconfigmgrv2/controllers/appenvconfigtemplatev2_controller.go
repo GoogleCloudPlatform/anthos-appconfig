@@ -129,6 +129,10 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 	// TODO: Reconcile istio/non-istio resources on namespace istio injection label update?
 	// i.e. NetworkPolicies vs istio Rules
 
+	if err := r.vaultInjectValidate(ctx, instance.Spec.Auth); err != nil {
+		return ctrl.Result{}, fmt.Errorf("checking vault gcpaccess config: %v", err)
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -200,6 +204,36 @@ func (r *AppEnvConfigTemplateV2Reconciler) istioAutoInjectEnabled(ctx context.Co
 		return false, err
 	}
 	return ns.Labels["istio-injection"] == "enabled", nil
+}
+
+// vaultInjectValidate checks the AppEnvConfigTemplateV2 auth spec for
+// existing vaultInfo type and fields with basic validation
+func (r *AppEnvConfigTemplateV2Reconciler) vaultInjectValidate(
+	ctx context.Context,
+	auth *appconfigmgrv1alpha1.AppEnvConfigTemplateAuth,
+) error {
+	if auth == nil || auth.GCPAccess == nil || auth.GCPAccess.AccessType != "vault" {
+		return nil
+	}
+
+	vaultInfo := auth.GCPAccess.VaultInfo
+	if vaultInfo == nil {
+		return fmt.Errorf("vaultInfo not configured")
+	}
+
+	if vaultInfo.ServiceAccount == "" {
+		return fmt.Errorf("vaultInfo missing serviceAccount key")
+	}
+
+	if vaultInfo.GCPPath == "" {
+		return fmt.Errorf("vaultInfo missing GCPPath key")
+	}
+
+	if vaultInfo.K8SPath == "" {
+		return fmt.Errorf("vaultInfo missing K8SPath key")
+	}
+
+	return nil
 }
 
 // upsertUnstructured creates/updates unstructured objects based on spec
