@@ -466,52 +466,23 @@ steps:
         CHECK_VAULT_SA1=$(gcloud iam service-accounts describe appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
         [ ! -z  $$CHECK_VAULT_SA1 ] || gcloud iam service-accounts create appconfigcrd-demo-vault-sa1 --display-name=appconfigcrd-demo-sa1 --project $${PARM_PROJ}
 
-        CHECK_VAULT_SA2=$(gcloud iam service-accounts describe appconfigcrd-demo-vault-sa2@$${PARM_PROJ}.iam.gserviceaccount.com  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
-        [ ! -z  $$CHECK_VAULT_SA2 ] || gcloud iam service-accounts create appconfigcrd-demo-vault-sa2 --display-name=appconfigcrd-demo-sa2 --project $${PARM_PROJ}
 
 
 
-#        gcloud beta pubsub topics add-iam-policy-binding appconfigcrd-demo-topic1 --project $${PARM_PROJ}  \
-#          --member=serviceAccount:appconfigcrd-demo-sa1@$${PARM_PROJ}.iam.gserviceaccount.com \
-#          --role=roles/pubsub.publisher
-#        gcloud beta pubsub topics add-iam-policy-binding appconfigcrd-demo-topic2 --project $${PARM_PROJ}  \
-#          --member=serviceAccount:appconfigcrd-demo-sa2@$${PARM_PROJ}.iam.gserviceaccount.com \
-#          --role=roles/pubsub.publisher
-#
-#
-#        if [ ! -f /workspace/myroot/.private/gsa_keys/sa1.json ] ; then
-#          gcloud iam service-accounts keys create '/workspace/myroot/.private/gsa_keys/sa1.json' --project $${PARM_PROJ} \
-#            --iam-account=appconfigcrd-demo-sa1@$${PARM_PROJ}.iam.gserviceaccount.com
-#          gsutil cp  '/workspace/myroot/.private/gsa_keys/sa1.json'  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/sa1.json"
-#        fi
-#
-#        if [ ! -f /workspace/myroot/.private/gsa_keys/sa2.json ] ; then
-#          gcloud iam service-accounts keys create '/workspace/myroot/.private/gsa_keys/sa2.json' --project $${PARM_PROJ} \
-#            --iam-account=appconfigcrd-demo-sa2@$${PARM_PROJ}.iam.gserviceaccount.com
-#          gsutil cp  '/workspace/myroot/.private/gsa_keys/sa2.json'  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/sa2.json"
-#        fi
-#
-#        NEXT_WAIT_TIME=0
-#        until [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa1-secret -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || [ $$NEXT_WAIT_TIME -gt 10 ]; do
-#          kubectl create secret generic appconfigcrd-demo-sa1-secret \
-#          -n appconfigmgrv2-system \
-#          --from-file=key.json=/workspace/myroot/.private/gsa_keys/sa1.json
-#          sleep $(( 5*NEXT_WAIT_TIME++ ))
-#        done
-#        NEXT_WAIT_TIME=0
-#        until [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa2-secret -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || [ $$NEXT_WAIT_TIME -gt 10 ]; do
-#          kubectl create secret generic appconfigcrd-demo-sa2-secret \
-#          -n appconfigmgrv2-system \
-#          --from-file=key.json=/workspace/myroot/.private/gsa_keys/sa2.json
-#          sleep $(( 5*NEXT_WAIT_TIME++ ))
-#        done
-#
-#        [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa1-secret -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || exit 1
-#        [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa2-secret -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || exit 1
+        gcloud beta pubsub topics add-iam-policy-binding appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com \
+          --project $${PARM_PROJ}  \
+          --member=serviceAccount:appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com \
+          --role roles/iam.serviceAccountAdmin \
+          --role roles/iam.serviceAccountKeyAdmin \
+          --role roles/resourcemanager.projectIamAdmin \
+          --role roles/pubsub.admin \
 
 
-
-
+        if [ ! -f /workspace/myroot/.private/gsa_keys/sa1-vault.json ] ; then
+          gcloud iam service-accounts keys create '/workspace/myroot/.private/gsa_keys/sa1-vault.json' --project $${PARM_PROJ} \
+            --iam-account=appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com
+          gsutil cp  '/workspace/myroot/.private/gsa_keys/sa1-vault.json'  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/sa1-vault.json"
+        fi
 
     dir: "build-source/tests"
   - name: google/cloud-sdk
