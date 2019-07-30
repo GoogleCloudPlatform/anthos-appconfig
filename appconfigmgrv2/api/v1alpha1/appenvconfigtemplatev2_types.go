@@ -63,11 +63,9 @@ type AppEnvConfigTemplateGCPAccessSecretInfo struct {
 type AppEnvConfigTemplateGCPAccessVaultInfo struct {
 	// Kubernetes service account to allow to enable dyamic credential generation for
 	ServiceAccount string `json:"serviceAccount,omitempty"`
-	// Vault Google Cloud Secrets Engine roleset name to enable
-	RoleSet string `json:"roleSet,omitempty"`
-	// Cluster-specific Vault path where Kubernetes Auth Method is enabled
+	// Vault Google Cloud Secrets Engine roleset key path to retrieve credentials from
 	GCPPath string `json:"GCPPath,omitempty"`
-	// Cluster-specific Vault path where GCP Secrets Engine is enabled
+	// Vault Kubernetes Auth Method role path for Vault login
 	K8SPath string `json:"K8SPath,omitempty"`
 }
 
