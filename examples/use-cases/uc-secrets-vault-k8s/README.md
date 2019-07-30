@@ -54,14 +54,21 @@ kubectl create secret generic vault-ca \
 ### Build (setup)
 ```bash
 
-. /Users/joseret/go112/src/github.com/GoogleCloudPlatform/anthos-appconfig/examples/use-cases/uc-secrets-vault-k8s/vault-roles.sh
+. examples/use-cases/uc-secrets-vault-k8s/vault-roles-policy.sh
 
 export ROLE_NAME="uc-secrets-vault-k8s"
+
+vault policy write ${ROLE_NAME} ./${ROLE_NAME}-policy.hcl
 
 vault write ${GCP_RELATED_PREFIX}/roleset/${ROLE_NAME} \
     project="${PROJECT_NAME}" \
     secret_type="service_account_key"  \
     bindings=@${ROLE_NAME}.hcl
-    
+   
+vault write auth/${KSA_RELATED}/role/${ROLE_NAME} \
+    bound_service_account_names="${ROLE_NAME}-ksa" \
+    bound_service_account_namespaces="${ROLE_NAME}" \
+    policies=${ROLE_NAME} \
+    ttl=1h
 
 ```
