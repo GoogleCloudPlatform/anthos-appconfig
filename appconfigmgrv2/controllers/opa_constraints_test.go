@@ -20,34 +20,22 @@ package controllers
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/require"
 )
 
-func TestIstioHandlers(t *testing.T) {
+func TestOPAConstraints(t *testing.T) {
 	r, stop := startTestReconciler(t)
 	defer stop()
-	in, cleanup := createTestInstance(t, true)
+	instance, cleanup := createTestInstance(t, true)
 	defer cleanup()
 
-	cfg, err := r.getConfig()
-	require.NoError(t, err)
+	gvr := opaConstraintGVR()
 
-	list, err := istioHandlers(cfg, in)
-	require.NoError(t, err)
-	require.Len(t, list, len(in.Spec.Services))
+	c := opaDeploymentLabelConstraint([]string{instance.Namespace})
 
-	gvr := istioHandlerGVR()
-
-	for _, h := range list {
-		unstructuredShouldExist(t, r.Dynamic, gvr, h)
-	}
-
-	for i := range in.Spec.Services {
-		removeServiceFromSpec(t, r.Client, in, i)
-	}
-
-	for _, h := range list {
-		unstructuredShouldNotExist(t, r.Dynamic, gvr, h)
-	}
+	_, _, _ = r, gvr, c
+	/*
+		TODO: Test existance of constraint. Requires dynamically generated CRD
+		to exist, something that a running Gatekeeper controller does.
+		unstructuredShouldExist(t, r.Dynamic, gvr, c)
+	*/
 }

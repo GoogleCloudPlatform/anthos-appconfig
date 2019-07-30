@@ -123,7 +123,7 @@ steps:
         echo "us-west1" > /workspace/myenv/_filereg_TAG.out
         echo "us-west1-b" > /workspace/myenv/_filezone_TAG.out
         cp /workspace/myenv/_fileat_TAG.out /workspace/myenv/_filerepopath_TAG.out
-        echo "repo8" > /workspace/myenv/_filerepo_TAG.out
+        echo "repo-$(cat $$MYENV_DIR/_fileat_TAG.out)" > /workspace/myenv/_filerepo_TAG.out
 
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
@@ -361,12 +361,12 @@ steps:
           --from-file=ssh=/root/.ssh/id_rsa_test
 
         NEXT_WAIT_TIME=0
-        until [ ! -z  "$(kubectl get ns appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || [ $$NEXT_WAIT_TIME -gt 10 ]; do
+        until [ ! -z  "$(kubectl get CustomResourceDefinition appenvconfigtemplatev2s.appconfigmgr.cft.dev -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || [ $$NEXT_WAIT_TIME -gt 10 ]; do
           echo "Waiting for ACM to get going... - $(date '+%Y%m%d-%H%M%S')"
           sleep $(( 5*NEXT_WAIT_TIME++ ))
         done
 
-        if [ -z  "$(kubectl get ns appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ]; then
+        if [ -z  "$(kubectl get CustomResourceDefinition appenvconfigtemplatev2s.appconfigmgr.cft.dev -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ]; then
           echo "Waited and AppConfig Controller was not created!"; exit 1
         fi
 
@@ -473,6 +473,7 @@ steps:
         gsutil cat  "$$PARM_PATH/uc-secrets-k8s/deploy-apps.yaml" | kubectl delete -f -
         gsutil cat  "$$PARM_PATH/uc-secrets-istio/deploy-apps.yaml" | kubectl delete -f -
         gsutil cat  "$$PARM_PATH/uc-firebase/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-opa/deploy-apps.yaml" | kubectl delete -f -
 
         sleep 30
 
@@ -482,6 +483,7 @@ steps:
         gsutil cat  "$$PARM_PATH/uc-secrets-k8s/deploy-apps.yaml" | kubectl apply -f -
         gsutil cat  "$$PARM_PATH/uc-secrets-istio/deploy-apps.yaml" | kubectl apply -f -
         gsutil cat  "$$PARM_PATH/uc-firebase/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "$$PARM_PATH/uc-opa/deploy-apps.yaml" | kubectl apply -f -
 
         sleep 120
     dir: "build-source/tests"
@@ -533,6 +535,9 @@ steps:
         PARM_REPO=$(cat /workspace/myenv/_filerepo_TAG.out)
         PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
+
+        pip install -r "requirements.txt"
+        kubectl get ns
 
         export INGRESS_ISTIO_HOST=$(cat /workspace/myenv/_fileout_test_istio_host.out)
         export INGRESS_NO_ISTIO_HOST=$(cat /workspace/myenv/_fileout_test_istio_no_host.out)

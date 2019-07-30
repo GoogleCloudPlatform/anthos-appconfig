@@ -16,15 +16,9 @@
 # without warranty or representation for any use or purpose.#
 #
 
-
-
-#flask
-#flask-cors
-requests
-httplib2
-PyCrypto
-google-api-python-client
-google-auth-httplib2
-oauth2client
-html-testRunner
-kubernetes
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: uc-opa
+  labels:
+    mutating-create-update-pod-appconfig-cft-dev: enabled

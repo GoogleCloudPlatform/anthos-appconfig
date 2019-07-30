@@ -48,7 +48,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileIstioVirtualServices(
 			return err
 		}
 
-		if err := r.upsertUnstructured(ctx, vs, gvr); err != nil {
+		if err := r.upsertUnstructured(ctx, vs, gvr, true); err != nil {
 			return fmt.Errorf("reconciling: %v", err)
 		}
 	}

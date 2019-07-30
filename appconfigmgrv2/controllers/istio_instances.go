@@ -47,7 +47,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileIstioInstances(
 
 	gvr := istioInstanceGVR()
 
-	if err := r.upsertUnstructured(ctx, appLabelInst, gvr); err != nil {
+	if err := r.upsertUnstructured(ctx, appLabelInst, gvr, true); err != nil {
 		return fmt.Errorf("reconciling app label instance: %v", err)
 	}
 

@@ -49,7 +49,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileIstioPolicies(
 			return err
 		}
 
-		if err := r.upsertUnstructured(ctx, p, gvr); err != nil {
+		if err := r.upsertUnstructured(ctx, p, gvr, true); err != nil {
 			return fmt.Errorf("reconciling: %v", err)
 		}
 	}

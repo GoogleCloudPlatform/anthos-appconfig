@@ -98,10 +98,11 @@ func startTestReconciler(t *testing.T) (*AppEnvConfigTemplateV2Reconciler, func(
 	require.NoError(t, err)
 
 	r := &AppEnvConfigTemplateV2Reconciler{
-		Client:  mgr.GetClient(),
-		Dynamic: dynamic.NewForConfigOrDie(mgr.GetConfig()),
-		Log:     ctrl.Log.WithName("controllers").WithName("AppEnvConfigTemplateV2"),
-		Scheme:  mgr.GetScheme(),
+		Client:         mgr.GetClient(),
+		Dynamic:        dynamic.NewForConfigOrDie(mgr.GetConfig()),
+		Log:            ctrl.Log.WithName("controllers").WithName("AppEnvConfigTemplateV2"),
+		Scheme:         mgr.GetScheme(),
+		skipGatekeeper: true,
 	}
 	require.NoError(t, r.SetupWithManager(mgr))
 
@@ -125,7 +126,10 @@ func startTestManager(t *testing.T, mgr manager.Manager) func() {
 	}
 }
 
-func createTestNamespace(t *testing.T, c client.Client, istio bool) func() {
+func createTestNamespace(t *testing.T, istio bool) func() {
+	c, err := client.New(restConfig, client.Options{Scheme: scheme})
+	require.NoError(t, err)
+
 	namespace := testNamespace(t)
 	name := types.NamespacedName{Name: namespace}
 
@@ -149,8 +153,11 @@ func testNamespace(t *testing.T) string {
 	return strings.ToLower(t.Name())
 }
 
-func createTestInstance(t *testing.T, c client.Client, istio bool) (*appconfig.AppEnvConfigTemplateV2, func()) {
-	deleteNS := createTestNamespace(t, c, istio)
+func createTestInstance(t *testing.T, istio bool) (*appconfig.AppEnvConfigTemplateV2, func()) {
+	c, err := client.New(restConfig, client.Options{Scheme: scheme})
+	require.NoError(t, err)
+
+	deleteNS := createTestNamespace(t, istio)
 	in := newTestInstance(t)
 	require.NoError(t, c.Create(context.Background(), in))
 	return in, deleteNS

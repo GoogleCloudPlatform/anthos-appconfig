@@ -121,7 +121,8 @@ func SplitYAMLDocuments(yamlBytes []byte) ([]byte, []byte, error) {
 		// Save the mapping between the gvk and the bytes that object consists of
 		switch typeMetaInfo.Kind {
 		case "Namespace":
-
+		case "ConstraintTemplate":
+			fallthrough
 		case "ClusterRole":
 			fallthrough
 		case "ClusterRoleBinding":
@@ -162,11 +163,11 @@ func generateOSSHeader() []byte {
  # distributed under the License is distributed on an "AS IS" BASIS,
  # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  # See the License for the specific language governing permissions and
- # limitations under the License.`)
-# 
-# Copyright 2019 Google LLC. This software is provided as-is, 
-# without warranty or representation for any use or purpose.#
-#
+ # limitations under the License.
+ # 
+ # Copyright 2019 Google LLC. This software is provided as-is, 
+ # without warranty or representation for any use or purpose.#
+ #`)
 
 
 

@@ -28,3 +28,4 @@ google-auth-httplib2
 oauth2client
 pytest-webdriver
 html-testRunner
+kubernetes

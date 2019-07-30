@@ -36,6 +36,8 @@ import (
 	"k8s.io/client-go/dynamic"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
 	appconfigmgrv1alpha1 "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
@@ -50,6 +52,8 @@ type AppEnvConfigTemplateV2Reconciler struct {
 	Dynamic dynamic.Interface
 	Log     logr.Logger
 	Scheme  *runtime.Scheme
+
+	skipGatekeeper bool
 }
 
 // Reconcile takes an instance of an app config and issues create/update/delete requests
@@ -61,6 +65,24 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 
 	log.Info("Starting reconcile")
 	defer log.Info("Reconcile complete")
+
+	// Relies on OPA Gatekeeper.
+	if !r.skipGatekeeper {
+		/* TODO: Check that app labels are valid via listing instances.
+		instanceList := &appconfigmgrv1alpha1.AppEnvConfigTemplateV2List{}
+		if err := r.List(ctx, instanceList); err != nil {
+			return ctrl.Result{}, err
+		}
+		*/
+
+		opaNamespaces, err := r.opaNamespaces(ctx)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("listing opa namespaces: %v", err)
+		}
+		if err := r.reconcileOPAContraints(ctx, opaNamespaces); err != nil {
+			return ctrl.Result{}, fmt.Errorf("reconciling opa constraints: %v", err)
+		}
+	}
 
 	instance := &appconfigmgrv1alpha1.AppEnvConfigTemplateV2{}
 	err := r.Get(ctx, req.NamespacedName, instance)
@@ -140,6 +162,8 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 func (r *AppEnvConfigTemplateV2Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	c := ctrl.NewControllerManagedBy(mgr).
 		For(&appconfigmgrv1alpha1.AppEnvConfigTemplateV2{}).
+		// Watch namespaces for enforcing opa constraints.
+		Watches(&source.Kind{Type: &corev1.Namespace{}}, &handler.EnqueueRequestForObject{}).
 		Owns(&corev1.Service{}).
 		Owns(&netv1.NetworkPolicy{})
 
@@ -206,6 +230,23 @@ func (r *AppEnvConfigTemplateV2Reconciler) istioAutoInjectEnabled(ctx context.Co
 	return ns.Labels["istio-injection"] == "enabled", nil
 }
 
+// opaNamespaces returns a list of namespaces to enforce opa constraints on.
+func (r *AppEnvConfigTemplateV2Reconciler) opaNamespaces(ctx context.Context) ([]string, error) {
+	names := make([]string, 0)
+
+	var list corev1.NamespaceList
+	if err := r.Client.List(ctx, &list, client.MatchingLabels(map[string]string{
+		"mutating-create-update-pod-appconfig-cft-dev": "enabled",
+	})); err != nil {
+		return nil, err
+	}
+	for _, ns := range list.Items {
+		names = append(names, ns.Name)
+	}
+
+	return names, nil
+}
+
 // vaultInjectValidate checks the AppEnvConfigTemplateV2 auth spec for
 // existing vaultInfo type and fields with basic validation
 func (r *AppEnvConfigTemplateV2Reconciler) vaultInjectValidate(
@@ -242,8 +283,14 @@ func (r *AppEnvConfigTemplateV2Reconciler) upsertUnstructured(
 	ctx context.Context,
 	desired *unstructured.Unstructured,
 	gvr schema.GroupVersionResource,
+	namespaced bool,
 ) error {
-	client := r.Dynamic.Resource(gvr).Namespace(desired.GetNamespace())
+	var client dynamic.ResourceInterface
+	if namespaced {
+		client = r.Dynamic.Resource(gvr).Namespace(desired.GetNamespace())
+	} else {
+		client = r.Dynamic.Resource(gvr)
+	}
 
 	found, err := client.Get(desired.GetName(), metav1.GetOptions{})
 	if err != nil {

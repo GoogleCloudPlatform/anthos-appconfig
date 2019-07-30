@@ -291,7 +291,7 @@ EOM
 }
 
 init-demos() {
-  echo "init-repo - args - ${ARGS[@]} - opts - ${OPTS[@]}"
+  echo "init-demos - args - ${ARGS[@]} - opts - ${OPTS[@]}"
 
   load-ctxvars
   load-gcpvars
@@ -460,6 +460,16 @@ install() {
 
   [[ "$n" -eq 1 ]] || install_istio && _output "istio install OK"
 
+  # gatekeeper install
+  n=1
+  if [[ -n "$force" ]]; then
+    n=0
+  else
+    (kubectl get namespaces gatekeeper-system &> /dev/null) || n=0
+  fi
+
+  [[ "$n" -eq 1 ]] || install_gatekeeper && _output "gatekeeper install OK"
+
   _output "done"
 }
 
@@ -468,6 +478,7 @@ pre-install() {
 
   CRD_SETUP_ISTIO_PREINSTALL_DIR="${ARGS[0]}"
   install_istio && _output "istio manual install OK ${CRD_SETUP_ISTIO_PREINSTALL_DIR}"
+  install_gatekeeper && _output "gatekeeper manual install OK"
 
   _output "done"
 
@@ -478,6 +489,10 @@ install_operator() {
   gsutil ls ${CM_OPERATOR_BUCKET} || gsutil cat "gs://anthos-appconfig_build/sw/acm/config-management-operator.yaml"  | kubectl \
     apply -f - || _errexit "No access to config management operator, whitelisted?"
   gsutil ls ${CM_OPERATOR_BUCKET} && gsutil cat ${CM_OPERATOR_BUCKET} | kubectl apply -f -
+}
+
+install_gatekeeper() {
+  kubectl apply -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml
 }
 
 install_istio() {
