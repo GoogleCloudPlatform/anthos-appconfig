@@ -107,7 +107,7 @@ steps:
     args:
       - '-c'
       - |
-        echo 'STEP-DEFINE-ENVIRONMENT-INFO'
+        echo 'STEP-DEFINE-ENV-INFO'
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         date "+%Y%m%d-%H%M%S" > $$MYENV_DIR/_fileat_TAG.out
         date "+%Y%m%d-%H" > $$MYENV_DIR/_file_at_hr_TAG.out
@@ -117,19 +117,17 @@ steps:
         PARM_EMAIL=$(cat $${MYENV_DIR}/_file_email_TAG.out)
         PARM_AT_HOUR=$(cat $${MYENV_DIR}/_file_at_hr_TAG.out)
         PARM_AT_DAY=$(cat $${MYENV_DIR}/_file_at_day_TAG.out)
-        #echo "tst-appconfig-$(cat /workspace/myenv/_filemin_TAG.out)" > /workspace/myenv/_fileproj_TAG.out
         echo "appcrd-$$PARM_EMAIL-$$PARM_AT_DAY" > /workspace/myenv/_fileproj_TAG.out
-        echo "c-$(cat /workspace/myenv/_fileappversion_TAG.out)" > /workspace/myenv/_fileclus_TAG.out
+        TEMP_CLUSTER="c-$(cat /workspace/myenv/_fileappversion_TAG.out)"
+        echo ${TEMP_CLUSTER:0:30} > /workspace/myenv/_fileclus_TAG.out
         echo "us-west1" > /workspace/myenv/_filereg_TAG.out
         echo "us-west1-b" > /workspace/myenv/_filezone_TAG.out
         cp /workspace/myenv/_fileat_TAG.out /workspace/myenv/_filerepopath_TAG.out
-        echo "repo-$(cat $$MYENV_DIR/_fileat_TAG.out)" > /workspace/myenv/_filerepo_TAG.out
-
+        echo "repo8" > /workspace/myenv/_filerepo_TAG.out
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
         bash setup/setup_mapping_execution.sh
-
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
@@ -137,8 +135,6 @@ steps:
         gsutil cp  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/*" /workspace/myroot/.private/gsa_keys
 
         ls -lR /workspace/myroot/.private/gsa_keys
-
-
 
     dir: "build-source/tests"
   - name: google/cloud-sdk
@@ -442,6 +438,76 @@ steps:
 
         [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa1-secret -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || exit 1
         [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa2-secret -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || exit 1
+
+
+
+
+
+    dir: "build-source/tests"
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+    args:
+      - '-c'
+      - |
+        echo 'STEP-CRD1-b'
+        [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1-b-vault*SKIP*'; exit 0; }
+        set -x
+        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
+        PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
+        PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat /workspace/myenv/_fileclus_TAG.out)
+        PARM_REGION=$(cat /workspace/myenv/_filereg_TAG.out)
+        PARM_ZONE=$(cat /workspace/myenv/_filezone_TAG.out)
+        PARM_REPO=$(cat /workspace/myenv/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
+        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
+
+
+        CHECK_VAULT_SA1=$(gcloud iam service-accounts describe appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
+        [ ! -z  $$CHECK_VAULT_SA1 ] || gcloud iam service-accounts create appconfigcrd-demo-vault-sa1 --display-name=appconfigcrd-demo-sa1 --project $${PARM_PROJ}
+
+        CHECK_VAULT_SA2=$(gcloud iam service-accounts describe appconfigcrd-demo-vault-sa2@$${PARM_PROJ}.iam.gserviceaccount.com  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
+        [ ! -z  $$CHECK_VAULT_SA2 ] || gcloud iam service-accounts create appconfigcrd-demo-vault-sa2 --display-name=appconfigcrd-demo-sa2 --project $${PARM_PROJ}
+
+
+
+#        gcloud beta pubsub topics add-iam-policy-binding appconfigcrd-demo-topic1 --project $${PARM_PROJ}  \
+#          --member=serviceAccount:appconfigcrd-demo-sa1@$${PARM_PROJ}.iam.gserviceaccount.com \
+#          --role=roles/pubsub.publisher
+#        gcloud beta pubsub topics add-iam-policy-binding appconfigcrd-demo-topic2 --project $${PARM_PROJ}  \
+#          --member=serviceAccount:appconfigcrd-demo-sa2@$${PARM_PROJ}.iam.gserviceaccount.com \
+#          --role=roles/pubsub.publisher
+#
+#
+#        if [ ! -f /workspace/myroot/.private/gsa_keys/sa1.json ] ; then
+#          gcloud iam service-accounts keys create '/workspace/myroot/.private/gsa_keys/sa1.json' --project $${PARM_PROJ} \
+#            --iam-account=appconfigcrd-demo-sa1@$${PARM_PROJ}.iam.gserviceaccount.com
+#          gsutil cp  '/workspace/myroot/.private/gsa_keys/sa1.json'  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/sa1.json"
+#        fi
+#
+#        if [ ! -f /workspace/myroot/.private/gsa_keys/sa2.json ] ; then
+#          gcloud iam service-accounts keys create '/workspace/myroot/.private/gsa_keys/sa2.json' --project $${PARM_PROJ} \
+#            --iam-account=appconfigcrd-demo-sa2@$${PARM_PROJ}.iam.gserviceaccount.com
+#          gsutil cp  '/workspace/myroot/.private/gsa_keys/sa2.json'  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/sa2.json"
+#        fi
+#
+#        NEXT_WAIT_TIME=0
+#        until [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa1-secret -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || [ $$NEXT_WAIT_TIME -gt 10 ]; do
+#          kubectl create secret generic appconfigcrd-demo-sa1-secret \
+#          -n appconfigmgrv2-system \
+#          --from-file=key.json=/workspace/myroot/.private/gsa_keys/sa1.json
+#          sleep $(( 5*NEXT_WAIT_TIME++ ))
+#        done
+#        NEXT_WAIT_TIME=0
+#        until [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa2-secret -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || [ $$NEXT_WAIT_TIME -gt 10 ]; do
+#          kubectl create secret generic appconfigcrd-demo-sa2-secret \
+#          -n appconfigmgrv2-system \
+#          --from-file=key.json=/workspace/myroot/.private/gsa_keys/sa2.json
+#          sleep $(( 5*NEXT_WAIT_TIME++ ))
+#        done
+#
+#        [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa1-secret -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || exit 1
+#        [ ! -z  "$(kubectl get secret appconfigcrd-demo-sa2-secret -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || exit 1
 
 
 
