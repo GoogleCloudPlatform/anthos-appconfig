@@ -123,7 +123,7 @@ steps:
         echo "us-west1" > /workspace/myenv/_filereg_TAG.out
         echo "us-west1-b" > /workspace/myenv/_filezone_TAG.out
         cp /workspace/myenv/_fileat_TAG.out /workspace/myenv/_filerepopath_TAG.out
-        echo "repo8" > /workspace/myenv/_filerepo_TAG.out
+        echo "repo-$(cat $$MYENV_DIR/_fileat_TAG.out)" > /workspace/myenv/_filerepo_TAG.out
 
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
@@ -361,12 +361,12 @@ steps:
           --from-file=ssh=/root/.ssh/id_rsa_test
 
         NEXT_WAIT_TIME=0
-        until [ ! -z  "$(kubectl get ns appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || [ $$NEXT_WAIT_TIME -gt 10 ]; do
+        until [ ! -z  "$(kubectl get CustomResourceDefinition appenvconfigtemplatev2s.appconfigmgr.cft.dev -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ] || [ $$NEXT_WAIT_TIME -gt 10 ]; do
           echo "Waiting for ACM to get going... - $(date '+%Y%m%d-%H%M%S')"
           sleep $(( 5*NEXT_WAIT_TIME++ ))
         done
 
-        if [ -z  "$(kubectl get ns appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ]; then
+        if [ -z  "$(kubectl get CustomResourceDefinition appenvconfigtemplatev2s.appconfigmgr.cft.dev -n appconfigmgrv2-system --output 'jsonpath={.metadata.name}')" ]; then
           echo "Waited and AppConfig Controller was not created!"; exit 1
         fi
 

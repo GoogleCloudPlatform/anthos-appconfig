@@ -291,7 +291,7 @@ EOM
 }
 
 init-demos() {
-  echo "init-repo - args - ${ARGS[@]} - opts - ${OPTS[@]}"
+  echo "init-demos - args - ${ARGS[@]} - opts - ${OPTS[@]}"
 
   load-ctxvars
   load-gcpvars
