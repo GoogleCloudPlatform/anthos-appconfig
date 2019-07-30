@@ -385,93 +385,116 @@ spec:
         spec:
           properties:
             allowedEgress:
+              description: Whitelisted destinations that services may initiate outgoing
+                connections with.
               items:
                 properties:
                   hosts:
+                    description: Hosts to allow egress to (i.e. "www.google.com").
                     items:
                       type: string
                     type: array
                   type:
+                    description: Type of egress traffic (i.e. "http").
                     type: string
                 type: object
               type: array
             auth:
+              description: Application-wide authentication configuration.
               properties:
                 gcpAccess:
                   properties:
                     accessType:
-                      description: accessType defines the type of gcpAccess auth granted
-                        to the application. must be one of [secret,vault]
+                      description: Defines the type of GCP access auth granted to
+                        the application (must be "secret" or "vault").
                       type: string
                     secretInfo:
-                      description: when accessType is 'secret', secretInfo declares
-                        the properties of the secret resource.
+                      description: Used with accessType="secret". Declares the properties
+                        of the secret resource.
                       properties:
                         name:
-                          description: name is the secret resource name"
+                          description: The name of the Secret.
                           type: string
                         namespace:
-                          description: namespace where given secret resource name
-                            exists
+                          description: The namespace of the Secret.
                           type: string
                       type: object
                     vaultInfo:
-                      description: when accessType is 'vault', vaultInfo declares
-                        the configured Google Cloud roleSet name to be enabled via
-                        the given Kubernetes service accounts for use by the application.
-                        see https://www.vaultproject.io/docs/secrets/gcp/index.html
-                        for details on creating roleSets
+                      description: Used with accessType="vault". Declares the configured
+                        Google Cloud roleSet name to be enabled via the given Kubernetes
+                        service accounts for use by the application. See https://www.vaultproject.io/docs/secrets/gcp/index.html
+                        for details on creating roleSets.
                       properties:
                         GCPPath:
                           description: Vault Google Cloud Secrets Engine roleset key
-                            path to retrieve credentials from
+                            path to retrieve credentials from.
                           type: string
                         K8SPath:
                           description: Vault Kubernetes Auth Method role path for
-                            Vault login
+                            Vault login.
                           type: string
                         serviceAccount:
-                          description: Kubernetes service account to allow to enable
-                            dyamic credential generation for
+                          description: Kubernetes service account to generate dynamic
+                            credentials for.
                           type: string
                       type: object
                   type: object
                 jwt:
+                  description: Configuration for validating JWTs.
                   properties:
                     params:
                       additionalProperties:
                         type: string
+                      description: Parameters used to identify project/etc. for a
+                        given type of system.
                       type: object
                     type:
+                      description: Type of system to accept JWTs from (i.e. "firebase").
                       type: string
                   type: object
               type: object
             services:
-              description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-                Important: Run "make" to regenerate code after modifying this file'
+              description: Services that make up this application (set of services).
               items:
                 properties:
                   allowedClients:
+                    description: The set of clients that are allowed to call the service.
                     items:
                       properties:
                         name:
+                          description: Name of the allowed client (corresponds to
+                            the "app" label on client Pod). It can be namespaced (i.e.
+                            "namespace/app") or it will default to the same namespace
+                            as the app config.
                           type: string
                       type: object
                     type: array
                   deploymentApp:
+                    description: Must match the "app" label on the corresponding deployed
+                      Pods.
                     type: string
                   deploymentPort:
+                    description: Must match the port exposed on the corresponding
+                      deployed Pods.
                     format: int32
                     type: integer
                   deploymentPortProtocol:
+                    description: Protocol to use for the service (i.e. "TCP").
                     type: string
                   deploymentVersion:
+                    description: Must match the "version" label on the corresponding
+                      deployed Pods.
                     type: string
                   disableAuth:
+                    description: Disables the application-wide auth policy (i.e. JWT)
+                      for this service.
                     type: boolean
                   name:
+                    description: Name of the service.
                     type: string
                   servicePort:
+                    description: The port for the Kubernetes Service that will be
+                      created.
                     format: int32
                     type: integer
                 type: object
