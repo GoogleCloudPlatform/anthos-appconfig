@@ -28,61 +28,73 @@ import (
 
 // AppEnvConfigTemplateServiceInfo defines the service info of AppEnvConfigTemplate
 type AppEnvConfigTemplateServiceInfo struct {
-	Name                   string                                  `json:"name,omitempty"`
-	DeploymentApp          string                                  `json:"deploymentApp,omitempty"`
-	DeploymentVersion      string                                  `json:"deploymentVersion,omitempty"`
-	DeploymentPort         int32                                   `json:"deploymentPort,omitempty"`
-	ServicePort            int32                                   `json:"servicePort,omitempty"`
-	DeploymentPortProtocol corev1.Protocol                         `json:"deploymentPortProtocol,omitempty"`
-	AllowedClients         []AppEnvConfigTemplateRelatedClientInfo `json:"allowedClients,omitempty"`
-
+	// Name of the service.
+	Name string `json:"name,omitempty"`
+	// Must match the "app" label on the corresponding deployed Pods.
+	DeploymentApp string `json:"deploymentApp,omitempty"`
+	// Must match the "version" label on the corresponding deployed Pods.
+	DeploymentVersion string `json:"deploymentVersion,omitempty"`
+	// Must match the port exposed on the corresponding deployed Pods.
+	DeploymentPort int32 `json:"deploymentPort,omitempty"`
+	// The port for the Kubernetes Service that will be created.
+	ServicePort int32 `json:"servicePort,omitempty"`
+	// Protocol to use for the service (i.e. "TCP").
+	DeploymentPortProtocol corev1.Protocol `json:"deploymentPortProtocol,omitempty"`
+	// The set of clients that are allowed to call the service.
+	AllowedClients []AppEnvConfigTemplateRelatedClientInfo `json:"allowedClients,omitempty"`
+	// Disables the application-wide auth policy (i.e. JWT) for this service.
 	DisableAuth bool `json:"disableAuth,omitempty"`
 }
 
 type AppEnvConfigTemplateRelatedClientInfo struct {
+	// Name of the allowed client (corresponds to the "app" label on client Pod). It can be namespaced (i.e. "namespace/app") or it will default to the same namespace as the app config.
 	Name string `json:"name,omitempty"`
 }
 
 type AppEnvConfigTemplateAuth struct {
+	// Configuration for validating JWTs.
 	JWT       *AppEnvConfigTemplateJWT       `json:"jwt,omitempty"`
 	GCPAccess *AppEnvConfigTemplateGCPAccess `json:"gcpAccess,omitempty"`
 }
 
 type AppEnvConfigTemplateJWT struct {
-	Type   string            `json:"type,omitempty"`
+	// Type of system to accept JWTs from (i.e. "firebase").
+	Type string `json:"type,omitempty"`
+	// Parameters used to identify project/etc. for a given type of system.
 	Params map[string]string `json:"params,omitempty"`
 }
 
 type AppEnvConfigTemplateGCPAccessSecretInfo struct {
-	// name is the secret resource name"
+	// The name of the Secret.
 	Name string `json:"name,omitempty"`
-	// namespace where given secret resource name exists
+	// The namespace of the Secret.
 	Namespace string `json:"namespace,omitempty"`
 }
 
 type AppEnvConfigTemplateGCPAccessVaultInfo struct {
-	// Kubernetes service account to allow to enable dyamic credential generation for
+	// Kubernetes service account to generate dynamic credentials for.
 	ServiceAccount string `json:"serviceAccount,omitempty"`
-	// Vault Google Cloud Secrets Engine roleset key path to retrieve credentials from
+	// Vault Google Cloud Secrets Engine roleset key path to retrieve credentials from.
 	GCPPath string `json:"GCPPath,omitempty"`
-	// Vault Kubernetes Auth Method role path for Vault login
+	// Vault Kubernetes Auth Method role path for Vault login.
 	K8SPath string `json:"K8SPath,omitempty"`
 }
 
 type AppEnvConfigTemplateGCPAccess struct {
-	// accessType defines the type of gcpAccess auth granted to the application.
-	// must be one of [secret,vault]
+	// Defines the type of GCP access auth granted to the application (must be "secret" or "vault").
 	AccessType string `json:"accessType,omitempty"`
-	// when accessType is 'secret', secretInfo declares the properties of the secret resource.
+	// Used with accessType="secret". Declares the properties of the secret resource.
 	SecretInfo *AppEnvConfigTemplateGCPAccessSecretInfo `json:"secretInfo,omitempty"`
-	// when accessType is 'vault', vaultInfo declares the configured Google Cloud roleSet name
+	// Used with accessType="vault". Declares the configured Google Cloud roleSet name
 	// to be enabled via the given Kubernetes service accounts for use by the application.
-	// see https://www.vaultproject.io/docs/secrets/gcp/index.html for details on creating roleSets
+	// See https://www.vaultproject.io/docs/secrets/gcp/index.html for details on creating roleSets.
 	VaultInfo *AppEnvConfigTemplateGCPAccessVaultInfo `json:"vaultInfo,omitempty"`
 }
 
 type AppEnvConfigTemplateAllowedEgress struct {
-	Type  string   `json:"type,omitempty"`
+	// Type of egress traffic (i.e. "http").
+	Type string `json:"type,omitempty"`
+	// Hosts to allow egress to (i.e. "www.google.com").
 	Hosts []string `json:"hosts,omitempty"`
 }
 
@@ -90,18 +102,16 @@ type AppEnvConfigTemplateStatusConditionType string
 
 // AppEnvConfigTemplateV2Spec defines the desired state of AppEnvConfigTemplateV2
 type AppEnvConfigTemplateV2Spec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	Services      []AppEnvConfigTemplateServiceInfo   `json:"services,omitempty"`
+	// Services that make up this application (set of services).
+	Services []AppEnvConfigTemplateServiceInfo `json:"services,omitempty"`
+	// Whitelisted destinations that services may initiate outgoing connections with.
 	AllowedEgress []AppEnvConfigTemplateAllowedEgress `json:"allowedEgress,omitempty"`
-	Auth          *AppEnvConfigTemplateAuth           `json:"auth,omitempty"`
+	// Application-wide authentication configuration.
+	Auth *AppEnvConfigTemplateAuth `json:"auth,omitempty"`
 }
 
 // AppEnvConfigTemplateV2Status defines the observed state of AppEnvConfigTemplateV2
-type AppEnvConfigTemplateV2Status struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
+type AppEnvConfigTemplateV2Status struct{}
 
 // AppEnvConfigTemplateV2 is the Schema for the appenvconfigtemplatev2s API
 // +genclient
