@@ -425,17 +425,16 @@ spec:
                         service accounts for use by the application. See https://www.vaultproject.io/docs/secrets/gcp/index.html
                         for details on creating roleSets.
                       properties:
-                        GCPPath:
-                          description: Vault Google Cloud Secrets Engine roleset key
-                            path to retrieve credentials from.
+                        gcpPath:
+                          description: Vault Google Cloud Secrets Engine mounted path.
                           type: string
-                        K8SPath:
-                          description: Vault Kubernetes Auth Method role path for
-                            Vault login.
+                        gcpRoleset:
+                          description: Vault Google Cloud Secrets Engine roleset name
+                            to retrieve credentials from.
                           type: string
                         serviceAccount:
-                          description: Kubernetes service account to generate dynamic
-                            credentials for.
+                          description: Kubernetes service account name used in Vault
+                            authentication.
                           type: string
                       type: object
                   type: object
