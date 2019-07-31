@@ -277,12 +277,8 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 		return fmt.Errorf("vaultInfo missing serviceAccount field")
 	}
 
-	if vaultInfo.GCPPath == "" {
-		return fmt.Errorf("vaultInfo missing GCPPath field")
-	}
-
-	if vaultInfo.K8SPath == "" {
-		return fmt.Errorf("vaultInfo missing K8SPath field")
+	if vaultInfo.Path == "" {
+		return fmt.Errorf("vaultInfo missing gcpPath field")
 	}
 
 	// get vault configMap, validate
@@ -296,9 +292,13 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 		return fmt.Errorf("ConfigMap missing vault-addr")
 	}
 
+	if config.Data["acm-cluster-name"] == "" {
+		return fmt.Errorf("ConfigMap missing acm-cluster-name")
+	}
+
 	// get provided serviceAccount JWT token
 	log.Info("handleGCPVault:loadConfig", "ServiceAccount", vaultInfo.ServiceAccount)
-	ksaToken, err := svcAcctJWT(ctx, vaultInfo.ServiceAccount, TODO_FIND_NAMESPACE)
+	ksaToken, err := svcAcctJWT(ctx, vaultInfo.ServiceAccount, app.Namespace)
 	if err != nil {
 		return err
 	}
@@ -322,6 +322,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 	})
 
 	log.Info("handleGCPVault:injectInitContainer", "Container", "vault-gcp-auth")
+
 	// inject vault-gcp init container
 	injectInitContainer(pod, corev1.Container{
 		Name:            "vault-gcp-auth",
@@ -334,11 +335,11 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 			},
 			{
 				Name:  "INIT_GCP_KEYPATH",
-				Value: vaultInfo.GCPPath,
+				Value: fmt.Sprintf("%s/key/%s", vaultInfo.Path, vaultInfo.Roleset),
 			},
 			{
 				Name:  "INIT_K8S_KEYPATH",
-				Value: vaultInfo.K8SPath,
+				Value: fmt.Sprintf("auth/k8s-%s/role/%s", config.Data["acm-cluster-name"], vaultInfo.Roleset),
 			},
 			{
 				Name:  "VAULT_ADDR",

@@ -41,9 +41,12 @@ vault write auth/${KSA_RELATED}/config \
 ```bash
 export VAULT_ADDR=<vault url 8200>
 export VAULT_CACERT=ca.pem
+
+K8S_CONTEXT=$(kubectl config current-context)
 kubectl create configmap vault \
   --namespace=appconfigmgrv2-system \
-  --from-literal vault-addr=${VAULT_ADDR}
+  --from-literal vault-addr=${VAULT_ADDR} \
+  --from-literal acm-cluster-name=${K8S_CONTEXT//_/-}
 
 kubectl create secret generic vault-ca \
   --namespace=appconfigmgrv2-system \
