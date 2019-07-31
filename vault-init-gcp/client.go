@@ -27,7 +27,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"runtime"
 )
 
 type kubernetesAuthRequest struct {

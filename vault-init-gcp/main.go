@@ -25,11 +25,11 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"runtime"
 )
 
 var (
 	version   = "0.1"
-	build     = "dev"
 	userAgent = fmt.Sprintf("vault-gcp-init/%s (%s)", version, runtime.Version())
 
 	K8S_ROOT     string
@@ -64,7 +64,7 @@ func parseK8S() {
 }
 
 func main() {
-	log.Printf("vault-gcp-init v%s-%s starting", version, build)
+	log.Printf("vault-gcp-init v%s starting", version)
 	parseK8S()
 
 	c := newVaultClient()
