@@ -74,8 +74,6 @@ load-ctxvars() {
     [[ -z $K8S_CONTEXT ]] ||  [[ -z $K8S_CONTEXT ]] || [[ -z $K8S_CONTEXT ]] || return 0
      _errexit "missing k8s context"
   fi
-
-
 }
 
 load-repovars() {
@@ -99,6 +97,14 @@ load-repovars() {
   # default to master branch on repos with no commit index
   REPO_BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null) || REPO_BRANCH="master"
   export REPO_BRANCH
+}
+
+load-vaultvars() {
+  export GCP_ACCOUNT=$(gcloud config get-value core/account 2> /dev/null)
+#  export PROJECT_NAME=$(gcloud config get-value core/project 2> /dev/null)
+  [[ -z "$PROJECT_NAME" ]] || [[ -z "$GCP_ACCOUNT" ]] && \
+    _errexit "missing gcloud configuration, run 'gcloud init' to create"
+  return 0
 }
 
 git-key-url() {
@@ -342,20 +348,34 @@ init-demos() {
     DEMO_COMMAND="${DEMO_COMMAND}  --from-file=key.json='key dir'/${iam_name}.json\n\n"
 
   done
-      cat <<EOM
+
+  cat <<EOM
 
 # Complete Setup
 
-1. Run the following commands to complete setup:
+Run the following commands to complete setup:
 
-Create two service accounts and JSON Keys and corresponding subscriptions and secrets (to test pubsub ACL)
+ - Create two service accounts and JSON Keys and corresponding subscriptions and secrets (to test pubsub ACL)
 
 EOM
 
-echo -e ${DEMO_COMMAND}
+  echo -e ${DEMO_COMMAND}
+  echo -e '\n\n - (OPTIONAL) Enable and configure ACM Vault integration to your existing Vault Server'
+  cat <<EOM
 
+export VAULT_ADDR=<vault_addr>
+export VAULT_CACERT=</path/to/vault/ca.pem>
 
+kubectl create configmap vault \
+  --namespace=appconfigmgrv2-system \
+  --from-literal vault-addr=\${VAULT_ADDR} \
+  --from-literal acm-cluster-name=${ACM_CLUSTER_REGISTRY_NAME}
 
+kubectl create secret generic vault-ca \
+  --namespace=appconfigmgrv2-system \
+  --from-file=\${VAULT_CACERT}
+
+EOM
 
   [[ -d "${ACM_ENV_ROOT}/namespaces/use-cases" ]] && {
     _output "WARN: ${ACM_ENV_ROOT}/namespaces/use-cases already exists"
@@ -481,7 +501,6 @@ pre-install() {
   install_gatekeeper && _output "gatekeeper manual install OK"
 
   _output "done"
-
 }
 
 install_operator() {
