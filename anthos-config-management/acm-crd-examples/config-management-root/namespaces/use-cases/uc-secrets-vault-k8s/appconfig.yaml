@@ -29,8 +29,8 @@ spec:
       accessType: "vault"
       vaultInfo:
         serviceAccount: "uc-secrets-vault-k8s-ksa"
-        GCPPath: "key/pubsub1Publisher"
-        K8SPath: "role/uc-secrets-vault-k8s
+        gcpPath: "gcp-appcrd-cicenas-20190730"
+        gcpRoleset: "pubsub1Publisher"
   services:
   - name: "appconfigv2-service-sm-1"
     deploymentApp: "hello-app-sm-py-1"
