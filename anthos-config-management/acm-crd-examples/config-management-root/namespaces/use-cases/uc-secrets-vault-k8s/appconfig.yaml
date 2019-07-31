@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 
-# Copyright 2019 Google LLC. This software is provided as-is, 
+#
+# Copyright 2019 Google LLC. This software is provided as-is,
 # without warranty or representation for any use or purpose.#
 #
 
@@ -21,7 +21,8 @@
 apiVersion: appconfigmgr.cft.dev/v1alpha1
 kind: AppEnvConfigTemplateV2
 metadata:
-  name: "uc-secrets-vault-k8s"
+  name: "app-secrets-vault-k8s"
+  namespace: "uc-secrets-vault-k8s"
 spec:
   auth:
     gcpAccess:
