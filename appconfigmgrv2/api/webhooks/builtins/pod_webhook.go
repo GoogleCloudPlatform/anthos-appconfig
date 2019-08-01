@@ -306,7 +306,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 	// copy vault CA cert into app namespace
 	VAULT_CA_SECRET_NAME := "vault-ca"
 	log.Info("handleGCPVault:applyConfig", "Secret", VAULT_CA_SECRET_NAME)
-	if err := copySecret(ctx, VAULT_CA_SECRET_NAME, app); err != nil {
+	if err := cloneSecret(ctx, VAULT_CA_SECRET_NAME, app); err != nil {
 		return err
 	}
 

@@ -142,12 +142,13 @@ func injectInitContainer(pod *corev1.Pod, container corev1.Container) {
 	}
 }
 
-// copySecret ensures a duplicate of a secret existing in appconfigmgr
+// cloneSecret ensures a duplicate of a secret existing in appconfigmgr
 // namespace exists in the app namespace
-func copySecret(ctx context.Context, name string, app *appconfig.AppEnvConfigTemplateV2) error {
+func cloneSecret(ctx context.Context, name string, app *appconfig.AppEnvConfigTemplateV2) error {
 	var (
 		err       error
 		create    bool
+		update    bool
 		secret    *corev1.Secret
 		appSecret *corev1.Secret
 
@@ -190,8 +191,10 @@ func copySecret(ctx context.Context, name string, app *appconfig.AppEnvConfigTem
 	}
 
 	if create {
+		log.V(1).Info("cloneSecret:secretCreated", "element.Name", container.Name)
 		return cl.Create(ctx, appSecret)
 	}
+	log.V(1).Info("cloneSecret:secretUpdated", "element.Name", container.Name)
 	return cl.Update(ctx, appSecret)
 }
 
