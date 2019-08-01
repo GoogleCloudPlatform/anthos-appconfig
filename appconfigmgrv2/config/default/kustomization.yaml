@@ -62,3 +62,5 @@ patches:
 # Uncomment 'CAINJECTION' in crd/kustomization.yaml to enable the CA injection in the admission webhooks.
 # 'CERTMANAGER' needs to be enabled to use ca injection
 #- webhookcainjection_patch.yaml
+
+- controller_version_patch.yaml
