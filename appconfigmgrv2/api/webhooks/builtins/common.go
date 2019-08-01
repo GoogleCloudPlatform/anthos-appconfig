@@ -1,6 +1,7 @@
 package builtins
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -180,22 +181,45 @@ func cloneSecret(ctx context.Context, name string, app *appconfig.AppEnvConfigTe
 		}
 	}
 
+	// duplicate secret type
+	if appSecret.Type != secret.Type {
+		update = true
+		appSecret.Type = secret.Type
+	}
+
 	// duplicate secret body
 	appSecret.Data = make(map[string][]byte)
 	appSecret.StringData = make(map[string]string)
 	for k, v := range secret.Data {
+		if !bytes.Equal(appSecret.Data[k], v) {
+			update = true
+		}
 		appSecret.Data[k] = v
 	}
 	for k, v := range secret.StringData {
+		if appSecret.StringData[k] != v {
+			update = true
+		}
 		appSecret.StringData[k] = v
 	}
 
 	if create {
-		log.V(1).Info("cloneSecret:secretCreated", "element.Name", container.Name)
-		return cl.Create(ctx, appSecret)
+		err = cl.Create(ctx, appSecret)
+		if err == nil {
+			log.V(1).Info("cloneSecret:secretCreated", "element.Name", name)
+		}
+		return err
 	}
-	log.V(1).Info("cloneSecret:secretUpdated", "element.Name", container.Name)
-	return cl.Update(ctx, appSecret)
+
+	if update {
+		err = cl.Update(ctx, appSecret)
+		if err == nil {
+			log.V(1).Info("cloneSecret:secretUpdated", "element.Name", name)
+		}
+		return err
+	}
+
+	return nil
 }
 
 // svcAcctJWT looks up the stored JWT secret token for a given service account
