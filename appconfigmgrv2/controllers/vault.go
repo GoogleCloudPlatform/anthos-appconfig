@@ -49,23 +49,5 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileVault(
 ) error {
 	log.Info("Starting Vault reconcile")
 	defer log.Info("Vault reconcile complete")
-
-	sa := &corev1.ServiceAccount{}
-
-	err := r.Get(ctx, types.NamespacedName{
-		Name:      in.Spec.Auth.GCPAccess.VaultInfo.ServiceAccount,
-		Namespace: in.Namespace,
-	}, sa)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			log.Info("Creating", "resource", "ServiceAccount", "namespace", sa.Namespace, "name", sa.Name)
-			if err := r.Create(ctx, sa); err != nil {
-				return fmt.Errorf("creating ServiceAccount: %v", err)
-			}
-		} else {
-			return fmt.Errorf("getting ServiceAccount: %v", err)
-		}
-	}
-
 	return nil
 }
