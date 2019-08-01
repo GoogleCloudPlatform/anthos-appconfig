@@ -16,7 +16,7 @@ import (
 
 // getConfigMap finds and returns ConfigMap of a given name in a given namespace
 func getConfigMap(ctx context.Context, name, ns string) (*corev1.ConfigMap, error) {
-	var cm *corev1.ConfigMap
+	cm := &corev1.ConfigMap{}
 	cl := localMgr.GetClient()
 
 	if err := cl.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, cm); err != nil {
@@ -147,13 +147,13 @@ func injectInitContainer(pod *corev1.Pod, container corev1.Container) {
 // namespace exists in the app namespace
 func cloneSecret(ctx context.Context, name string, app *appconfig.AppEnvConfigTemplateV2) error {
 	var (
-		err       error
-		create    bool
-		update    bool
-		secret    *corev1.Secret
-		appSecret *corev1.Secret
+		err    error
+		create bool
+		update bool
 
-		cl = localMgr.GetClient()
+		cl        = localMgr.GetClient()
+		secret    = &corev1.Secret{}
+		appSecret = &corev1.Secret{}
 	)
 
 	// get source secret
@@ -225,11 +225,11 @@ func cloneSecret(ctx context.Context, name string, app *appconfig.AppEnvConfigTe
 // svcAcctJWT looks up the stored JWT secret token for a given service account
 func svcAcctJWT(ctx context.Context, name, namespace string) (string, error) {
 	var (
-		err        error
-		secret     *corev1.Secret
-		svcAccount *corev1.ServiceAccount
+		err error
 
-		cl = localMgr.GetClient()
+		cl         = localMgr.GetClient()
+		secret     = &corev1.Secret{}
+		svcAccount = &corev1.ServiceAccount{}
 	)
 
 	// get service account
