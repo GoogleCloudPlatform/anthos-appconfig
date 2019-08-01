@@ -111,6 +111,19 @@ steps:
         docker build -t gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$$PARM_BUILD_BRANCH_TS . || exit 1
         docker push gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$$PARM_BUILD_BRANCH_TS || exit 1
     dir: "build-source/appconfigmgrv2"
+  - name: gcr.io/cloud-builders/docker
+    entrypoint: '/bin/sh'
+    args:
+      - '-c'
+      - |
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+
+        PARM_TS_SEC=$(cat $${MYENV_DIR}/_file_TAG.out)
+        PARM_BUILD_BRANCH="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
+        PARM_BUILD_BRANCH_TS="$$PARM_BUILD_BRANCH-$$PARM_TS_SEC"
+        docker build -t gcr.io/${PROJECT_ID}/vault-init-gcp:$$PARM_BUILD_BRANCH_TS . || exit 1
+        docker push gcr.io/${PROJECT_ID}/vault-init-gcp:$$PARM_BUILD_BRANCH_TS || exit 1
+    dir: "build-source/vault-init-gcp"
   - name: "gcr.io/${PROJECT_ID}/appconfighelper-build:${_BUILDER_VERSION}"
     entrypoint: 'bash'
     args:
@@ -123,7 +136,6 @@ steps:
         PARM_BUILD_BRANCH_TS="$$PARM_BUILD_BRANCH-$$PARM_TS_SEC"
         sed -i'' -e 's@image: .*@image: '"gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$$PARM_BUILD_BRANCH_TS"'@' ./config/default/manager_image_patch.yaml
         make kustomize || exit 1
-    dir: "build-source/appconfigmgrv2"
   - name: "gcr.io/${PROJECT_ID}/acmsplit:${_BUILDER_VERSION}"
     entrypoint:  "/app"
     dir: "build-source/appconfigmgrv2"
