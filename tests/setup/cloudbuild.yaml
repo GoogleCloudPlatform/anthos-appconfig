@@ -136,10 +136,10 @@ steps:
 
 
         echo "gcp-$${PARM_PROJ}" > $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out
-        VAULT_GCP_RELATED_PREFIX="$(cat  $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)
-        PARM_CLUSTER="$(cat  $$MYENV_DIR/_fileclus_TAG.out)
-        echo "${PARM_PROJ}-${PARM_CLUSTER}" > $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out
-        VAULT_KSA_RELATED="$(cat  $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out
+        VAULT_GCP_RELATED_PREFIX="$(cat  $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)"
+        PARM_CLUSTER="$(cat  $$MYENV_DIR/_fileclus_TAG.out)"
+        echo "$${PARM_PROJ}-$${PARM_CLUSTER}" > $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out
+        VAULT_KSA_RELATED="$(cat  $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out)"
 
 
 
@@ -173,26 +173,32 @@ steps:
            https://storage.googleapis.com/anthos-appconfig_public/install/scripts/crd-setup-helper.sh
         chmod a+x $${MYENV_TEST_DIR}/crd-setup-helper.sh
 
+        gsutil cp gs://anthos-appconfig_public/install/vault-linux-64  $${MYENV_TEST_DIR}/vault
+        chmod a+x $${MYENV_TEST_DIR}/vault
+
         export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH;$${MYENV_TEST_DIR}/crd-setup-helper.sh pre-install "$${MYENV_TEST_DIR}/generated/istio" -genexternal
 
-        VAULT_GCP_RELATED_PREFIX="$(cat  $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)
-        VAULT_KSA_RELATED="$(cat  $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out
+        VAULT_GCP_RELATED_PREFIX="$(cat  $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)"
+        VAULT_KSA_RELATED="$(cat  $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out)"
 
-        gsutil cat gs://cicenas-vault/root-token.enc | \
-          base64 --decode | \
+        gsutil cp gs://cicenas-vault/root-token.enc /root/.ssh/x1
+        base64 --help
+
+        cat /root/.ssh/x1 | base64 --decode > /root/.ssh/x2| \
           gcloud kms decrypt \
           --project "anthos-crd-v1-dev-t2" \
           --location global \
           --keyring cicenas-vault \
           --key cicenas-vault-init \
-          --ciphertext-file - \
-          --plaintext-file - > /root/.ssh/vt
+          --ciphertext-file /root/.ssh/x2 \
+          --plaintext-file /root/.ssh/vt
         gsutil cp gs://cicenas-vault/ca.pem /root/.ssh/ca.pem
+        ls -lR /root/.ssh
 
-     dir: "build-source/tests"
+    dir: "build-source/tests"
     volumes:
-      - name: 'ssh'
-        path: /root/.ssh
+    - name: 'ssh'
+      path: /root/.ssh
   - name: alpine/helm:2.13.1
     entrypoint: "/bin/sh"
     args:
@@ -472,6 +478,7 @@ steps:
         echo 'STEP-CRD1-b'
         [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1-b-vault*SKIP*'; exit 0; }
         set -x
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
@@ -481,6 +488,7 @@ steps:
         PARM_REPO=$(cat /workspace/myenv/_filerepo_TAG.out)
         PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
+        MYENV_TEST_DIR=$(cat /workspace/myenv/_testdir_TAG.out)
 
 
         CHECK_VAULT_SA1=$(gcloud iam service-accounts describe appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
@@ -499,32 +507,32 @@ steps:
           gsutil cp  '/workspace/myroot/.private/gsa_keys/sa1-vault.json'  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/sa1-vault.json"
         fi
 
-        VAULT_GCP_RELATED_PREFIX="$(cat  $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)
-        VAULT_KSA_RELATED="$(cat  $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out
+        VAULT_GCP_RELATED_PREFIX="$(cat $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)"
+        VAULT_KSA_RELATED="$(cat $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out)"
 
         export VAULT_ADDR="https://35.245.198.47:8200"
         export VAULT_CACERT="/root/.ssh/ca.pem"
         export VAULT_TOKEN="$(cat /root/.ssh/vt)"
 
-        vault secrets enable --path="${VAULT_GCP_RELATED_PREFIX}" gcp
-        vault write ${VAULT_GCP_RELATED_PREFIX}/config credentials=@sa1-vault.json
+        $${MYENV_TEST_DIR}/vault secrets enable --path="$${VAULT_GCP_RELATED_PREFIX}" gcp
+        $${MYENV_TEST_DIR}/vault write $${VAULT_GCP_RELATED_PREFIX}/config credentials=@sa1-vault.json
 
-        vault auth enable --path="$${VAULT_KSA_RELATED}" kubernetes
+        $${MYENV_TEST_DIR}/vault auth enable --path="$${VAULT_KSA_RELATED}" kubernetes
 
         VAULT_SA_SECRET=$(kubectl get -n appconfigmgrv2-system sa vault-auth -o jsonpath="{.secrets[*]['name']}")
         VAULT_SA_JWT_TOKEN=$(kubectl get -n appconfigmgrv2-system secret $$VAULT_SA_SECRET -o jsonpath="{.data.token}" | base64 --decode; echo)
         VAULT_SA_CA_CRT=$(kubectl get -n appconfigmgrv2-system secret $$VAULT_SA_SECRET -o jsonpath="{.data['ca\.crt']}" | base64 --decode; echo)
 
-        vault write auth/${KSA_RELATED}/config \
+        $${MYENV_TEST_DIR}/vault write auth/$${VAULT_KSA_RELATED}/config \
           token_reviewer_jwt="$$VAULT_SA_JWT_TOKEN" \
-          kubernetes_host=https://${K8S_HOST} \
+          kubernetes_host=https://$${VAULT_ADDR} \
           kubernetes_ca_cert="$$VAULT_SA_CA_CRT"
 
         K8S_CONTEXT=$(kubectl config current-context)
         kubectl create configmap vault \
           --namespace=appconfigmgrv2-system \
-          --from-literal vault-addr=${VAULT_ADDR} \
-          --from-literal acm-cluster-name=${K8S_CONTEXT//_/-}
+          --from-literal vault-addr=$${VAULT_ADDR} \
+          --from-literal acm-cluster-name=$${K8S_CONTEXT//_/-}
 
         kubectl create secret generic vault-ca \
           --namespace=appconfigmgrv2-system \
@@ -534,23 +542,23 @@ steps:
 
         . ../examples/use-cases/uc-secrets-vault-k8s/vault-roles-policy.sh
 
-        vault policy write ${ROLE_NAME} ./${ROLE_NAME}-policy.hcl
+        $${MYENV_TEST_DIR}/vault policy write $${ROLE_NAME} ./$${ROLE_NAME}-policy.hcl
 
-        vault write ${VAULT_GCP_RELATED_PREFIX}/roleset/${ROLE_NAME} \
-        project="${PROJECT_NAME}" \
+        $${MYENV_TEST_DIR}/vault write $${VAULT_GCP_RELATED_PREFIX}/roleset/$${ROLE_NAME} \
+        project="$${PARM_PROJ}" \
         secret_type="service_account_key"  \
-        bindings=@${ROLE_NAME}.hcl
+        bindings=@$${ROLE_NAME}.hcl
 
-        vault write auth/${VAULT_KSA_RELATED}/role/${ROLE_NAME} \
-        bound_service_account_names="${ROLE_NAME}-ksa" \
-        bound_service_account_namespaces="${ROLE_NAME}" \
-        policies=${ROLE_NAME} \
+        $${MYENV_TEST_DIR}/vault write auth/$${VAULT_KSA_RELATED}/role/$${ROLE_NAME} \
+        bound_service_account_names="$${ROLE_NAME}-ksa" \
+        bound_service_account_namespaces="$${ROLE_NAME}" \
+        policies=$${ROLE_NAME} \
         ttl=1h
 
     dir: "build-source/tests"
     volumes:
-      - name: 'ssh'
-        path: /root/.ssh
+    - name: 'ssh'
+      path: /root/.ssh
   - name: google/cloud-sdk
     entrypoint: "bash"
     args:
@@ -577,8 +585,9 @@ steps:
         gsutil cat  "$$PARM_PATH/uc-secrets-istio/deploy-apps.yaml" | kubectl delete -f -
         gsutil cat  "$$PARM_PATH/uc-firebase/deploy-apps.yaml" | kubectl delete -f -
         gsutil cat  "$$PARM_PATH/uc-opa/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-allowed-services-vault-k8s/deploy-apps.yaml" | kubectl delete -f -
 
-        sleep 30
+        sleep 60
 
         gsutil cat  "$$PARM_PATH/uc-allowed-services-k8s/deploy-apps.yaml" | kubectl apply -f -
         gsutil cat  "$$PARM_PATH/uc-allowed-services-istio/deploy-apps.yaml" | kubectl apply -f -
@@ -587,6 +596,7 @@ steps:
         gsutil cat  "$$PARM_PATH/uc-secrets-istio/deploy-apps.yaml" | kubectl apply -f -
         gsutil cat  "$$PARM_PATH/uc-firebase/deploy-apps.yaml" | kubectl apply -f -
         gsutil cat  "$$PARM_PATH/uc-opa/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "$$PARM_PATH/uc-allowed-services-vault-k8s/deploy-apps.yaml" | kubectl apply -f -
 
         sleep 120
     dir: "build-source/tests"
