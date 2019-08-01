@@ -139,6 +139,7 @@ steps:
         sed -i'' -e '/CONTROLLER_REGISTRY/{N;s@value: .*@value: '\"gcr.io/${PROJECT_ID}\"'@}' $$PATCH_PATH
         sed -i'' -e 's@image: .*@image: '"gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$$PARM_BUILD_BRANCH_TS"'@' $$PATCH_PATH
         make kustomize || exit 1
+    dir: "build-source/appconfigmgrv2"
   - name: "gcr.io/${PROJECT_ID}/acmsplit:${_BUILDER_VERSION}"
     entrypoint:  "/app"
     dir: "build-source/appconfigmgrv2"
