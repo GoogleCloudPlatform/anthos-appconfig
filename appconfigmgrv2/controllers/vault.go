@@ -12,11 +12,6 @@ import (
 	appconfigmgrv1alpha1 "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
 )
 
-const (
-	VAULT_CONFIGMAP_NAME = "vault"
-	TODO_FIND_NAMESPACE  = "appconfigmgrv2-system"
-)
-
 // vaultInjectEnabled checks the AppEnvConfigTemplateV2 auth spec for
 // existing vaultInfo type and fields with basic validation
 func (r *AppEnvConfigTemplateV2Reconciler) vaultInjectEnabled(
