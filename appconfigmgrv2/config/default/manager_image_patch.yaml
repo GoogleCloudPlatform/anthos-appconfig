@@ -30,3 +30,8 @@ spec:
       # Change the value of image field below to your controller image URL
       - image: gcr.io/anthos-appconfig/appconfigtemplatev2_controller:v2.1.0-20190710-234948
         name: manager
+        env:
+        - name: CONTROLLER_REGISTRY
+          value: "gcr.io/anthos-appconfig"
+        - name: CONTROLLER_BUILD
+          value: "latest-dev"
