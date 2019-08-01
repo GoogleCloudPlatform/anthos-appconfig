@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
@@ -281,6 +282,15 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 		return fmt.Errorf("vaultInfo missing gcpPath field")
 	}
 
+	imageBuild := os.Getenv("CONTROLLER_BUILD")
+	if imageBuild == "" {
+		imageBuild = "latest"
+	}
+	imageRegistry := os.Getenv("CONTROLLER_REGISTRY")
+	if imageRegistry == "" {
+		imageRegistry = "gcr.io/anthos-appconfig"
+	}
+
 	// get vault configMap, validate
 	log.Info("handleGCPVault:loadConfig", "ConfigMap", VAULT_CONFIGMAP_NAME)
 	config, err := getConfigMap(ctx, VAULT_CONFIGMAP_NAME, TODO_FIND_NAMESPACE)
@@ -326,7 +336,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 	// inject vault-gcp init container
 	injectInitContainer(pod, corev1.Container{
 		Name:            "vault-gcp-auth",
-		Image:           "gcr.io/anthos-appconfig/vault-gcp-init:latest",
+		Image:           fmt.Sprintf("%s/vault-gcp-init:%s", imageRegistry, imageBuild),
 		ImagePullPolicy: corev1.PullAlways,
 		Env: []corev1.EnvVar{
 			{
