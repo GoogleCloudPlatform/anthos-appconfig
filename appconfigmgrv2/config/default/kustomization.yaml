@@ -63,4 +63,3 @@ patches:
 # 'CERTMANAGER' needs to be enabled to use ca injection
 #- webhookcainjection_patch.yaml
 
-- controller_version_patch.yaml
