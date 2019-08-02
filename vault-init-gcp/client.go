@@ -74,8 +74,8 @@ type vaultClient struct {
 	token string
 }
 
-func newVaultClient() *vaultClient {
-	ca, err := ioutil.ReadFile(VAULT_CAPATH)
+func newVaultClient(addr, caPath string) *vaultClient {
+	ca, err := ioutil.ReadFile(caPath)
 	if err != nil {
 		panic(err)
 	}
@@ -90,14 +90,14 @@ func newVaultClient() *vaultClient {
 				},
 			},
 		},
-		addr: VAULT_ADDR,
+		addr: addr,
 	}
 }
 
-func (vc *vaultClient) login() error {
-	url := fmt.Sprintf("%s/v1/%s/login", vc.addr, K8S_ROOT)
+func (vc *vaultClient) login(token, k8sRoot, k8sRole string) error {
+	url := fmt.Sprintf("%s/v1/%s/login", vc.addr, k8sRoot)
 
-	b, err := json.Marshal(kubernetesAuthRequest{KSA_JWT, K8S_ROLENAME})
+	b, err := json.Marshal(kubernetesAuthRequest{token, k8sRole})
 	if err != nil {
 		return err
 	}
@@ -132,8 +132,8 @@ func (vc *vaultClient) doGet(url string) (*http.Response, error) {
 	return vc.Do(req)
 }
 
-func (vc *vaultClient) readGCPKey() (gcpRes gcpReadKeyResponse, err error) {
-	url := fmt.Sprintf("%s/v1/%s", vc.addr, INIT_GCP_KEYPATH)
+func (vc *vaultClient) readGCPKey(keyPath string) (gcpRes gcpReadKeyResponse, err error) {
+	url := fmt.Sprintf("%s/v1/%s", vc.addr, keyPath)
 
 	resp, err := vc.doGet(url)
 	if err != nil {

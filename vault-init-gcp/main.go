@@ -26,21 +26,18 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"time"
+)
+
+const (
+	version = "0.1"
+	timeFmt = "2006-01-02 15:04:05.999999999 -0700 MST"
 )
 
 var (
-	version   = "0.1"
-	userAgent = fmt.Sprintf("vault-gcp-init/%s (%s)", version, runtime.Version())
-
-	K8S_ROOT     string
-	K8S_ROLENAME string
-
-	KSA_JWT                        = mustGetenv("KSA_JWT")
-	VAULT_ADDR                     = mustGetenv("VAULT_ADDR")
-	VAULT_CAPATH                   = mustGetenv("VAULT_CAPATH")
-	INIT_K8S_KEYPATH               = mustGetenv("INIT_K8S_KEYPATH")
-	INIT_GCP_KEYPATH               = mustGetenv("INIT_GCP_KEYPATH")
-	GOOGLE_APPLICATION_CREDENTIALS = mustGetenv("GOOGLE_APPLICATION_CREDENTIALS")
+	userAgent      = fmt.Sprintf("vault-gcp-init/%s (%s)", version, runtime.Version())
+	credentialPath = mustGetenv("GOOGLE_APPLICATION_CREDENTIALS")
+	ttlPath        = credentialPath + "_ttl"
 )
 
 func mustGetenv(k string) string {
@@ -51,28 +48,61 @@ func mustGetenv(k string) string {
 	return v
 }
 
-func parseK8S() {
+func parseK8S() (k8sRoot, k8sRole string) {
 	re := regexp.MustCompile("(auth/.*)/role/(.*)")
+	keyPath := mustGetenv("INIT_K8S_KEYPATH")
 
-	mg := re.FindStringSubmatch(INIT_K8S_KEYPATH)
+	mg := re.FindStringSubmatch(keyPath)
 	if len(mg) != 3 {
-		panic(fmt.Sprintf("invalid value for INIT_K8S_KEYPATH: \"%s\"", INIT_K8S_KEYPATH))
+		panic(fmt.Sprintf("invalid value for INIT_K8S_KEYPATH: \"%s\"", keyPath))
 	}
 
-	K8S_ROOT = mg[1]
-	K8S_ROLENAME = mg[2]
+	return mg[1], mg[2]
 }
 
-func main() {
-	log.Printf("vault-gcp-init v%s starting", version)
-	parseK8S()
+func watch() {
+	log.Printf("vault-gcp-init v%s starting watcher", version)
 
-	c := newVaultClient()
-	if err := c.login(); err != nil {
+	log.Printf("reading ttl from %s", ttlPath)
+	b, err := ioutil.ReadFile(ttlPath)
+	if err != nil {
+		panic(err)
+	}
+	expire, err := time.Parse(timeFmt, string(b))
+	if err != nil {
 		panic(err)
 	}
 
-	res, err := c.readGCPKey()
+	// set sleep duration to 80% of remaining ttl
+	dur := int64((time.Until(expire).Seconds() * 0.8))
+	log.Printf("next cycle in %ds", dur)
+	time.Sleep(time.Duration(dur) * time.Second)
+	log.Printf("cycling")
+}
+
+func main() {
+	if len(os.Args) == 2 && os.Args[1] == "watch" {
+		watch()
+		os.Exit(0)
+	}
+
+	var (
+		k8sJWT           = mustGetenv("KSA_JWT")
+		k8sRoot, k8sRole = parseK8S()
+
+		vaultAddr   = mustGetenv("VAULT_ADDR")
+		vaultCAPath = mustGetenv("VAULT_CAPATH")
+		gcpRolePath = mustGetenv("INIT_GCP_KEYPATH")
+	)
+
+	log.Printf("vault-gcp-init v%s starting", version)
+
+	c := newVaultClient(vaultAddr, vaultCAPath)
+	if err := c.login(k8sJWT, k8sRoot, k8sRole); err != nil {
+		panic(err)
+	}
+
+	res, err := c.readGCPKey(gcpRolePath)
 	if err != nil {
 		panic(err)
 	}
@@ -82,9 +112,15 @@ func main() {
 		panic(err)
 	}
 
-	if err := ioutil.WriteFile(GOOGLE_APPLICATION_CREDENTIALS, b, 0644); err != nil {
+	if err := ioutil.WriteFile(credentialPath, b, 0644); err != nil {
 		panic(err)
 	}
+	log.Printf("wrote credentials to %s", credentialPath)
 
-	log.Printf("wrote credentials to %s", GOOGLE_APPLICATION_CREDENTIALS)
+	expire := time.Now().Add(time.Duration(res.LeaseDuration) * time.Second)
+	expireBody := expire.Format(timeFmt)
+	if err := ioutil.WriteFile(ttlPath, []byte(expireBody), 0644); err != nil {
+		panic(err)
+	}
+	log.Printf("wrote credential ttl to %s [%s]", ttlPath, expireBody)
 }
