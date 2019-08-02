@@ -282,6 +282,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 		return fmt.Errorf("vaultInfo missing gcpPath field")
 	}
 
+	// construct image name and tag from env
 	imageBuild := os.Getenv("CONTROLLER_BUILD")
 	if imageBuild == "" {
 		imageBuild = "latest"
@@ -290,6 +291,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 	if imageRegistry == "" {
 		imageRegistry = "gcr.io/anthos-appconfig"
 	}
+	image := fmt.Sprintf("%s/vault-gcp-init:%s", imageRegistry, imageBuild)
 
 	// get vault configMap, validate
 	log.Info("handleGCPVault:loadConfig", "ConfigMap", VAULT_CONFIGMAP_NAME)
@@ -336,7 +338,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 	// inject vault-gcp init container
 	injectInitContainer(pod, corev1.Container{
 		Name:            "vault-gcp-auth",
-		Image:           fmt.Sprintf("%s/vault-gcp-init:%s", imageRegistry, imageBuild),
+		Image:           image,
 		ImagePullPolicy: corev1.PullAlways,
 		Env: []corev1.EnvVar{
 			{
@@ -369,6 +371,26 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 				Name:      caVolName,
 				MountPath: "/var/run/secrets/vault",
 			},
+			{
+				Name:      gcpVolName,
+				MountPath: "/var/run/secrets/google/token",
+			},
+		},
+	})
+
+	// inject vault-gcp cycle container
+	injectContainer(pod, corev1.Container{
+		Name:            "vault-gcp-cycle",
+		Image:           image,
+		ImagePullPolicy: corev1.PullAlways,
+		Command:         []string{"watch"},
+		Env: []corev1.EnvVar{
+			{
+				Name:  "GOOGLE_APPLICATION_CREDENTIALS",
+				Value: "/var/run/secrets/google/token/key.json",
+			},
+		},
+		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      gcpVolName,
 				MountPath: "/var/run/secrets/google/token",

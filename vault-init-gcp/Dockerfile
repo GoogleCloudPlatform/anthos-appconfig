@@ -15,4 +15,3 @@ FROM gcr.io/distroless/static:latest
 WORKDIR /
 COPY --from=builder /workspace/vault-init-gcp .
 ENTRYPOINT ["/vault-init-gcp"]
-
