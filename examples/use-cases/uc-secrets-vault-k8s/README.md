@@ -5,7 +5,10 @@ GCP_RELATED_PREFIX="gcp-${PROJECT_ID}"
 KSA_RELATED=gke-appcrd-cicenas-20190730-us-west1-b-c-b-bcicen-uc-secrets-vault-13
 
 vault secrets enable --path="${GCP_RELATED_PREFIX}" gcp
-vault write ${GCP_RELATED_PREFIX}/config credentials=@sa1-vault.json
+vault write ${GCP_RELATED_PREFIX}/config \
+  ttl=3600 \
+  max_ttl=14400 \
+  credentials=@sa1-vault.json
 
 
 ```
