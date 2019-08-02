@@ -245,7 +245,7 @@ func svcAcctJWT(ctx context.Context, name, namespace string) (string, error) {
 	ref := svcAccount.Secrets[0]
 
 	// get service account token secret
-	err = cl.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: ref.Namespace}, secret)
+	err = cl.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: namespace}, secret)
 	if err != nil {
 		return "", fmt.Errorf("%s serviceAccount token not found: %s", name, err)
 	}
