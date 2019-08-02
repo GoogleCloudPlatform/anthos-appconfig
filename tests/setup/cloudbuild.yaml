@@ -515,7 +515,10 @@ steps:
         export VAULT_TOKEN="$(cat /root/.ssh/vt)"
 
         $${MYENV_TEST_DIR}/vault secrets enable --path="$${VAULT_GCP_RELATED_PREFIX}" gcp
-        $${MYENV_TEST_DIR}/vault write $${VAULT_GCP_RELATED_PREFIX}/config credentials=@sa1-vault.json
+        $${MYENV_TEST_DIR}/vault write $${VAULT_GCP_RELATED_PREFIX}/config \
+          ttl=180 \
+          max_ttl=300 \
+          credentials=@sa1-vault.json
 
         $${MYENV_TEST_DIR}/vault auth enable --path="$${VAULT_KSA_RELATED}" kubernetes
 
