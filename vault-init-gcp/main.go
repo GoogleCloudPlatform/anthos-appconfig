@@ -95,9 +95,14 @@ func main() {
 		gcpRolePath = mustGetenv("INIT_GCP_KEYPATH")
 	)
 
+
 	log.Printf("vault-init-gcp v%s starting", version)
 
+	log.Printf("vault-init-gcp -vaultAddr-%s-vaultCAPath-%s-gcpRolePath-%",
+		vaultAddr,vaultCAPath,gcpRolePath)
 	c := newVaultClient(vaultAddr, vaultCAPath)
+	log.Printf("vault-init-gcp -login-jwt-%s-root-%s-role-%s",
+		k8sJWT,k8sRoot,k8sRole)
 	if err := c.login(k8sJWT, k8sRoot, k8sRole); err != nil {
 		panic(err)
 	}
