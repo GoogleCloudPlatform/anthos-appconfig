@@ -3,7 +3,6 @@ package builtins
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"fmt"
 
 	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
@@ -224,6 +223,8 @@ func cloneSecret(ctx context.Context, name string, app *appconfig.AppEnvConfigTe
 
 // svcAcctJWT looks up the stored JWT secret token for a given service account
 func svcAcctJWT(ctx context.Context, name, namespace string) (string, error) {
+	log.Info("common:svcAcctJWT")
+
 	var (
 		err error
 
@@ -231,6 +232,8 @@ func svcAcctJWT(ctx context.Context, name, namespace string) (string, error) {
 		secret     = &corev1.Secret{}
 		svcAccount = &corev1.ServiceAccount{}
 	)
+
+	log.Info("common:svcAcctJWT:secret", "name", name, "namespace", namespace)
 
 	// get service account
 	err = cl.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, svcAccount)
@@ -242,6 +245,8 @@ func svcAcctJWT(ctx context.Context, name, namespace string) (string, error) {
 		return "", fmt.Errorf("%s serviceAccount token not found", name)
 	}
 
+	log.Info("common:svcAcctJWT:secret:value", "name", name, "namespace", namespace)
+
 	ref := svcAccount.Secrets[0]
 
 	// get service account token secret
@@ -250,10 +255,11 @@ func svcAcctJWT(ctx context.Context, name, namespace string) (string, error) {
 		return "", fmt.Errorf("%s serviceAccount token not found: %s", name, err)
 	}
 
-	b, err := base64.StdEncoding.DecodeString(string(secret.Data["token"]))
-	if err != nil {
-		return "", err
-	}
+	b := string(secret.Data["token"])
+	//b, err := base64.StdEncoding.DecodeString(string(secret.Data["token"]))
+	//if err != nil {
+	//	return "", err
+	//}
 
 	return string(b), nil
 }
