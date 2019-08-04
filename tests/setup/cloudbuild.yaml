@@ -134,17 +134,6 @@ steps:
         mkdir -p /workspace/myroot/.private/gsa_keys
         gsutil cp  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/*" /workspace/myroot/.private/gsa_keys
 
-
-#        echo "gcp-$${PARM_PROJ}" > $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out
-#        VAULT_GCP_RELATED_PREFIX="$(cat  $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)"
-#        PARM_CLUSTER="$(cat  $$MYENV_DIR/_fileclus_TAG.out)"
-#        echo "$${PARM_PROJ}-$${PARM_CLUSTER}" > $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out
-#        VAULT_KSA_RELATED="$(cat  $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out)"
-
-
-
-        ls -lR /workspace/myroot/.private/gsa_keys
-
     dir: "build-source/tests"
   - name: google/cloud-sdk
     entrypoint: "bash"
@@ -178,8 +167,6 @@ steps:
 
         export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH;$${MYENV_TEST_DIR}/crd-setup-helper.sh pre-install "$${MYENV_TEST_DIR}/generated/istio" -genexternal
 
-#        VAULT_GCP_RELATED_PREFIX="$(cat  $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)"
-#        VAULT_KSA_RELATED="$(cat  $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out)"
 
         gsutil cp gs://cicenas-vault/root-token.enc /root/.ssh/x1
         base64 --help
