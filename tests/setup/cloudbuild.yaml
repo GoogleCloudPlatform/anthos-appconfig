@@ -135,11 +135,11 @@ steps:
         gsutil cp  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/*" /workspace/myroot/.private/gsa_keys
 
 
-        echo "gcp-$${PARM_PROJ}" > $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out
-        VAULT_GCP_RELATED_PREFIX="$(cat  $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)"
-        PARM_CLUSTER="$(cat  $$MYENV_DIR/_fileclus_TAG.out)"
-        echo "$${PARM_PROJ}-$${PARM_CLUSTER}" > $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out
-        VAULT_KSA_RELATED="$(cat  $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out)"
+#        echo "gcp-$${PARM_PROJ}" > $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out
+#        VAULT_GCP_RELATED_PREFIX="$(cat  $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)"
+#        PARM_CLUSTER="$(cat  $$MYENV_DIR/_fileclus_TAG.out)"
+#        echo "$${PARM_PROJ}-$${PARM_CLUSTER}" > $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out
+#        VAULT_KSA_RELATED="$(cat  $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out)"
 
 
 
@@ -178,8 +178,8 @@ steps:
 
         export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH;$${MYENV_TEST_DIR}/crd-setup-helper.sh pre-install "$${MYENV_TEST_DIR}/generated/istio" -genexternal
 
-        VAULT_GCP_RELATED_PREFIX="$(cat  $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)"
-        VAULT_KSA_RELATED="$(cat  $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out)"
+#        VAULT_GCP_RELATED_PREFIX="$(cat  $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)"
+#        VAULT_KSA_RELATED="$(cat  $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out)"
 
         gsutil cp gs://cicenas-vault/root-token.enc /root/.ssh/x1
         base64 --help
@@ -476,8 +476,8 @@ steps:
     args:
       - '-c'
       - |
-        echo 'STEP-CRD1-b'
-        [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1-b-vaul1t*SKIP*'; exit 0; }
+        echo 'STEP-CRD1-b-vault1'
+        [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1-b-vault1*SKIP*'; exit 0; }
         set -x
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
@@ -490,6 +490,8 @@ steps:
         PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
         MYENV_TEST_DIR=$(cat /workspace/myenv/_testdir_TAG.out)
+
+
 
         CHECK_VAULT_SA1=$(gcloud iam service-accounts describe appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
         [ ! -z  $$CHECK_VAULT_SA1 ] || gcloud iam service-accounts create appconfigcrd-demo-vault-sa1 --display-name=appconfigcrd-demo-sa1 --project $${PARM_PROJ}
@@ -532,7 +534,13 @@ steps:
         MYENV_TEST_DIR=$(cat /workspace/myenv/_testdir_TAG.out)
 
 
+        echo "gcp-$${PARM_PROJ}" > $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out
+        VAULT_GCP_RELATED_PREFIX="$(cat  $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)"
 
+        K8S_CONTEXT=$(kubectl config current-context)
+        ACM_CLUSTER_REGISTRY_NAME=${K8S_CONTEXT//_/-}
+        echo "$${PARM_PROJ}-$${ACM_CLUSTER_REGISTRY_NAME}" > $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out
+        VAULT_KSA_RELATED="$(cat  $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out)"
 
         VAULT_GCP_RELATED_PREFIX="$(cat $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)"
         VAULT_KSA_RELATED="$(cat $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out)"
