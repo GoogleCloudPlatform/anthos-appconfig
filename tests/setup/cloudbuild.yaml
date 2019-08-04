@@ -526,7 +526,7 @@ steps:
 
         K8S_CONTEXT=$(kubectl config current-context)
         ACM_CLUSTER_REGISTRY_NAME=${K8S_CONTEXT//_/-}
-        echo "$${PARM_PROJ}-$${ACM_CLUSTER_REGISTRY_NAME}" > $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out
+        echo "k8s-$${ACM_CLUSTER_REGISTRY_NAME}" > $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out
         VAULT_KSA_RELATED="$(cat  $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out)"
 
         VAULT_GCP_RELATED_PREFIX="$(cat $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)"

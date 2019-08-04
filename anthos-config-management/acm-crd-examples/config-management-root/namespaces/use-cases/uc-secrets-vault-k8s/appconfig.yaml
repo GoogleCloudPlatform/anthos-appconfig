@@ -30,7 +30,7 @@ spec:
       vaultInfo:
         serviceAccount: "uc-secrets-vault-k8s-ksa"
         gcpPath: "gcp-appcrd-cicenas-20190804"
-        gcpRoleset: "pubsub1Publisher"
+        gcpRoleset: "uc-secrets-vault-k8s"
   services:
   - name: "appconfigv2-service-sm-1"
     deploymentApp: "hello-app-sm-py-1"
