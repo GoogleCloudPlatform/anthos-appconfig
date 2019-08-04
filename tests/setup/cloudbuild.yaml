@@ -518,7 +518,7 @@ steps:
         $${MYENV_TEST_DIR}/vault write $${VAULT_GCP_RELATED_PREFIX}/config \
           ttl=180 \
           max_ttl=300 \
-          credentials=@sa1-vault.json
+          credentials=@/workspace/myroot/.private/gsa_keys/sa1-vault.json
 
         $${MYENV_TEST_DIR}/vault auth enable --path="$${VAULT_KSA_RELATED}" kubernetes
 
