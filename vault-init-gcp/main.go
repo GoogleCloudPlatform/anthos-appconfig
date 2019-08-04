@@ -35,7 +35,7 @@ const (
 )
 
 var (
-	userAgent      = fmt.Sprintf("vault-gcp-init/%s (%s)", version, runtime.Version())
+	userAgent      = fmt.Sprintf("vault-init-gcp/%s (%s)", version, runtime.Version())
 	credentialPath = mustGetenv("GOOGLE_APPLICATION_CREDENTIALS")
 	ttlPath        = credentialPath + "_ttl"
 )
@@ -61,7 +61,7 @@ func parseK8S() (k8sRoot, k8sRole string) {
 }
 
 func watch() {
-	log.Printf("vault-gcp-init v%s starting watcher", version)
+	log.Printf("vault-init-gcp v%s starting watcher", version)
 
 	log.Printf("reading ttl from %s", ttlPath)
 	b, err := ioutil.ReadFile(ttlPath)
@@ -95,7 +95,7 @@ func main() {
 		gcpRolePath = mustGetenv("INIT_GCP_KEYPATH")
 	)
 
-	log.Printf("vault-gcp-init v%s starting", version)
+	log.Printf("vault-init-gcp v%s starting", version)
 
 	c := newVaultClient(vaultAddr, vaultCAPath)
 	if err := c.login(k8sJWT, k8sRoot, k8sRole); err != nil {
