@@ -532,7 +532,8 @@ steps:
           kubernetes_ca_cert="$$VAULT_SA_CA_CRT"
 
         K8S_CONTEXT=$(kubectl config current-context)
-        kubectl delete configmap vault
+        kubectl delete configmap vault --namespace=appconfigmgrv2-system
+        kubectl delete secret vault-ca --namespace=appconfigmgrv2-system
         kubectl create configmap vault \
           --namespace=appconfigmgrv2-system \
           --from-literal vault-addr=$${VAULT_ADDR} \
