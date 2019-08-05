@@ -127,9 +127,9 @@ steps:
         PARM_TS_SEC=$(cat $${MYENV_DIR}/_file_TAG.out)
         PARM_BUILD_BRANCH="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
         PARM_BUILD_BRANCH_TS="$$PARM_BUILD_BRANCH-$$PARM_TS_SEC"
-        docker build -t gcr.io/${PROJECT_ID}/vault-init-gcp:$$PARM_BUILD_BRANCH_TS . || exit 1
-        docker push gcr.io/${PROJECT_ID}/vault-init-gcp:$$PARM_BUILD_BRANCH_TS || exit 1
-    dir: "build-source/vault-init-gcp"
+        docker build -t gcr.io/${PROJECT_ID}/vault-api-helper:$$PARM_BUILD_BRANCH_TS . || exit 1
+        docker push gcr.io/${PROJECT_ID}/vault-api-helper:$$PARM_BUILD_BRANCH_TS || exit 1
+    dir: "build-source/vault-api-helper"
     volumes:
       - name: go-modules
         path: /go

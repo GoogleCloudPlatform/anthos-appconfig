@@ -21,102 +21,79 @@
 package main
 
 import (
-	"fmt"
-	"github.com/hashicorp/vault/api"
-	//"io/ioutil"
-	"log"
-	"os"
-	"regexp"
-	"runtime"
-	"encoding/json"
-	//"time"
-)
+  "flag"
+  "io/ioutil"
 
-const (
-	version = "0.1"
-	timeFmt = "2006-01-02 15:04:05.999999999 -0700 MST"
-)
+  "encoding/json"
+  //"encoding/base64"
+  //"errors"
+  "fmt"
+  "github.com/hashicorp/vault/api"
+  //"io/ioutil"
+  log "github.com/sirupsen/logrus"
+  "os"
 
-var (
-	userAgent = fmt.Sprintf("vault-init-gcp/%s (%s)", version, runtime.Version())
-	//credentialPath = mustGetenv("GOOGLE_APPLICATION_CREDENTIALS")
-	//ttlPath        = credentialPath + "_ttl"
+  //"time"
 )
 
 func mustGetenv(k string) string {
-	v := os.Getenv(k)
-	if v == "" {
-		panic(fmt.Sprintf("%s undefined", k))
-	}
-	return v
+  v := os.Getenv(k)
+  if v == "" {
+    panic(fmt.Sprintf("%s undefined", k))
+  }
+  return v
 }
 
-func parseK8S() (k8sRoot, k8sRole string) {
-	re := regexp.MustCompile("(auth/.*)/role/(.*)")
-	keyPath := mustGetenv("INIT_K8S_KEYPATH")
+func getGCPKey(c *api.Client, keyRolesetPath string) (string, error) {
+  res, err := c.Logical().Read(keyRolesetPath)
+  if err != nil {
+    return "", err
+  }
 
-	mg := re.FindStringSubmatch(keyPath)
-	if len(mg) != 3 {
-		panic(fmt.Sprintf("invalid value for INIT_K8S_KEYPATH: \"%s\"", keyPath))
-	}
-
-	return mg[1], mg[2]
+  resAsJSON, _ := json.Marshal(res.Data)
+  return string(resAsJSON), nil
 }
 
-//func watch() {
-//	log.Printf("vault-init-gcp v%s starting watcher", version)
-//
-//	//log.Printf("reading ttl from %s", ttlPath)
-//	b, err := ioutil.ReadFile(ttlPath)
-//	if err != nil {
-//		panic(err)
-//	}
-//	expire, err := time.Parse(timeFmt, string(b))
-//	if err != nil {
-//		panic(err)
-//	}
-//
-//	// set sleep duration to 80% of remaining ttl
-//	dur := int64((time.Until(expire).Seconds() * 0.8))
-//	log.Printf("next cycle in %ds", dur)
-//	time.Sleep(time.Duration(dur) * time.Second)
-//	log.Printf("cycling")
-//}
+func updateGCPKey(credentialPath string, key string) (error) {
+  return ioutil.WriteFile(credentialPath, []byte(key), 0644)
+}
 
 func main() {
-	if len(os.Args) == 2 && os.Args[1] == "watch" {
-		//watch()
-		os.Exit(0)
-	}
+  initMode := flag.String("mode", "GCP-KSA", "a string")
+  flag.Parse()
 
-	var (
-		//k8sRoot, k8sRole = parseK8S()
+  log.WithFields(log.Fields{
+    "initMode": *initMode,
+  }).Info("main:start")
 
-		vaultAddr   = mustGetenv("VAULT_ADDR")
-		vaultCAPath = mustGetenv("VAULT_CAPATH")
-		gcpRolePath = mustGetenv("INIT_GCP_KEYPATH")
-		k8sJWT      = mustGetenv("KSA_JWT")
-	)
+  var (
+    vaultAddr = mustGetenv("VAULT_ADDR")
+    //vaultCAPath = mustGetenv("VAULT_CAPATH")
+    gcpRolesetKeyPath = mustGetenv("INIT_GCP_KEYPATH")
+    k8sJWT            = mustGetenv("KSA_JWT")
+    credentialPath    = mustGetenv("GOOGLE_APPLICATION_CREDENTIALS")
+  )
 
-	log.Printf("vault-init-gcp v%s starting", version)
+  log.WithFields(log.Fields{
+    "vaultAddr": vaultAddr,
+  }).Debug("main:Parms")
 
-	log.Printf("vault-init-gcp -vaultAddr-%s-vaultCAPath-%s-gcpRolePath-%",
-		vaultAddr, vaultCAPath, gcpRolePath)
+  client, err := api.NewClient(&api.Config{
+    Address: vaultAddr,
+  })
+  if err != nil {
+    panic(err)
+  }
 
-	client, err := api.NewClient(&api.Config{
-		Address: vaultAddr,
-	})
-	if err != nil {
-		panic(err)
-	}
+  client.SetToken(k8sJWT)
 
-	client.SetToken(k8sJWT)
+  data, err := getGCPKey(client, gcpRolesetKeyPath)
+  if err != nil {
+    panic(err)
+  }
 
-	data, err := client.Logical().Read(gcpRolePath)
-	if err != nil {
-		panic(err)
-	}
-
-	b, _ := json.Marshal(data.Data)
-	fmt.Println(string(b))
+  err = updateGCPKey(credentialPath, data)
+  if err != nil {
+    panic(err)
+  }
 }

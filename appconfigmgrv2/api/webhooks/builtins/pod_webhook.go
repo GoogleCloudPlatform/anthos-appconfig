@@ -291,7 +291,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 	if imageRegistry == "" {
 		imageRegistry = "gcr.io/anthos-appconfig"
 	}
-	image := fmt.Sprintf("%s/vault-init-gcp:%s", imageRegistry, imageBuild)
+	image := fmt.Sprintf("%s/vault-api-helper:%s", imageRegistry, imageBuild)
 
 	// get vault configMap, validate
 	log.Info("handleGCPVault:loadConfig", "ConfigMap", VAULT_CONFIGMAP_NAME)
