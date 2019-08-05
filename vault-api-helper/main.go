@@ -68,15 +68,20 @@ func main() {
 
   var (
     vaultAddr = mustGetenv("VAULT_ADDR")
-    //vaultCAPath = mustGetenv("VAULT_CAPATH")
+    vaultCAPath = mustGetenv("VAULT_CAPATH")
     gcpRolesetKeyPath = mustGetenv("INIT_GCP_KEYPATH")
     k8sJWT            = mustGetenv("KSA_JWT")
     credentialPath    = mustGetenv("GOOGLE_APPLICATION_CREDENTIALS")
   )
 
+  ca, err := ioutil.ReadFile(vaultCAPath)
   log.WithFields(log.Fields{
     "vaultAddr": vaultAddr,
+    "vaultCAPath": vaultCAPath,
+    "ca": ca,
+
   }).Debug("main:Parms")
+
 
   client, err := api.NewClient(&api.Config{
     Address: vaultAddr,
