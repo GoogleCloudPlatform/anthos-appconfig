@@ -75,9 +75,9 @@ type AppEnvConfigTemplateGCPAccessVaultInfo struct {
 	// Kubernetes service account name used in Vault authentication.
 	ServiceAccount string `json:"serviceAccount,omitempty"`
 	// Vault Google Cloud Secrets Engine mounted path.
-	Path string `json:"gcpPath,omitempty"`
+	Path string `json:"path,omitempty"`
 	// Vault Google Cloud Secrets Engine roleset name to retrieve credentials from.
-	Roleset string `json:"gcpRoleset,omitempty"`
+	Roleset string `json:"roleset,omitempty"`
 }
 
 type AppEnvConfigTemplateGCPAccess struct {
