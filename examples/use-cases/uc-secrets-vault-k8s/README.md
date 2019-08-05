@@ -78,3 +78,26 @@ vault write auth/${KSA_RELATED}/role/${ROLE_NAME} \
     ttl=1h
 
 ```
+
+## Testing Manually
+
+```bash
+rm kc1;touch kc1;export KUBECONFIG=$(pwd)/kc1;gcloud container clusters get-credentials c-b-bcicen-uc-secrets-vault-13 --zone us-west1-b --project appcrd-cicenas-20190805
+
+
+```
+
+```bash
+vault auth list
+
+k8s-gke-appcrd-cicenas-20190805-us-west1-b-c-b-bcicen-uc-secrets-vault-13/
+vault read auth/k8s-gke-appcrd-cicenas-20190805-us-west1-b-c-b-bcicen-uc-secrets-vault-13/config
+
+
+
+
+```
+
+```bash
+kubectl run nirmata/kube-vault-client:2.3.0 sleep 3600
+```

@@ -132,7 +132,7 @@ steps:
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
         mkdir -p /workspace/myroot/.private/gsa_keys
-        gsutil cp  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/*" /workspace/myroot/.private/gsa_keys
+        gsutil cp  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/*" /workspace/myroot/.private/gsa_keys || echo "0"
 
     dir: "build-source/tests"
   - name: google/cloud-sdk
@@ -524,6 +524,8 @@ steps:
         echo "gcp-$${PARM_PROJ}" > $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out
         VAULT_GCP_RELATED_PREFIX="$(cat  $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)"
 
+
+
         K8S_CONTEXT=$(kubectl config current-context)
         ACM_CLUSTER_REGISTRY_NAME=${K8S_CONTEXT//_/-}
         echo "k8s-$${ACM_CLUSTER_REGISTRY_NAME}" > $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out
@@ -550,7 +552,7 @@ steps:
 
         $${MYENV_TEST_DIR}/vault write auth/$${VAULT_KSA_RELATED}/config \
           token_reviewer_jwt="$$VAULT_SA_JWT_TOKEN" \
-          kubernetes_host=https://$${VAULT_ADDR} \
+          kubernetes_host="$${VAULT_ADDR}" \
           kubernetes_ca_cert="$$VAULT_SA_CA_CRT"
 
         K8S_CONTEXT=$(kubectl config current-context)
@@ -574,7 +576,9 @@ steps:
         $${MYENV_TEST_DIR}/vault write $${VAULT_GCP_RELATED_PREFIX}/roleset/$${ROLE_NAME} \
         project="$${PARM_PROJ}" \
         secret_type="service_account_key"  \
-        bindings=@$${ROLE_NAME}.hcl
+        bindings=@$${ROLE_NAME}.hcl \
+        service_account_email=appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com \
+        service_account_project= appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com
 
         $${MYENV_TEST_DIR}/vault write auth/$${VAULT_KSA_RELATED}/role/$${ROLE_NAME} \
         bound_service_account_names="$${ROLE_NAME}-ksa" \
