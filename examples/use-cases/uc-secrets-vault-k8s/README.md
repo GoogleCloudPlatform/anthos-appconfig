@@ -95,7 +95,14 @@ vault read auth/k8s-gke-appcrd-cicenas-20190805-us-west1-b-c-b-bcicen-uc-secrets
 
 
 
-
+# Create a role named, 'example' to map Kubernetes Service Account to
+#  Vault policies and default token TTL
+$ vault write auth/kubernetes/role/example \
+        bound_service_account_names=vault-auth \
+        bound_service_account_namespaces=default \
+        policies=myapp-kv-ro \
+        ttl=24h
+        
 ```
 
 ```bash

@@ -483,12 +483,20 @@ steps:
         CHECK_VAULT_SA1=$(gcloud iam service-accounts describe appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
         [ ! -z  $$CHECK_VAULT_SA1 ] || gcloud iam service-accounts create appconfigcrd-demo-vault-sa1 --display-name=appconfigcrd-demo-sa1 --project $${PARM_PROJ}
 
-        gcloud projects add-iam-policy-binding $${PARM_PROJ}  \
+
+
+        gcloud iam service-accounts add-iam-policy-binding appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com --project $${PARM_PROJ}  \
           --member=serviceAccount:appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com \
-          --role roles/resourcemanager.projectIamAdmin \
-          --role roles/pubsub.admin \
-          --role roles/iam.serviceAccountAdmin \
+          --role roles/iam.serviceAccountAdmin
+
+        gcloud iam service-accounts add-iam-policy-binding appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com --project $${PARM_PROJ}  \
+          --member=serviceAccount:appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com \
           --role roles/iam.serviceAccountKeyAdmin
+
+
+        gcloud projects add-iam-policy-binding $${PARM_PROJ} \
+          --member=serviceAccount:appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com \
+          --role roles/pubsub.admin
 
         if [ ! -f /workspace/myroot/.private/gsa_keys/sa1-vault.json ] ; then
           gcloud iam service-accounts keys create '/workspace/myroot/.private/gsa_keys/sa1-vault.json' --project $${PARM_PROJ} \
@@ -540,6 +548,7 @@ steps:
 
         $${MYENV_TEST_DIR}/vault secrets enable --path="$${VAULT_GCP_RELATED_PREFIX}" gcp
         $${MYENV_TEST_DIR}/vault write $${VAULT_GCP_RELATED_PREFIX}/config \
+          project=$${PARM_PROJ} \
           ttl=180 \
           max_ttl=300 \
           credentials=@/workspace/myroot/.private/gsa_keys/sa1-vault.json
@@ -577,8 +586,7 @@ steps:
         project="$${PARM_PROJ}" \
         secret_type="service_account_key"  \
         bindings=@$${ROLE_NAME}.hcl \
-        service_account_email=appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com \
-        service_account_project= appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com
+
 
         $${MYENV_TEST_DIR}/vault write auth/$${VAULT_KSA_RELATED}/role/$${ROLE_NAME} \
         bound_service_account_names="$${ROLE_NAME}-ksa" \
