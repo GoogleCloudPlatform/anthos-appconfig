@@ -1,0 +1,12 @@
+apiVersion: appconfigmgr.cft.dev/v1alpha1
+kind: AppEnvConfigTemplateV2
+metadata:
+  name: should-not-be-created
+  namespace: uc-opa
+spec:
+  services:
+  - name: a
+    deploymentApp: a
+    deploymentPort: 8000
+    servicePort: 8000
+    deploymentPortProtocol: TCP

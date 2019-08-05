@@ -17,8 +17,10 @@
 #
 
 import os
+from os import path
 import sys
 import unittest
+import subprocess
 
 # sys.path.append(os.path.abspath('../simple_hello'))
 # from auth_helper import GCPAuthHelper
@@ -37,6 +39,16 @@ class OpaTestCase(unittest.TestCase):
     should_not_exist = core_v1.list_namespaced_pod(namespace, label_selector="app=missing-version-label-on-pods")
     self.assertEqual(len(should_exist.items), 3)
     self.assertEqual(len(should_not_exist.items), 0)
+
+  def test_appconfig_ns_limit(self):
+    # Should succeed.
+    self.kubectl_apply("opa-appconfig-1.yaml")
+    # Only one appconfig per namespaces should be allowed, so this should fail.
+    with self.assertRaises(subprocess.CalledProcessError):
+      self.kubectl_apply("opa-appconfig-2.yaml")
+
+  def kubectl_apply(self, name):
+    subprocess.check_call(["kubectl", "apply", "-f", path.join(path.dirname(__file__), "config", name)])
 
 if __name__ == '__main__':
   unittest.main()
