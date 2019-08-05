@@ -9,6 +9,9 @@ RUN go mod init
 ADD ./main.go /go/src/app
 #COPY Gopkg.toml /go/src/app
 
+RUN go test -v
+RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o app
+
 # Use distroless as minimal base image to package the vault-api-helper binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:latest
