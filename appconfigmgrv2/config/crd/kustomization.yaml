@@ -25,9 +25,9 @@ resources:
 - bases/appconfigmgr.cft.dev_appenvconfigtemplatev2s.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
-patches:
+# patches:
 # [WEBHOOK] patches here are for enabling the conversion webhook for each CRD
-- patches/webhook_in_appenvconfigtemplatev2s.yaml
+# - patches/webhook_in_appenvconfigtemplatev2s.yaml
 # +kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # [CAINJECTION] patches here are for enabling the CA injection for each CRD
