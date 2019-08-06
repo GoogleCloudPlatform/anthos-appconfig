@@ -74,13 +74,20 @@ func main() {
     credentialPath    = mustGetenv("GOOGLE_APPLICATION_CREDENTIALS")
   )
 
-  ca, err := ioutil.ReadFile(vaultCAPath)
   log.WithFields(log.Fields{
     "vaultAddr": vaultAddr,
     "vaultCAPath": vaultCAPath,
-    "ca": ca,
 
   }).Debug("main:Parms")
+
+  ca, err := ioutil.ReadFile(vaultCAPath)
+  if err != nil {
+    panic(err)
+  }
+
+  log.WithFields(log.Fields{
+    "ca": ca,
+  }).Debug("main:ca")
 
 
   client, err := api.NewClient(&api.Config{
