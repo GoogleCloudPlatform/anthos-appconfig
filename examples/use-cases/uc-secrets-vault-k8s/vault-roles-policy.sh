@@ -1,4 +1,4 @@
-cat > uc-secrets-vault-k8s.hcl <<EOF
+cat >  ${ROLE_NAME}-gcp.hcl <<EOF
 resource "projects/${PROJECT_NAME}/topics/appconfigcrd-demo-topic1" {
   roles = [
     "roles/pubsub.publisher",

@@ -86,7 +86,7 @@ func main() {
   }
 
   log.WithFields(log.Fields{
-    "ca": ca,
+    "ca": string(ca),
   }).Info("main:ca")
 
 
