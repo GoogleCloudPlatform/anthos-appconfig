@@ -34,8 +34,6 @@ deploy: manifests
 kustomize:
 	mkdir -p config/generated
 	kustomize build config/default > config/generated/all.yaml
-	cat config/opa/constraint-templates.yaml >> config/generated/all.yaml
-	cat config/opa/constraints.yaml >> config/generated/all.yaml
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen

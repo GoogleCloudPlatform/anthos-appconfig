@@ -1,0 +1,9 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: AppConfigNamespaceLimit
+metadata:
+  name: max-one-appconfig
+spec:
+  match:
+    kinds:
+      - apiGroups: ["appconfigmgr.cft.dev"]
+        kinds: ["AppEnvConfigTemplateV2"]

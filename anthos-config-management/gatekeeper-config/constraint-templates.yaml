@@ -1,0 +1,59 @@
+---
+apiVersion: templates.gatekeeper.sh/v1alpha1
+kind: ConstraintTemplate
+metadata:
+  name: appconfigrequiredlabels
+spec:
+  crd:
+    spec:
+      names:
+        kind: AppConfigRequiredLabels
+        listKind: AppConfigRequiredLabelsList
+        plural: appconfigrequiredlabels
+        singular: appconfigrequiredlabels
+      validation:
+        # Schema for the `parameters` field
+        openAPIV3Schema:
+          properties:
+            labels:
+              type: array
+              items: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package appconfigrequiredlabels
+
+        violation[{"msg": msg, "details": {"missing_labels": missing}}] {
+          provided := {label | input.review.object.metadata.labels[label]}
+          required := {label | label := input.constraint.spec.parameters.labels[_]}
+          missing := required - provided
+          count(missing) > 0
+          msg := sprintf("you must provide labels: %v", [missing])
+        }
+
+---
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: appconfignamespacelimit
+spec:
+  crd:
+    spec:
+      names:
+        kind: AppConfigNamespaceLimit
+        listKind: AppConfigNamespaceLimitList
+        plural: appconfignamespacelimits
+        singular: appconfignamespacelimit
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package appconfignamespacelimit
+
+        violation[{"msg": msg, "details": {"others": othersCount}}] {
+          obj := input.review.object
+          all := data.inventory.namespace[obj.metadata.namespace]["appconfigmgr.cft.dev/v1alpha1"]["AppEnvConfigTemplateV2"]
+          others := [other | all[i].metadata.name != obj.metadata.name; other := all[i]]
+          othersCount := count(others)
+          othersCount > 0
+          msg := sprintf("no more than 1 resource per namespace: %v others exist", [othersCount])
+        }
