@@ -78,7 +78,7 @@ func main() {
     "vaultAddr": vaultAddr,
     "vaultCAPath": vaultCAPath,
 
-  }).Debug("main:Parms")
+  }).Info("main:Parms")
 
   ca, err := ioutil.ReadFile(vaultCAPath)
   if err != nil {
@@ -87,7 +87,7 @@ func main() {
 
   log.WithFields(log.Fields{
     "ca": ca,
-  }).Debug("main:ca")
+  }).Info("main:ca")
 
 
   client, err := api.NewClient(&api.Config{
