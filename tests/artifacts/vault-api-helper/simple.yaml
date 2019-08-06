@@ -61,9 +61,16 @@ spec:
            - name: GOOGLE_APPLICATION_CREDENTIALS
              value: /stuff/key.json
           volumeMounts:
-            - mountPath: /stuff
+            - mountPath: /stuff/google-info
               name: google-auth-token
+            - mountPath: /stuff/vault-info
+              name: cert
+              readOnly: true
       volumes:
         - emptyDir:
             medium: Memory
           name: google-auth-token
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: webhook-server-cert

@@ -2,7 +2,9 @@
 
 #../../tests/artifacts/vault-api-helper/run-test.sh
 
-#rm KC1;touch KC1;export KUBECONFIG=KC1;gcloud container clusters get-credentials c-b-bcicen-uc-secrets-vault-13 --zone us-west1-b --project appcrd-cicenas-20190806
+rm KC1;touch KC1;export KUBECONFIG=KC1; \
+gcloud container clusters get-credentials c-b-bcicen-uc-secrets-vault-13 --zone us-west1-b --project appcrd-cicenas-20190806
+
 export PROJECT_NAME=appcrd-cicenas-20190806
 export APPCONFIG_CRD_PREFIX=app-crd-vault-test
 export APPCONFIG_CRD_CLUSTER=${APPCONFIG_CRD_PREFIX}-appcrd-cicenas-20190806-c-b-bcicen-uc-secrets-vault-13
@@ -39,7 +41,7 @@ fi
 #CHECK_GCP_1=$(vault read "${VAULT_GCP_RELATED_PREFIX}")
 #[ ! -z  $CHECK_GCP_1 ] || vault secrets enable --path="${VAULT_GCP_RELATED_PREFIX}" gcp
 
-vault auth enable --path="${VAULT_KSA_RELATED}" kubernetes
+#vault auth enable --path="${VAULT_KSA_RELATED}" kubernetes
 CHECK_GCP_2=$(vault read "${VAULT_GCP_RELATED_PREFIX}/config")
 [[ ! -z  "$CHECK_GCP_2" ]] || echo "vault write ${VAULT_GCP_RELATED_PREFIX}/config"
 #vault write ${VAULT_GCP_RELATED_PREFIX}/config \
@@ -87,12 +89,13 @@ vault write auth/${VAULT_KSA_RELATED}/role/${VAULT_ROLE_NAME} \
   ttl=5m
 
 
+[ ! -z  "$(kubectl get namespace ${VAULT_NS} --output 'jsonpath={.metadata.name}')" ] || kubectl create ns ${VAULT_NS}
+
+[ ! -z  "$(kubectl get secret vault-ca -n  ${VAULT_NS}  --output 'jsonpath={.metadata.name}')" ] || kubectl create secret generic vault-ca \
+  --namespace=${VAULT_NS} \
+  --from-file=${VAULT_CACERT}
+
 cat > test-vault-auth.yaml << EOF
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ${VAULT_NS}
----
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -118,9 +121,10 @@ spec:
       serviceAccountName:  ${VAULT_KSA}
       containers:
         - name: ${VAULT_NS}-app-c1
-          image: gcr.io/anthos-appconfig/vault-api-helper:b-bcicen-uc-secrets-vault-134955364-webhook3-20190806-02312
+          image: gcr.io/anthos-appconfig/vault-api-helper:lastest
           imagePullPolicy: Always
-          command: ['/bin/sh -c "while [ true ] ; do echo 'sleeping..'; sleep 10; done"']
+          command: ["/bin/sh"]
+          args: ["-c", "while [ true ] ; do echo 'sleeping..'; sleep 10; done"]
           tty: true
           env:
            - name: KSA_JWT
@@ -132,17 +136,40 @@ spec:
            - name: VAULT_ADDR
              value: ${VAULT_ADDR}
            - name: VAULT_CAPATH
-             value: /stuff/ca.pem
+             value: /stuff/vault-info/ca.pem
            - name: GOOGLE_APPLICATION_CREDENTIALS
-             value: /stuff/key.json
+             value: /stuff/google-info/key.json
           volumeMounts:
-            - mountPath: /stuff
+            - mountPath: /stuff/google-info
               name: google-auth-token
+            - mountPath: /stuff/vault-info
+              name: cert
+              readOnly: true
+            - mountPath: /var/run/secrets/tokens
+              name: vault-token
+              readOnly: true
       volumes:
         - emptyDir:
             medium: Memory
           name: google-auth-token
-        - emptyDir:
-            medium: Memory
-          name: google-auth-token
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: vault-ca
+        - name: vault-token
+          projected:
+            sources:
+            - serviceAccountToken:
+                path: vault-token
+                expirationSeconds: 7200
+                audience: vault
 EOF
+
+
+kubectl apply -f test-vault-auth.yaml
+
+
+
+echo "kubectl exec -it -n ${VAULT_NS} \$(kubectl get pod  -n \${VAULT_NS} --selector=app=\${VAULT_NS}-app -o=jsonpath='{.items[0].metadata.name'}) /bin/sh"
+
+kubectl exec -n app-crd-vault-test-ns $(kubectl get pod  -n app-crd-vault-test-ns--selector=app=app-crd-vault-test-ns-app -o=jsonpath='{.items[0].metadata.name}') /bin/sh
