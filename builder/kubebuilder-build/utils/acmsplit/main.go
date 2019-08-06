@@ -121,7 +121,7 @@ func SplitYAMLDocuments(yamlBytes []byte) ([]byte, []byte, error) {
 		// Save the mapping between the gvk and the bytes that object consists of
 		switch typeMetaInfo.Kind {
 		case "Namespace":
-		case "ConstraintTemplate", "Constraint":
+		case "ConstraintTemplate", "Constraint", "Config":
 			fallthrough
 		case "ClusterRole":
 			fallthrough
