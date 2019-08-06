@@ -167,11 +167,11 @@ steps:
         PARM_BUILD_BRANCH="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
 
         curl -Lo acm-init.sh \
-           https://storage.googleapis.com/anthos-appconfig_public/install/scripts/acm-init.sh
+           https://storage.googleapis.com/anthos-appconfig_public/install/scripts/$${PARM_BUILD_BRANCH}/acm-init.sh
         chmod a+x acm-init.sh
-        curl -Lo $${MYENV_TEST_DIR}/crd-setup-helper.sh \
-           https://storage.googleapis.com/anthos-appconfig_public/install/scripts/crd-setup-helper.sh
-        chmod a+x $${MYENV_TEST_DIR}/crd-setup-helper.sh
+        curl -Lo crd-setup-helper.sh \
+           https://storage.googleapis.com/anthos-appconfig_public/install/scripts/$${PARM_BUILD_BRANCH}/crd-setup-helper.sh
+        chmod a+x crd-setup-helper.sh
 
         export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH;$${MYENV_TEST_DIR}/crd-setup-helper.sh pre-install "$${MYENV_TEST_DIR}/generated/istio" -genexternal
 
