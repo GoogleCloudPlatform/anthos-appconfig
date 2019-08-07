@@ -183,6 +183,9 @@ steps:
         gsutil cp 'placeholder.txt' "gs://${PROJECT_ID}_public/acm/anthos-config-management/$$PARM_BUILD_BRANCH/"
         gsutil rm -R "gs://${PROJECT_ID}_public/acm/anthos-config-management/$$PARM_BUILD_BRANCH/*"
         gsutil cp -R 'anthos-config-management/*' "gs://${PROJECT_ID}_public/acm/anthos-config-management/$$PARM_BUILD_BRANCH/"
+        gsutil rm -R "gs://${PROJECT_ID}_public/install/scripts/$$PARM_BUILD_BRANCH/*"
+        gsutil cp 'placeholder.txt' "gs://${PROJECT_ID}_public/install/scripts/$$PARM_BUILD_BRANCH/"
+        gsutil cp -R 'scripts/*' "gs://${PROJECT_ID}_public/install/scripts/$$PARM_BUILD_BRANCH/"
     dir: "build-source"
   - name: google/cloud-sdk
     entrypoint: "bash"
@@ -192,8 +195,6 @@ steps:
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         PARM_BUILD_BRANCH="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
         ls -r  examples/use-cases/*/deploy-apps.yaml | xargs -I '{}'  gsutil cp '{}' gs://anthos-appconfig_public/deploy/$$PARM_BUILD_BRANCH/'{}'
-        gsutil cp 'placeholder.txt' gs://anthos-appconfig_public/install/$$PARM_BUILD_BRANCH/scripts/
-        gsutil cp scripts/* gs://anthos-appconfig_public/install/$$PARM_BUILD_BRANCH/scripts
     dir: "build-source"
   - name: google/cloud-sdk
     entrypoint: "bash"

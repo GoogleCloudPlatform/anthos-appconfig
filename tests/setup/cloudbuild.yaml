@@ -107,7 +107,7 @@ steps:
     args:
       - '-c'
       - |
-        echo 'STEP-DEFINE-ENV-INFO'
+        echo 'STEP-DEFINE-ENVIRONMENT-INFO'
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         date "+%Y%m%d-%H%M%S" > $$MYENV_DIR/_fileat_TAG.out
         date "+%Y%m%d-%H" > $$MYENV_DIR/_file_at_hr_TAG.out
@@ -334,10 +334,10 @@ steps:
 
         gcloud source repos clone  $$PARM_REPO "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" --project "$$PARM_PROJ"
         curl -Lo acm-init.sh \
-           https://storage.googleapis.com/anthos-appconfig_public/install/scripts/acm-init.sh
+           https://storage.googleapis.com/anthos-appconfig_public/install/scripts/$${PARM_BUILD_BRANCH}/acm-init.sh
         chmod a+x acm-init.sh
         curl -Lo crd-setup-helper.sh \
-           https://storage.googleapis.com/anthos-appconfig_public/install/scripts/crd-setup-helper.sh
+           https://storage.googleapis.com/anthos-appconfig_public/install/scripts/$${PARM_BUILD_BRANCH}/crd-setup-helper.sh
         chmod a+x crd-setup-helper.sh
         rm -f ./kubeconfig
         touch ./kubeconfig
