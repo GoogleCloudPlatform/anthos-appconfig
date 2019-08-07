@@ -21,6 +21,7 @@ from os import path
 import sys
 import unittest
 import subprocess
+import time
 
 # sys.path.append(os.path.abspath('../simple_hello'))
 # from auth_helper import GCPAuthHelper
@@ -41,8 +42,12 @@ class OpaTestCase(unittest.TestCase):
     self.assertEqual(len(should_not_exist.items), 0)
 
   def test_appconfig_ns_limit(self):
+    time.sleep(30)
+
     # Should succeed.
     self.kubectl_apply("opa-appconfig-1.yaml")
+
+    time.sleep(30)
     # Only one appconfig per namespaces should be allowed, so this should fail.
     with self.assertRaises(subprocess.CalledProcessError):
       self.kubectl_apply("opa-appconfig-2.yaml")
