@@ -22,6 +22,7 @@ package main
 
 import (
   "bytes"
+  "context"
   "crypto/tls"
   "crypto/x509"
   "encoding/json"
@@ -41,6 +42,10 @@ import (
 
   "os"
 
+  corev1 "k8s.io/api/core/v1"
+  metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+  "k8s.io/client-go/kubernetes"
+  "k8s.io/client-go/tools/clientcmd"
   //"time"
 )
 
@@ -87,6 +92,58 @@ func rootCAs(vaultCaPem string) (*x509.CertPool, error) {
   //  }
   //  return pool, err
   //}
+}
+
+// svcAcctJWT looks up the stored JWT secret token for a given service account
+func svcAcctJWT(ctx context.Context, name, namespace string) (string, error) {
+  log.Info("common:svcAcctJWT")
+
+  var (
+    err error
+
+    secret     = &corev1.Secret{}
+    svcAccount = &corev1.ServiceAccount{}
+  )
+
+  log.Info("common:svcAcctJWT:secret", "name", name, "namespace", namespace)
+
+  config, err := clientcmd.BuildConfigFromFlags("", "")
+  if err != nil {
+    panic(err)
+  }
+  clientset, err := kubernetes.NewForConfig(config)
+  if err != nil {
+    panic(err)
+  }
+
+  // get service account
+  sa, err := clientset.CoreV1().ServiceAccounts(namespace).Get(name, metav1.GetOptions{})
+  if err != nil {
+    log.Error(err, "get ServiceAccount")
+    return "", fmt.Errorf("%s serviceAccount not found in %s namespace", name, namespace)
+  }
+
+  if len(sa.Secrets) == 0 {
+    return "", fmt.Errorf("%s serviceAccount token not found", name)
+  }
+
+  log.Info("common:svcAcctJWT:secret:value", "name", name, "namespace", namespace)
+
+  ref := svcAccount.Secrets[0]
+
+  // get service account token secret
+  secret, err = clientset.CoreV1().Secrets(namespace).Get(ref.Name, metav1.GetOptions{})
+  if err != nil {
+    return "", fmt.Errorf("%s serviceAccount token not found: %s", name, err)
+  }
+
+  b := string(secret.Data["token"])
+  //b, err := base64.StdEncoding.DecodeString(string(secret.Data["token"]))
+  //if err != nil {
+  //	return "", err
+  //}
+
+  return string(b), nil
 }
 
 func authenticate(role, jwt string, vaultCaPem string, vaultAddr string, vaultK8SMountPath string) (string, string, error) {
@@ -182,11 +239,12 @@ func main() {
   }).Info("main:start")
 
   var (
-    vaultAddr         = mustGetenv("VAULT_ADDR")
-    vaultCAPath       = mustGetenv("VAULT_CAPATH")
-    gcpRolesetKeyPath = mustGetenv("INIT_GCP_KEYPATH")
-    k8sJWT            = mustGetenv("KSA_JWT")
-    credentialPath    = mustGetenv("GOOGLE_APPLICATION_CREDENTIALS")
+    vaultAddr             = mustGetenv("VAULT_ADDR")
+    vaultCAPath           = mustGetenv("VAULT_CAPATH")
+    gcpRolesetKeyPath     = mustGetenv("INIT_GCP_KEYPATH")
+    credentialPath        = mustGetenv("GOOGLE_APPLICATION_CREDENTIALS")
+    k8sServiceAccountName = mustGetenv("MY_POD_SERVICE_ACCOUNT")
+    k8sNamespace          = mustGetenv("MY_POD_NAMESPACE")
   )
 
   log.WithFields(log.Fields{
@@ -206,11 +264,14 @@ func main() {
   //  panic(err)
   //}
 
-
-
   log.WithFields(log.Fields{
     "ca": string(ca),
   }).Info("main:ca")
+
+  k8sJWT, err := svcAcctJWT(context.TODO(), k8sServiceAccountName, k8sNamespace)
+  if err != nil {
+    panic(err)
+  }
 
   log.Infoln("authenticate", string(k8sJWT))
 
