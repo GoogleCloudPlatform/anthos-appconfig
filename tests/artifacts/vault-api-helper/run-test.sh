@@ -53,6 +53,7 @@ CHECK_GCP_2=$(vault read "${VAULT_GCP_RELATED_PREFIX}/config")
 
 
 
+
 gcloud projects add-iam-policy-binding ${PROJECT_NAME} \
   --member=serviceAccount:${VAULT_SA_EMAIL} \
   --role roles/pubsub.admin
@@ -68,11 +69,13 @@ gcloud projects add-iam-policy-binding  ${PROJECT_NAME} \
 
 
 export ROLE_NAME=${VAULT_ROLE_NAME}
+export GCP_RELATED_PREFIX=${VAULT_GCP_RELATED_PREFIX}
 
 . ../../../../examples/use-cases/uc-secrets-vault-k8s/vault-roles-policy.sh
 
 cat ${ROLE_NAME}-policy.hcl
 cat ${ROLE_NAME}-gcp.hcl
+
 
 vault policy write ${VAULT_ROLE_NAME} ./${VAULT_ROLE_NAME}-policy.hcl
 
@@ -90,16 +93,45 @@ vault write auth/${VAULT_KSA_RELATED}/role/${VAULT_ROLE_NAME} \
 
 
 [ ! -z  "$(kubectl get namespace ${VAULT_NS} --output 'jsonpath={.metadata.name}')" ] || kubectl create ns ${VAULT_NS}
-
+[ ! -z  "$(kubectl get sa -n ${VAULT_NS} vault-auth --output 'jsonpath={.metadata.name}')" ] || kubectl create -n ${VAULT_NS} sa vault-auth
 [ ! -z  "$(kubectl get secret vault-ca -n  ${VAULT_NS}  --output 'jsonpath={.metadata.name}')" ] || kubectl create secret generic vault-ca \
   --namespace=${VAULT_NS} \
   --from-file=${VAULT_CACERT}
 
+
+VAULT_SA_SECRET=$(kubectl get -n appconfigmgrv2-system sa vault-auth -o jsonpath="{.secrets[*]['name']}")
+VAULT_SA_JWT_TOKEN=$(kubectl get -n appconfigmgrv2-system secret $VAULT_SA_SECRET -o jsonpath="{.data.token}" | base64 --decode; echo)
+VAULT_SA_CA_CRT=$(kubectl get -n appconfigmgrv2-system secret $VAULT_SA_SECRET -o jsonpath="{.data['ca\.crt']}" | base64 --decode; echo)
+VAULT_REVIEWER_CLUSTER=$(kubectl config current-context)
+VAULT_REVIEWER_CLIENT_API_SERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name==\"${VAULT_REVIEWER_CLUSTER}\")].cluster.server}")
+
+VAULT_USER_SECRET=$(kubectl get -n ${VAULT_NS} sa ${VAULT_KSA} -o jsonpath="{.secrets[*]['name']}")
+VAULT_USER_JWT_TOKEN=$(kubectl get -n ${VAULT_NS} secret $VAULT_USER_SECRET -o jsonpath="{.data.token}" | base64 --decode; echo)
+VAULT_USER_CA_CRT=$(kubectl get -n a ${VAULT_NS} secret $VAULT_USER_SECRET -o jsonpath="{.data['ca\.crt']}" | base64 --decode; echo)
+
+
+vault write auth/${VAULT_KSA_RELATED}/config \
+  token_reviewer_jwt="${VAULT_SA_JWT_TOKEN}" \
+  kubernetes_host="${VAULT_REVIEWER_CLIENT_API_SERVER}" \
+  kubernetes_ca_cert="${VAULT_SA_CA_CRT}"
+
+#vaupath “secret/demo/*” {
+# capabilities = [“create”, “read”, “update”, “delete”, “list”]
+#}
+
 cat > test-vault-auth.yaml << EOF
-apiVersion: v1
-kind: ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
 metadata:
-  name: ${VAULT_KSA}
+  name: role-tokenreview-binding
+  namespace: ${VAULT_NS}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+- kind: ServiceAccount
+  name: vault-auth
   namespace: ${VAULT_NS}
 ---
 apiVersion: apps/v1beta1
@@ -121,14 +153,14 @@ spec:
       serviceAccountName:  ${VAULT_KSA}
       containers:
         - name: ${VAULT_NS}-app-c1
-          image: gcr.io/anthos-appconfig/vault-api-helper:lastest
+          image: gcr.io/anthos-appconfig/vault-api-helper:latest
           imagePullPolicy: Always
           command: ["/bin/sh"]
           args: ["-c", "while [ true ] ; do echo 'sleeping..'; sleep 10; done"]
           tty: true
           env:
            - name: KSA_JWT
-             value: eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJ1Yy1zZWNyZXRzLXZhdWx0LWs4cyIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJ1Yy1zZWNyZXRzLXZhdWx0LWs4cy1rc2EtdG9rZW4tYnBmYmoiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoidWMtc2VjcmV0cy12YXVsdC1rOHMta3NhIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiOTFhNTIwNzgtYjdlMi0xMWU5LTgzY2MtNDIwMWFjMWMwMDAzIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OnVjLXNlY3JldHMtdmF1bHQtazhzOnVjLXNlY3JldHMtdmF1bHQtazhzLWtzYSJ9.NDEap29V1HC5pDSAjkQJtLBafPir8-3ZJeTY0Oj5eNCki3c7HBFM112FunWt-vOPh21blIZ7MIEXKPTwuitJ2ha_9TLDBhRMGNqjHWh-v4gm5quteu1xx4TLQ4eZM50YwXKXVuy5a2jApHXwq2goCuVqd6nSnUKJXWul7oysNW3puwGYApkU1xUifTu2lpR9Q3INqBF2zZSmtK3dkMzxbCPyGqS9vsZOu6i1zG45tWxor_rMy_QIVj5jFSPNI6I05sTbXMR9uciNOL-LnWeMDx3EvEXeXyDpQdWYDw84fF_LxsOaVRm76nThD1ErSi4A1eSQ_LwGIPyIUMvpoGqn3Q
+             value: ${VAULT_USER_JWT_TOKEN}
            - name: INIT_GCP_KEYPATH
              value:  ${VAULT_GCP_RELATED_PREFIX}/key/${VAULT_ROLE_NAME}
            - name: INIT_K8S_KEYPATH

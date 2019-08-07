@@ -24,19 +24,21 @@ import (
   "bytes"
   "crypto/tls"
   "crypto/x509"
+  "encoding/json"
   "flag"
   "io"
   "io/ioutil"
-  "encoding/json"
   "net/http"
   "strings"
 
-  //"encoding/base64"
-  "errors"
   "fmt"
   "github.com/hashicorp/vault/api"
+  //"encoding/base64"
+  "github.com/pkg/errors"
   //"io/ioutil"
   log "github.com/sirupsen/logrus"
+  "golang.org/x/net/http2"
+
   "os"
 
   //"time"
@@ -50,38 +52,46 @@ func mustGetenv(k string) string {
   return v
 }
 
-func rootCAs() (*x509.CertPool, error) {
-  switch {
-  case vaultCaPem != "":
-    pool := x509.NewCertPool()
-    if err := loadCert(pool, []byte(vaultCaPem)); err != nil {
-      return nil, err
-    }
-    return pool, nil
-  case vaultCaCert != "":
-    pool := x509.NewCertPool()
-    if err := loadCertFile(pool, vaultCaCert); err != nil {
-      return nil, err
-    }
-    return pool, nil
-  case vaultCaPath != "":
-    pool := x509.NewCertPool()
-    if err := loadCertFolder(pool, vaultCaPath); err != nil {
-      return nil, err
-    }
-    return pool, nil
-  default:
-    pool, err := x509.SystemCertPool()
-    if err != nil {
-      return nil, errors.Wrap(err, "failed to load system certs")
-    }
-    return pool, err
+// loadCert loads a single pem-encoded certificate into the given pool.
+func loadCert(pool *x509.CertPool, pem []byte) error {
+  if ok := pool.AppendCertsFromPEM(pem); !ok {
+    return fmt.Errorf("failed to parse PEM")
   }
+  return nil
 }
 
-func authenticate(role, jwt string) (string, string, error) {
+func rootCAs(vaultCaPem string) (*x509.CertPool, error) {
+  //switch {
+  //case vaultCaPem != "":
+  pool := x509.NewCertPool()
+  if err := loadCert(pool, []byte(vaultCaPem)); err != nil {
+    return nil, err
+  }
+  return pool, nil
+  //case vaultCaCert != "":
+  //  pool := x509.NewCertPool()
+  //  if err := loadCertFile(pool, vaultCaCert); err != nil {
+  //    return nil, err
+  //  }
+  //  return pool, nil
+  //case vaultCaPath != "":
+  //  pool := x509.NewCertPool()
+  //  if err := loadCertFolder(pool, vaultCaPath); err != nil {
+  //    return nil, err
+  //  }
+  //  return pool, nil
+  //default:
+  //  pool, err := x509.SystemCertPool()
+  //  if err != nil {
+  //    return nil, errors.Wrap(err, "failed to load system certs")
+  //  }
+  //  return pool, err
+  //}
+}
+
+func authenticate(role, jwt string, vaultCaPem string, vaultAddr string, vaultK8SMountPath string) (string, string, error) {
   // Setup the TLS (especially required for custom CAs)
-  rootCAs, err := rootCAs()
+  rootCAs, err := rootCAs(vaultCaPem)
   if err != nil {
     return "", "", err
   }
@@ -91,13 +101,13 @@ func authenticate(role, jwt string) (string, string, error) {
     RootCAs:    rootCAs,
   }
 
-  if vaultSkipVerify {
-    tlsClientConfig.InsecureSkipVerify = true
-  }
+  //if vaultSkipVerify {
+  //  tlsClientConfig.InsecureSkipVerify = true
+  //}
 
-  if vaultServerName != "" {
-    tlsClientConfig.ServerName = vaultServerName
-  }
+  //if vaultServerName != "" {
+  //  tlsClientConfig.ServerName = vaultServerName
+  //}
 
   transport := &http.Transport{
     TLSClientConfig: tlsClientConfig,
@@ -172,17 +182,16 @@ func main() {
   }).Info("main:start")
 
   var (
-    vaultAddr = mustGetenv("VAULT_ADDR")
-    vaultCAPath = mustGetenv("VAULT_CAPATH")
+    vaultAddr         = mustGetenv("VAULT_ADDR")
+    vaultCAPath       = mustGetenv("VAULT_CAPATH")
     gcpRolesetKeyPath = mustGetenv("INIT_GCP_KEYPATH")
-    k8sJWTPath            = "/var/run/secrets/tokens/vault-token"
+    k8sJWT            = mustGetenv("KSA_JWT")
     credentialPath    = mustGetenv("GOOGLE_APPLICATION_CREDENTIALS")
   )
 
   log.WithFields(log.Fields{
-    "vaultAddr": vaultAddr,
+    "vaultAddr":   vaultAddr,
     "vaultCAPath": vaultCAPath,
-
   }).Info("main:Parms")
 
   ca, err := ioutil.ReadFile(vaultCAPath)
@@ -190,16 +199,33 @@ func main() {
     panic(err)
   }
 
-  k8sJWT, err := ioutil.ReadFile(k8sJWTPath)
-  if err != nil {
-    panic(err)
-  }
-
   log.Infoln("read jwt")
+
+  //k8sJWT, err := ioutil.ReadFile(k8sJWTPath)
+  //if err != nil {
+  //  panic(err)
+  //}
+
+
+
   log.WithFields(log.Fields{
     "ca": string(ca),
   }).Info("main:ca")
 
+  log.Infoln("authenticate", string(k8sJWT))
+
+  token, accessor, err := authenticate("app-crd-vault-test-role", string(k8sJWT),
+    string(ca), vaultAddr, "k8s-app-crd-vault-test-appcrd-cicenas-20190806-c-b-bcicen-uc-secrets-vault-13")
+  if err != nil {
+    panic(err)
+  }
+
+  log.WithFields(log.Fields{
+    "token":    token,
+    "accessor": accessor,
+  }).Info("authenticate")
+
+  log.Infoln("client")
   client, err := api.NewClient(&api.Config{
     Address: vaultAddr,
   })
@@ -216,7 +242,6 @@ func main() {
   }
 
   client.SetToken(string(secret.Auth.ClientToken))
-
 
   log.Infoln("getGCPKey")
 

@@ -558,10 +558,12 @@ steps:
         VAULT_SA_SECRET=$(kubectl get -n appconfigmgrv2-system sa vault-auth -o jsonpath="{.secrets[*]['name']}")
         VAULT_SA_JWT_TOKEN=$(kubectl get -n appconfigmgrv2-system secret $$VAULT_SA_SECRET -o jsonpath="{.data.token}" | base64 --decode; echo)
         VAULT_SA_CA_CRT=$(kubectl get -n appconfigmgrv2-system secret $$VAULT_SA_SECRET -o jsonpath="{.data['ca\.crt']}" | base64 --decode; echo)
+        VAULT_REVIEWER_CLUSTER=$(kubectl config current-context)
+        VAULT_REVIEWER_CLIENT_API_SERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name==\"$${VAULT_REVIEWER_CLUSTER}\")].cluster.server}")
 
         $${MYENV_TEST_DIR}/vault write auth/$${VAULT_KSA_RELATED}/config \
           token_reviewer_jwt="$$VAULT_SA_JWT_TOKEN" \
-          kubernetes_host="$${VAULT_ADDR}" \
+          kubernetes_host="$${VAULT_REVIEWER_CLIENT_API_SERVER}" \
           kubernetes_ca_cert="$$VAULT_SA_CA_CRT"
 
         K8S_CONTEXT=$(kubectl config current-context)
