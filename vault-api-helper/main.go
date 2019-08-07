@@ -46,6 +46,8 @@ import (
   metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
   "k8s.io/client-go/kubernetes"
   "k8s.io/client-go/tools/clientcmd"
+
+  "k8s.io/client-go/rest"
   //"time"
 )
 
@@ -156,10 +158,11 @@ func getApplicationsSecrets(ctx context.Context, name string, namespace string) 
 
   log.Info("common:getApplicationsSecrets:secret", "name", name, "namespace", namespace)
 
-  config, err := clientcmd.BuildConfigFromFlags("", "")
+  config, err := rest.InClusterConfig()
   if err != nil {
-    panic(err)
+    panic(err.Error())
   }
+
   clientset, err := kubernetes.NewForConfig(config)
   if err != nil {
     panic(err)
