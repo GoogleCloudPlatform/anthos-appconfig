@@ -155,11 +155,11 @@ steps:
         PARM_REPO_LOCAL_PATH=$(cat $${MYENV_DIR}/_filerepopath_TAG.out)
         PARM_BUILD_BRANCH="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
 
-        curl -Lo acm-init.sh \
-           https://storage.googleapis.com/anthos-appconfig_public/install/$$PARM_BUILD_BRANCH/scripts/acm-init.sh
-        chmod a+x acm-init.sh
+        curl -Lo $${MYENV_TEST_DIR}/acm-init.sh \
+           https://storage.googleapis.com/anthos-appconfig_public/install/scripts/$${PARM_BUILD_BRANCH}/acm-init.sh
+        chmod a+x $${MYENV_TEST_DIR}/acm-init.sh
         curl -Lo $${MYENV_TEST_DIR}/crd-setup-helper.sh \
-           https://storage.googleapis.com/anthos-appconfig_public/install/$$PARM_BUILD_BRANCH/scripts/crd-setup-helper.sh
+           https://storage.googleapis.com/anthos-appconfig_public/install/scripts/$${PARM_BUILD_BRANCH}/crd-setup-helper.sh
         chmod a+x $${MYENV_TEST_DIR}/crd-setup-helper.sh
 
         gsutil cp gs://anthos-appconfig_public/install/vault-linux-64  $${MYENV_TEST_DIR}/vault
