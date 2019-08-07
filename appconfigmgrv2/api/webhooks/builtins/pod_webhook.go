@@ -310,10 +310,10 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 
 	// get provided serviceAccount JWT token
 	log.Info("handleGCPVault:loadConfig", "ServiceAccount", vaultInfo.ServiceAccount)
-	ksaToken, err := svcAcctJWT(ctx, vaultInfo.ServiceAccount, app.Namespace)
-	if err != nil {
-		return err
-	}
+	//ksaToken, err := svcAcctJWT(ctx, vaultInfo.ServiceAccount, app.Namespace)
+	//if err != nil {
+	//	return err
+	//}
 
 	// copy vault CA cert into app namespace
 	VAULT_CA_SECRET_NAME := "vault-ca"
