@@ -5,8 +5,9 @@ WORKDIR /go/src/app
 ENV GOPATH=/go
 ENV GO111MODULE=on
 RUN go mod init
-#RUN go get -u github.com/golang/dep/cmd/dep
+RUN go get k8s.io/client-go@v12.0.0
 ADD ./main.go /go/src/app
+
 #COPY Gopkg.toml /go/src/app
 
 RUN go test -v
