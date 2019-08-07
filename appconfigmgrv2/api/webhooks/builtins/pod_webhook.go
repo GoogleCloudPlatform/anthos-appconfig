@@ -315,11 +315,11 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 	if err != nil {
 		return err
 	}
-	log.Info("handleGCPVault:loadConfig", "Token",len(ksaToken))
+	log.Info("handleGCPVault:loadConfig", "Token", len(ksaToken))
 
 	VAULT_ADDITIONAL_SECRET := "vault-helper-info"
-	secretDataMap := &map[string]string {
-		"ksa.token" : ksaToken,
+	secretDataMap := &map[string]string{
+		"ksa.token": ksaToken,
 	}
 
 	createSecret(context.TODO(), VAULT_ADDITIONAL_SECRET, app.Namespace, secretDataMap)
