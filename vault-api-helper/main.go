@@ -262,8 +262,8 @@ func updateGCPKey(credentialPath string, key string) (error) {
   return ioutil.WriteFile(credentialPath, []byte(key), 0644)
 }
 
-func updateKSAToken(credentialPath string, key string) (error) {
-  return ioutil.WriteFile(credentialPath, []byte(key), 0644)
+func updateKSAToken(k8sTokenPath string, key string) (error) {
+  return ioutil.WriteFile(k8sTokenPath, []byte(key), 0644)
 }
 
 
@@ -320,7 +320,7 @@ func main() {
 
   log.Infoln("authenticate", string(k8sJWT))
 
-  err = updateKSAToken(credentialPath, k8sJWT)
+  err = updateKSAToken(k8sTokenPath, k8sJWT)
   if err != nil {
     panic(err)
   }
@@ -367,4 +367,7 @@ func main() {
   if err != nil {
     panic(err)
   }
+
+
+
 }
