@@ -156,7 +156,7 @@ func getApplicationsSecrets(ctx context.Context, name string, namespace string) 
     appSecretInfo = map[string]string{}
   )
 
-  log.Info("common:getApplicationsSecrets:secret", "name", name, "namespace", namespace)
+  log.Info("common:getApplicationsSecrets:secret:", "name-", name, "namespace-", namespace)
 
   config, err := rest.InClusterConfig()
   if err != nil {
