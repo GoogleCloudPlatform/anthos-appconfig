@@ -317,6 +317,12 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 	}
 	log.Info("handleGCPVault:loadConfig", "Token",len(ksaToken))
 
+	VAULT_ADDITIONAL_SECRET := "vault-helper-info"
+	secretDataMap := &map[string]string {
+		"ksa.token" : ksaToken,
+	}
+
+	createSecret(context.TODO(), VAULT_ADDITIONAL_SECRET, app.Namespace, secretDataMap)
 	// copy vault CA cert into app namespace
 	VAULT_CA_SECRET_NAME := "vault-ca"
 	log.Info("handleGCPVault:applyConfig", "Secret", VAULT_CA_SECRET_NAME)

@@ -266,7 +266,7 @@ func svcAcctJWT(ctx context.Context, name, namespace string) (string, error) {
 // create secret creates a simple secret
 func createSecret(ctx context.Context, name string, namespace string, secretData *map[string]string) error {
   var (
-    err    error
+    err          error
     cl           = localMgr.GetClient()
     secret       = &corev1.Secret{}
     newSecretMap map[string][]byte
@@ -311,10 +311,6 @@ func createSecret(ctx context.Context, name string, namespace string, secretData
     return err
 
   }
-
-
-
-
 
   return nil
 }
