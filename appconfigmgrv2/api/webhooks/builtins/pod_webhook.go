@@ -22,8 +22,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	errors2 "github.com/pkg/errors"
-
 	"fmt"
 	"net/http"
 	"os"
