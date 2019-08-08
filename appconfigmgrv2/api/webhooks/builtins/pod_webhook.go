@@ -397,7 +397,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 			},
 			{
 				Name:  "INIT_K8S_TOKEN_KEYPATH",
-				Value: "/var/run/secrets/vault/token/ksa.token",
+				Value: "/var/run/secrets/google/token/ksa.token",
 			},
 		},
 		VolumeMounts: []corev1.VolumeMount{
