@@ -22,6 +22,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	errors2 "github.com/pkg/errors"
 
 	"fmt"
 	"net/http"
@@ -341,6 +342,14 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 		},
 	})
 
+
+
+
+	log.Info("handleGCPVault:applyConfig", "getVolumeMountForToken", gcpVolName)
+	serviceAccountVolumeMount := getVolumeMountsInExistingContainers(pod)
+	if (serviceAccountVolumeMount == nil) {
+		panic(errors.New("Failed to find serviceAccountVolumeMount"))
+	}
 	log.Info("handleGCPVault:injectInitContainer", "Container", "vault-gcp-auth")
 
 	// inject vault-gcp init container
@@ -402,6 +411,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 				Name:      gcpVolName,
 				MountPath: "/var/run/secrets/google/token",
 			},
+			*serviceAccountVolumeMount,
 		},
 	})
 

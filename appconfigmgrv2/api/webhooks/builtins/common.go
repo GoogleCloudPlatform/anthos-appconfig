@@ -24,6 +24,8 @@ func getConfigMap(ctx context.Context, name, ns string) (*corev1.ConfigMap, erro
 	return cm, nil
 }
 
+
+
 // injectVolume adds a given volume to the given pod, if not already exists
 func injectVolume(pod *corev1.Pod, volume corev1.Volume) {
 	log.V(1).Info("injectVolume", "volumeName", volume.Name)
@@ -96,6 +98,22 @@ func injectVolumeMount(pod *corev1.Pod, volumeMount corev1.VolumeMount) {
 			c.VolumeMounts[idx] = volumeMount
 		}
 	}
+
+}
+
+// injectVolumeMount adds a given volumeMount to all containers in a given pod
+func getVolumeMountsInExistingContainers(pod *corev1.Pod) *corev1.VolumeMount {
+	log.V(1).Info("getVolumeMountsInExistingContainers", "volumeName", pod.Name)
+
+	for _, c := range pod.Spec.Containers {
+		for _, vm := range c.VolumeMounts {
+			if vm.MountPath == "/var/run/secrets/kubernetes.io/serviceaccount" {
+				return vm.DeepCopy()
+			}
+		}
+	}
+
+	return nil
 
 }
 
