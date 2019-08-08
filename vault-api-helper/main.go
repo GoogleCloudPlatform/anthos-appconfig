@@ -29,6 +29,7 @@ import (
   "flag"
   "io"
   "io/ioutil"
+ "path/filepath"
   "net/http"
   "strings"
 
@@ -262,10 +263,12 @@ func getGCPKey(c *api.Client, keyRolesetPath string) (string, error) {
 }
 
 func updateGCPKey(credentialPath string, key string) (error) {
+  os.MkdirAll((filepath.Dir(credentialPath)), os.ModePerm)
   return ioutil.WriteFile(credentialPath, []byte(key), 0644)
 }
 
 func updateKSAToken(k8sTokenPath string, key string) (error) {
+  os.MkdirAll((filepath.Dir(k8sTokenPath)), os.ModePerm)
   return ioutil.WriteFile(k8sTokenPath, []byte(key), 0644)
 }
 
