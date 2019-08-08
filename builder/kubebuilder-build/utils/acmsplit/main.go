@@ -11,11 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-// 
-// Copyright 2019 Google LLC. This software is provided as-is, 
+//
+// Copyright 2019 Google LLC. This software is provided as-is,
 // without warranty or representation for any use or purpose.
 //
-
 
 package main
 
@@ -25,14 +24,16 @@ import (
 	b64 "encoding/base64"
 	"flag"
 	"fmt"
-	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
+	"log"
+
+	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 	"k8s.io/api/admissionregistration/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
-	"log"
+
 	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -49,7 +50,7 @@ import (
 
 // createConfigMapWithYAML creates a ConfigMap with the YAML of the webhook, to be able to generate
 // at install time with the key information and caBundle
-func createConfigMapWithYAML(b []byte) ([] byte, error) {
+func createConfigMapWithYAML(b []byte) ([]byte, error) {
 	decode := scheme.Codecs.UniversalDeserializer().Decode
 	obj, groupVersionKind, err := decode(b, nil, nil)
 	if err != nil {
@@ -81,7 +82,6 @@ func createConfigMapWithYAML(b []byte) ([] byte, error) {
 	return b, nil
 
 }
-
 
 // SplitYAMLDocuments reads the YAML bytes per-document, unmarshals the TypeMeta information from each document
 // and returns a map between the GroupVersionKind of the document and the document bytes
@@ -121,7 +121,7 @@ func SplitYAMLDocuments(yamlBytes []byte) ([]byte, []byte, error) {
 		// Save the mapping between the gvk and the bytes that object consists of
 		switch typeMetaInfo.Kind {
 		case "Namespace":
-		case "ConstraintTemplate":
+		case "ConstraintTemplate", "Constraint":
 			fallthrough
 		case "ClusterRole":
 			fallthrough
@@ -133,7 +133,7 @@ func SplitYAMLDocuments(yamlBytes []byte) ([]byte, []byte, error) {
 		case "MutatingWebhookConfiguration":
 			fallthrough
 		case "ValidatingWebhookConfiguration":
-			configMapBytes, err :=   createConfigMapWithYAML(b)
+			configMapBytes, err := createConfigMapWithYAML(b)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -150,8 +150,8 @@ func SplitYAMLDocuments(yamlBytes []byte) ([]byte, []byte, error) {
 
 //TODO - This could use a shared utitlity
 func generateOSSHeader() []byte {
-  return []byte(
-`# Copyright 2019 Google LLC
+	return []byte(
+		`# Copyright 2019 Google LLC
  #
  # Licensed under the Apache License, Version 2.0 (the "License");
  # you may not use this file except in compliance with the License.
@@ -168,8 +168,6 @@ func generateOSSHeader() []byte {
  # Copyright 2019 Google LLC. This software is provided as-is, 
  # without warranty or representation for any use or purpose.#
  #`)
-
-
 
 }
 
@@ -189,11 +187,10 @@ func main() {
 		log.Println(err, "errors-gvkmap")
 	}
 
-  gvkCluster = append(generateOSSHeader(), gvkCluster...)
-  gvkOther = append(generateOSSHeader(), gvkOther...)
-
+	gvkCluster = append(generateOSSHeader(), gvkCluster...)
+	gvkOther = append(generateOSSHeader(), gvkOther...)
 
 	fmt.Println("Total - Len", len(gvkCluster)+len(gvkOther))
-	ioutil.WriteFile(*splitToDir + "all-cluster.yaml", gvkCluster, 0644)
-	ioutil.WriteFile(*splitToDir + "all-other.yaml", gvkOther, 0644)
+	ioutil.WriteFile(*splitToDir+"all-cluster.yaml", gvkCluster, 0644)
+	ioutil.WriteFile(*splitToDir+"all-other.yaml", gvkOther, 0644)
 }

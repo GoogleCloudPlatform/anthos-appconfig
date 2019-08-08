@@ -155,6 +155,9 @@ steps:
         gsutil cp 'placeholder.txt' "gs://${PROJECT_ID}_public/acm/anthos-config-management/$$PARM_BUILD_BRANCH/"
         gsutil rm -R "gs://${PROJECT_ID}_public/acm/anthos-config-management/$$PARM_BUILD_BRANCH/*"
         gsutil cp -R 'anthos-config-management/*' "gs://${PROJECT_ID}_public/acm/anthos-config-management/$$PARM_BUILD_BRANCH/"
+        gsutil rm -R "gs://${PROJECT_ID}_public/install/scripts/$$PARM_BUILD_BRANCH/*"
+        gsutil cp 'placeholder.txt' "gs://${PROJECT_ID}_public/install/scripts/$$PARM_BUILD_BRANCH/"
+        gsutil cp -R 'scripts/*' "gs://${PROJECT_ID}_public/install/scripts/$$PARM_BUILD_BRANCH/"
     dir: "build-source"
   - name: google/cloud-sdk
     entrypoint: "bash"

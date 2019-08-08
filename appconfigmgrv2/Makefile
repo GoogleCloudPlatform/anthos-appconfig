@@ -22,19 +22,18 @@ run: generate fmt vet
 # Install CRDs into a cluster
 install: manifests
 	kubectl apply -f config/crd/bases
-	kubectl apply -f config/opa/bases
+	kubectl apply -f config/opa
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests
 	kubectl apply -f config/crd/bases
-	kubectl apply -f config/opa/bases
+	kubectl apply -f config/opa
 	kustomize build config/default | kubectl apply -f -
 
 
 kustomize:
 	mkdir -p config/generated
 	kustomize build config/default > config/generated/all.yaml
-	cat config/opa/constraint-templates.yaml >> config/generated/all.yaml
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
