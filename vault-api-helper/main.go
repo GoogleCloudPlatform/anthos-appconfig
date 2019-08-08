@@ -179,6 +179,8 @@ func getApplicationsSecrets(ctx context.Context, name string, namespace string) 
     appSecretInfo[k] = v
   }
 
+  resAsJSON, _ := json.Marshal(appSecretInfo)
+  log.Println("common:getApplicationsSecrets:JSON:", string(resAsJSON))
   return &appSecretInfo, nil
 }
 
@@ -263,13 +265,35 @@ func getGCPKey(c *api.Client, keyRolesetPath string) (string, error) {
 }
 
 func updateGCPKey(credentialPath string, key string) (error) {
-  os.MkdirAll((filepath.Dir(credentialPath)), os.ModePerm)
-  return ioutil.WriteFile(credentialPath, []byte(key), 0644)
+  log.WithFields(log.Fields{
+    "path": credentialPath,
+    "dir": filepath.Dir(credentialPath),
+  })
+  err := os.MkdirAll(filepath.Dir(credentialPath), os.ModePerm)
+  if  err != nil {
+    return err
+  }
+  err = ioutil.WriteFile(credentialPath, []byte(key), 0644)
+  if  err != nil {
+    return err
+  }
+  return nil
 }
 
 func updateKSAToken(k8sTokenPath string, key string) (error) {
-  os.MkdirAll((filepath.Dir(k8sTokenPath)), os.ModePerm)
-  return ioutil.WriteFile(k8sTokenPath, []byte(key), 0644)
+  log.WithFields(log.Fields{
+    "path": k8sTokenPath,
+    "dir": filepath.Dir(k8sTokenPath),
+  })
+  err := os.MkdirAll(filepath.Dir(k8sTokenPath), os.ModePerm)
+  if  err != nil {
+    return err
+  }
+  err = ioutil.WriteFile(k8sTokenPath, []byte(key), 0644)
+  if  err != nil {
+    return err
+  }
+  return nil
 }
 
 
