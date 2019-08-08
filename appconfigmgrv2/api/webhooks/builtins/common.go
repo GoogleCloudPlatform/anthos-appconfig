@@ -292,7 +292,7 @@ func createSecret(ctx context.Context, name string, namespace string, secretData
 
 	// get source secret
 	err = cl.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, secret)
-	if err != nil && k8sapierrors.IsNotFound(err) {
+	if err != nil && ! k8sapierrors.IsNotFound(err) {
 		return fmt.Errorf("%s/%s secret not found", name, namespace)
 	}
 
