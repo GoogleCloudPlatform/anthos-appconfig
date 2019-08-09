@@ -24,8 +24,6 @@ func getConfigMap(ctx context.Context, name, ns string) (*corev1.ConfigMap, erro
 	return cm, nil
 }
 
-
-
 // injectVolume adds a given volume to the given pod, if not already exists
 func injectVolume(pod *corev1.Pod, volume corev1.Volume) {
 	log.V(1).Info("injectVolume", "volumeName", volume.Name)
@@ -292,7 +290,7 @@ func createSecret(ctx context.Context, name string, namespace string, secretData
 
 	// get source secret
 	err = cl.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, secret)
-	if err != nil && ! k8sapierrors.IsNotFound(err) {
+	if err != nil && !k8sapierrors.IsNotFound(err) {
 		return fmt.Errorf("%s/%s secret not found", name, namespace)
 	}
 
