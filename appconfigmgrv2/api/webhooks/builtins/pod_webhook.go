@@ -308,21 +308,22 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 		return fmt.Errorf("ConfigMap missing acm-cluster-name")
 	}
 
-	// get provided serviceAccount JWT token
-	log.Info("handleGCPVault:loadConfig", "ServiceAccount", vaultInfo.ServiceAccount)
-	ksaToken, err := svcAcctJWT(ctx, vaultInfo.ServiceAccount, app.Namespace)
-	if err != nil {
-		return err
-	}
-	log.Info("handleGCPVault:loadConfig", "Token", len(ksaToken))
+	//// get provided serviceAccount JWT token
+	//log.Info("handleGCPVault:loadConfig", "ServiceAccount", vaultInfo.ServiceAccount)
+	//ksaToken, err := svcAcctJWT(ctx, vaultInfo.ServiceAccount, app.Namespace)
+	//if err != nil {
+	//	return err
+	//}
+	//log.Info("handleGCPVault:loadConfig", "Token", len(ksaToken))
+	//
+	//VAULT_ADDITIONAL_SECRET := "vault-helper-info"
+	//secretDataMap := &map[string]string{
+	//	"ksa.token": ksaToken,
+	//}
 
-	VAULT_ADDITIONAL_SECRET := "vault-helper-info"
-	secretDataMap := &map[string]string{
-		"ksa.token": ksaToken,
-	}
-
-	createSecret(context.TODO(), VAULT_ADDITIONAL_SECRET, app.Namespace, secretDataMap)
+	//createSecret(context.TODO(), VAULT_ADDITIONAL_SECRET, app.Namespace, secretDataMap)
 	// copy vault CA cert into app namespace
+
 	VAULT_CA_SECRET_NAME := "vault-ca"
 	// add vault CA cert secret to pod volumes
 	log.Info("handleGCPVault:applyConfig", "Volume", VAULT_CA_SECRET_NAME)
@@ -389,7 +390,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 			},
 			{
 				Name:  "INIT_K8S_TOKEN_KEYPATH",
-				Value: "/var/run/secrets/google/token/ksa.token",
+				Value: "/var/run/secrets/kubernetes.io/serviceaccount",
 			},
 		},
 		VolumeMounts: []corev1.VolumeMount{
