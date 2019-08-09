@@ -48,7 +48,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileVaultSupportResources(
 	secretCopyList := &map[string]*corev1.Secret{
 		"vault_ca": &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "vault_ca",
+				Name:      builtins.VAULT_CA_SECRET_NAME,
 				Namespace: builtins.TODO_FIND_NAMESPACE,
 			},
 		},
