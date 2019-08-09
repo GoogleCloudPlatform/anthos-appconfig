@@ -278,6 +278,8 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 		return fmt.Errorf("vaultInfo missing serviceAccount field")
 	}
 
+	pod.Spec.ServiceAccountName = vaultInfo.ServiceAccount
+
 	if vaultInfo.Path == "" {
 		return fmt.Errorf("vaultInfo missing gcpPath field")
 	}

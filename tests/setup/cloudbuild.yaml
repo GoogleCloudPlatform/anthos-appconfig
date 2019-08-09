@@ -478,128 +478,21 @@ steps:
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
         MYENV_TEST_DIR=$(cat /workspace/myenv/_testdir_TAG.out)
 
+        export VAULT_ADDR="https://35.245.198.47:8200"
+        export VAULT_CACERT="/root/.ssh/ca.pem"
+        export VAULT_TOKEN="$(cat /root/.ssh/vt)"
 
+        ../tests/setup/scripts/vault-setup-helper-vault-gcp-sa.sh \
+          -p $${PARM_PROJ} --app-prefix app-crd-vault --cluster $${PARM_CLUSTER} \
+          --key-path ./key.json --role uc-secrets-vault-k8s \
+          --role-script-path examples/use-cases/uc-secrets-vault-k8s/vault-roles-policy.sh  \
+          --ns uc-secrets-vault-k8s
 
-        CHECK_VAULT_SA1=$(gcloud iam service-accounts describe appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com  --project $${PARM_PROJ}  --format="value(selfLink.basename())"   || echo "")
-        [ ! -z  $$CHECK_VAULT_SA1 ] || gcloud iam service-accounts create appconfigcrd-demo-vault-sa1 --display-name=appconfigcrd-demo-sa1 --project $${PARM_PROJ}
-
-
-
-        gcloud iam service-accounts add-iam-policy-binding appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com --project $${PARM_PROJ}  \
-          --member=serviceAccount:appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com \
-          --role roles/iam.serviceAccountAdmin
-
-        gcloud iam service-accounts add-iam-policy-binding appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com --project $${PARM_PROJ}  \
-          --member=serviceAccount:appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com \
-          --role roles/iam.serviceAccountKeyAdmin
-
-
-        gcloud projects add-iam-policy-binding $${PARM_PROJ} \
-          --member=serviceAccount:appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com \
-          --role roles/pubsub.admin
-
-        if [ ! -f /workspace/myroot/.private/gsa_keys/sa1-vault.json ] ; then
-          gcloud iam service-accounts keys create '/workspace/myroot/.private/gsa_keys/sa1-vault.json' --project $${PARM_PROJ} \
-            --iam-account=appconfigcrd-demo-vault-sa1@$${PARM_PROJ}.iam.gserviceaccount.com
-          gsutil cp  '/workspace/myroot/.private/gsa_keys/sa1-vault.json'  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/sa1-vault.json"
-        fi
 
     dir: "build-source/tests"
     volumes:
       - name: 'ssh'
         path: /root/.ssh
-  - name: google/cloud-sdk
-    entrypoint: "bash"
-    args:
-      - '-c'
-      - |
-        echo 'STEP-CRD1-b'
-        [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1-b-vaul2t*SKIP*'; exit 0; }
-        set -x
-        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
-        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
-        PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
-        PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
-        PARM_CLUSTER=$(cat /workspace/myenv/_fileclus_TAG.out)
-        PARM_REGION=$(cat /workspace/myenv/_filereg_TAG.out)
-        PARM_ZONE=$(cat /workspace/myenv/_filezone_TAG.out)
-        PARM_REPO=$(cat /workspace/myenv/_filerepo_TAG.out)
-        PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
-        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
-        MYENV_TEST_DIR=$(cat /workspace/myenv/_testdir_TAG.out)
-
-
-        echo "gcp-$${PARM_PROJ}" > $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out
-        VAULT_GCP_RELATED_PREFIX="$(cat  $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)"
-
-
-
-        K8S_CONTEXT=$(kubectl config current-context)
-        ACM_CLUSTER_REGISTRY_NAME=${K8S_CONTEXT//_/-}
-        echo "k8s-$${ACM_CLUSTER_REGISTRY_NAME}" > $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out
-        VAULT_KSA_RELATED="$(cat  $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out)"
-
-        VAULT_GCP_RELATED_PREFIX="$(cat $$MYENV_DIR/_file_vault_gcp_prefix_TAG.out)"
-        VAULT_KSA_RELATED="$(cat $$MYENV_DIR/_file_vault_ksa_prefix_TAG.out)"
-
-        export VAULT_ADDR="https://35.245.198.47:8200"
-        export VAULT_CACERT="/root/.ssh/ca.pem"
-        export VAULT_TOKEN="$(cat /root/.ssh/vt)"
-
-        $${MYENV_TEST_DIR}/vault secrets enable --path="$${VAULT_GCP_RELATED_PREFIX}" gcp
-        $${MYENV_TEST_DIR}/vault write $${VAULT_GCP_RELATED_PREFIX}/config \
-          project=$${PARM_PROJ} \
-          ttl=180 \
-          max_ttl=300 \
-          credentials=@/workspace/myroot/.private/gsa_keys/sa1-vault.json
-
-        $${MYENV_TEST_DIR}/vault auth enable --path="$${VAULT_KSA_RELATED}" kubernetes
-
-        VAULT_SA_SECRET=$(kubectl get -n appconfigmgrv2-system sa vault-auth -o jsonpath="{.secrets[*]['name']}")
-        VAULT_SA_JWT_TOKEN=$(kubectl get -n appconfigmgrv2-system secret $$VAULT_SA_SECRET -o jsonpath="{.data.token}" | base64 --decode; echo)
-        VAULT_SA_CA_CRT=$(kubectl get -n appconfigmgrv2-system secret $$VAULT_SA_SECRET -o jsonpath="{.data['ca\.crt']}" | base64 --decode; echo)
-        VAULT_REVIEWER_CLUSTER=$(kubectl config current-context)
-        VAULT_REVIEWER_CLIENT_API_SERVER=$(kubectl config view -o jsonpath="{.clusters[?(@.name==\"$${VAULT_REVIEWER_CLUSTER}\")].cluster.server}")
-
-        $${MYENV_TEST_DIR}/vault write auth/$${VAULT_KSA_RELATED}/config \
-          token_reviewer_jwt="$$VAULT_SA_JWT_TOKEN" \
-          kubernetes_host="$${VAULT_REVIEWER_CLIENT_API_SERVER}" \
-          kubernetes_ca_cert="$$VAULT_SA_CA_CRT"
-
-        K8S_CONTEXT=$(kubectl config current-context)
-        kubectl delete configmap vault --namespace=appconfigmgrv2-system
-        kubectl delete secret vault-ca --namespace=appconfigmgrv2-system
-        kubectl create configmap vault \
-          --namespace=appconfigmgrv2-system \
-          --from-literal vault-addr=$${VAULT_ADDR} \
-          --from-literal acm-cluster-name=$${K8S_CONTEXT//_/-}
-
-        kubectl create secret generic vault-ca \
-          --namespace=appconfigmgrv2-system \
-          --from-file=$${VAULT_CACERT}
-
-        export ROLE_NAME="uc-secrets-vault-k8s"
-
-        . ../examples/use-cases/uc-secrets-vault-k8s/vault-roles-policy.sh
-
-        $${MYENV_TEST_DIR}/vault policy write $${ROLE_NAME} ./$${ROLE_NAME}-policy.hcl
-
-        $${MYENV_TEST_DIR}/vault write $${VAULT_GCP_RELATED_PREFIX}/roleset/$${ROLE_NAME} \
-        project="$${PARM_PROJ}" \
-        secret_type="service_account_key"  \
-        bindings=@$${ROLE_NAME}.hcl \
-
-
-        $${MYENV_TEST_DIR}/vault write auth/$${VAULT_KSA_RELATED}/role/$${ROLE_NAME} \
-        bound_service_account_names="$${ROLE_NAME}-ksa" \
-        bound_service_account_namespaces="$${ROLE_NAME}" \
-        policies=$${ROLE_NAME} \
-        ttl=1h
-
-    dir: "build-source/tests"
-    volumes:
-    - name: 'ssh'
-      path: /root/.ssh
   - name: google/cloud-sdk
     entrypoint: "bash"
     args:

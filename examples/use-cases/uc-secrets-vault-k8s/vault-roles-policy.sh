@@ -13,7 +13,7 @@ resource "projects/${PROJECT_NAME}/topics/appconfigcrd-demo-topic2" {
 EOF
 
 cat > ${ROLE_NAME}-policy.hcl <<EOF
-path "${GCP_RELATED_PREFIX}/key/${ROLE_NAME}" {
+path "${GCP_VAULT_PREFIX}/key/${ROLE_NAME}" {
   capabilities = ["read"]
 }
 EOF
