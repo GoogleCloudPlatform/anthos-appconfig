@@ -324,11 +324,6 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 	createSecret(context.TODO(), VAULT_ADDITIONAL_SECRET, app.Namespace, secretDataMap)
 	// copy vault CA cert into app namespace
 	VAULT_CA_SECRET_NAME := "vault-ca"
-	log.Info("handleGCPVault:applyConfig", "Secret", VAULT_CA_SECRET_NAME)
-	if err := cloneSecret(ctx, VAULT_CA_SECRET_NAME, app); err != nil {
-		return err
-	}
-
 	// add vault CA cert secret to pod volumes
 	log.Info("handleGCPVault:applyConfig", "Volume", VAULT_CA_SECRET_NAME)
 	injectVolume(pod, corev1.Volume{
