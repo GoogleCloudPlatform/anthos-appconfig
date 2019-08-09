@@ -29,8 +29,8 @@ import (
   "flag"
   "io"
   "io/ioutil"
- "path/filepath"
   "net/http"
+  "path/filepath"
   "strings"
 
   "fmt"
@@ -48,7 +48,6 @@ import (
   "k8s.io/client-go/kubernetes"
   "k8s.io/client-go/tools/clientcmd"
 
-  "k8s.io/client-go/rest"
   //"time"
 )
 
@@ -149,40 +148,40 @@ func svcAcctJWT(ctx context.Context, name, namespace string) (string, error) {
   return string(b), nil
 }
 
-// getApplicationsSecrets looks up the stored JWT secret token for a given service account
-func getApplicationsSecrets(ctx context.Context, name string, namespace string) (*map[string]string, error) {
-  log.Info("common:getApplicationsSecrets")
-
-  var (
-    appSecretInfo = map[string]string{}
-  )
-
-  log.Info("common:getApplicationsSecrets:secret:", "name-", name, "namespace-", namespace)
-
-  config, err := rest.InClusterConfig()
-  if err != nil {
-    panic(err.Error())
-  }
-
-  clientset, err := kubernetes.NewForConfig(config)
-  if err != nil {
-    panic(err)
-  }
-
-  // get service account
-  secret, err := clientset.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
-  if err != nil {
-    return &appSecretInfo, fmt.Errorf("%s serviceAccount token not found: %s", name, err)
-  }
-
-  for k, v := range secret.StringData {
-    appSecretInfo[k] = v
-  }
-
-  resAsJSON, _ := json.Marshal(appSecretInfo)
-  log.Println("common:getApplicationsSecrets:JSON:", string(resAsJSON))
-  return &appSecretInfo, nil
-}
+//// getApplicationsSecrets looks up the stored JWT secret token for a given service account
+//func getApplicationsSecrets(ctx context.Context, name string, namespace string) (*map[string]string, error) {
+//  log.Info("common:getApplicationsSecrets")
+//
+//  var (
+//    appSecretInfo = map[string]string{}
+//  )
+//
+//  log.Info("common:getApplicationsSecrets:secret:", "name-", name, "-namespace-", namespace)
+//
+//  config, err := rest.InClusterConfig()
+//  if err != nil {
+//    panic(err.Error())
+//  }
+//
+//  clientset, err := kubernetes.NewForConfig(config)
+//  if err != nil {
+//    panic(err)
+//  }
+//
+//  // get service account
+//  secret, err := clientset.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
+//  if err != nil {
+//    return &appSecretInfo, fmt.Errorf("%s serviceAccount token not found: %s", name, err)
+//  }
+//
+//  for k, v := range secret.StringData {
+//    appSecretInfo[k] = v
+//  }
+//
+//  resAsJSON, _ := json.Marshal(appSecretInfo)
+//  log.Println("common:getApplicationsSecrets:JSON:", string(resAsJSON))
+//  return &appSecretInfo, nil
+//}
 
 func authenticate(role, jwt string, vaultCaPem string, vaultAddr string, vaultK8SMountPath string) (string, string, error) {
   // Setup the TLS (especially required for custom CAs)
@@ -280,21 +279,21 @@ func updateGCPKey(credentialPath string, key string) (error) {
   return nil
 }
 
-func updateKSAToken(k8sTokenPath string, key string) (error) {
-  log.WithFields(log.Fields{
-    "path": k8sTokenPath,
-    "dir": filepath.Dir(k8sTokenPath),
-  })
-  err := os.MkdirAll(filepath.Dir(k8sTokenPath), os.ModePerm)
-  if  err != nil {
-    return err
-  }
-  err = ioutil.WriteFile(k8sTokenPath, []byte(key), 0644)
-  if  err != nil {
-    return err
-  }
-  return nil
-}
+//func updateKSAToken(k8sTokenPath string, key string) (error) {
+//  log.WithFields(log.Fields{
+//    "path": k8sTokenPath,
+//    "dir": filepath.Dir(k8sTokenPath),
+//  })
+//  err := os.MkdirAll(filepath.Dir(k8sTokenPath), os.ModePerm)
+//  if  err != nil {
+//    return err
+//  }
+//  err = ioutil.WriteFile(k8sTokenPath, []byte(key), 0644)
+//  if  err != nil {
+//    return err
+//  }
+//  return nil
+//}
 
 
 func main() {
@@ -325,20 +324,20 @@ func main() {
     panic(err)
   }
 
-  log.Infoln("read jwt")
+  log.Infoln("read jwt-ns", k8sNamespace)
 
-  //k8sJWT, err := ioutil.ReadFile(k8sJWTPath)
-  //if err != nil {
-  //  panic(err)
-  //}
+  k8sJWT, err := ioutil.ReadFile(k8sTokenPath)
+  if err != nil {
+   panic(err)
+  }
 
-  log.WithFields(log.Fields{
-    "ca": string(ca),
-  }).Info("main:ca")
-
-  VAULT_ADDITIONAL_SECRET := "vault-helper-info"
-  secretsAuthInfo, err := getApplicationsSecrets(context.TODO(),VAULT_ADDITIONAL_SECRET, k8sNamespace )
-  k8sJWT := (*secretsAuthInfo)["ksa.token"]
+  //log.WithFields(log.Fields{
+  //  "ca": string(ca),
+  //}).Info("main:ca")
+  //
+  //VAULT_ADDITIONAL_SECRET := "vault-helper-info"
+  //secretsAuthInfo, err := getApplicationsSecrets(context.TODO(),VAULT_ADDITIONAL_SECRET, k8sNamespace )
+  //k8sJWT := (*secretsAuthInfo)["ksa.token"]
   //k8sJWT, err := svcAcctJWT(context.TODO(), k8sServiceAccountName, k8sNamespace)
   //if err != nil {
   //  panic(err)
@@ -350,14 +349,14 @@ func main() {
 
   log.Infoln("authenticate", string(k8sJWT))
 
-  err = updateKSAToken(k8sTokenPath, k8sJWT)
-  if err != nil {
-    panic(err)
-  }
+  //err = updateKSAToken(k8sTokenPath, k8sJWT)
+  //if err != nil {
+  //  panic(err)
+  //}
 
   log.Infoln("authenticate", string(k8sJWT))
 
-  token, accessor, err := authenticate("app-crd-vault-test-role", k8sJWT,
+  token, accessor, err := authenticate("app-crd-vault-test-role", string(k8sJWT),
     string(ca), vaultAddr, "k8s-app-crd-vault-test-appcrd-cicenas-20190806-c-b-bcicen-uc-secrets-vault-13")
   if err != nil {
     panic(err)
