@@ -21,13 +21,13 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/webhooks/builtins"
 	"reflect"
 
 	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -43,12 +43,18 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileSecretsToNamespace(
 	names := make(map[types.NamespacedName]bool)
 
 	for k, s := range *secretsCopyList {
-		if err := controllerutil.SetControllerReference(in, s, r.Scheme); err != nil {
+		toSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      s.Name,
+				Namespace: in.Namespace,
+			},
+		}
+		if err := controllerutil.SetControllerReference(in, toSecret, r.Scheme); err != nil {
 			return fmt.Errorf("setting controller reference for secret[%v]: %v", k, err)
 		}
 
 		log.Info("Reconciling", "resource", "secrets", "key", k, "name", s.Name, "namespace", s.Namespace)
-		if err := r.reconcileSecret(ctx, s); err != nil {
+		if err := r.reconcileSecret(ctx, s, toSecret); err != nil {
 			return fmt.Errorf("reconciling secret[%v]: %v", k, err)
 		}
 
@@ -65,22 +71,25 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileSecretsToNamespace(
 func (r *AppEnvConfigTemplateV2Reconciler) reconcileSecret(
 	ctx context.Context,
 	s *corev1.Secret,
+	toSecret *corev1.Secret,
 ) error {
 	foundOriginal := &corev1.Secret{}
 
-	err := r.Get(ctx, types.NamespacedName{Name: s.Name, Namespace: builtins.TODO_FIND_NAMESPACE}, foundOriginal)
+	log.Info("Check", "resource", "secrets", "namespace", s.Namespace, "name", s.Name)
+
+	err := r.Get(ctx, types.NamespacedName{Name: s.Name, Namespace: s.Namespace}, foundOriginal)
 	if err != nil {
-		log.Info("Unable to find", "resource", "secrets", "namespace", builtins.TODO_FIND_NAMESPACE, "name", s.Name)
+		log.Error(err, "resource", "namespace", s.Namespace, "name", s.Name)
 		return err
 	}
 
 	found := &corev1.Secret{}
 
-	err = r.Get(ctx, types.NamespacedName{Name: s.Name, Namespace: s.Namespace}, found)
+	err = r.Get(ctx, types.NamespacedName{Name: toSecret.Name, Namespace: toSecret.Namespace}, found)
 	if err != nil && errors.IsNotFound(err) {
-		log.Info("Creating Copy", "resource", "secrets", "namespace", s.Namespace, "name", s.Name)
+		log.Info("Creating Copy", "resource", "secrets", "namespace", toSecret.Namespace, "name", toSecret.Name)
 		found = foundOriginal.DeepCopy()
-		found.Namespace = s.Namespace
+		found.Namespace = toSecret.Namespace
 		err = r.Create(ctx, found)
 		return err
 	} else if err != nil {
@@ -90,8 +99,9 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileSecret(
 	if !reflect.DeepEqual(foundOriginal, found) {
 		// ClusterIP is assigned after creation when it is not originally set
 		// so we will preserve the value.
+		found = foundOriginal.DeepCopy()
 		found.Namespace = s.Namespace
-		log.Info("Updating", "resource", "services", "namespace", s.Namespace, "name", s.Name)
+		log.Info("Updating", "resource", "services", "namespace", toSecret.Namespace, "name", toSecret.Name)
 		if err := r.Update(ctx, found); err != nil {
 			return err
 		}
