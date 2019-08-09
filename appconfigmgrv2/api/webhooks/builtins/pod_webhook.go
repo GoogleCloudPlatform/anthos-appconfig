@@ -390,7 +390,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 			},
 			{
 				Name:  "INIT_K8S_TOKEN_KEYPATH",
-				Value: "/var/run/secrets/kubernetes.io/serviceaccount",
+				Value: "/var/run/secrets/kubernetes.io/serviceaccount/token",
 			},
 		},
 		VolumeMounts: []corev1.VolumeMount{
