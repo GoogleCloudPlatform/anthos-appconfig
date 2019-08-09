@@ -90,6 +90,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileSecret(
 		log.Info("Creating Copy", "resource", "secrets", "namespace", toSecret.Namespace, "name", toSecret.Name)
 		found = foundOriginal.DeepCopy()
 		found.Namespace = toSecret.Namespace
+		found.SetResourceVersion("")
 		err = r.Create(ctx, found)
 		return err
 	} else if err != nil {
@@ -101,6 +102,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileSecret(
 		// so we will preserve the value.
 		found = foundOriginal.DeepCopy()
 		found.Namespace = s.Namespace
+		found.SetResourceVersion("")
 		log.Info("Updating", "resource", "services", "namespace", toSecret.Namespace, "name", toSecret.Name)
 		if err := r.Update(ctx, found); err != nil {
 			return err
