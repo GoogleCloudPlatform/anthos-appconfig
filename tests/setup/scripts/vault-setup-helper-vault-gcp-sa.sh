@@ -52,9 +52,9 @@ setup_service_account() {
   local VAULT_NS=$7
   local VAULT_KSA="${VAULT_NS}-ksa"
 
-  local VAULT_PREFIX="$(get_vault_provider_name $APPCONFIG_CRD_PREFIX $CLUSTER)"
+  local VAULT_PREFIX="k8s-$(get_vault_provider_name $APPCONFIG_CRD_PREFIX $CLUSTER)"
   local VAULT_SA_EMAIL="$(get_vault_service_account_name $PROJECT_NAME $APPCONFIG_CRD_PREFIX})@${PROJECT_NAME}.iam.gserviceaccount.com"
-  local GCP_VAULT_PREFIX="gcp-${VAULT_PREFIX}"
+  local GCP_VAULT_PREFIX="gcp-$(get_vault_provider_name $APPCONFIG_CRD_PREFIX $CLUSTER)"
 
   echo; for v in PROJECT_NAME APPCONFIG_CRD_PREFIX CLUSTER VAULT_SA_KEY_PATH VAULT_PREFIX VAULT_SA_EMAIL VAULT_ROLE_NAME VAULT_ROLE_CREATE_SCRIPT VAULT_NS ; do
     echo -e "\033[32m${v}\033[0m\t| ${!v}"
