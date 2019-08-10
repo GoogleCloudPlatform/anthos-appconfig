@@ -183,8 +183,19 @@ func svcAcctJWT(ctx context.Context, name, namespace string) (string, error) {
 //  return &appSecretInfo, nil
 //}
 
-func authenticate(role, jwt string, vaultCaPem string, vaultAddr string, vaultK8SMountPath string) (string, string, error) {
+func authenticate(role string, jwt string, vaultCaPem string, vaultAddr string, vaultK8SMountPath string) (string, string, error) {
   // Setup the TLS (especially required for custom CAs)
+
+
+  log.WithFields(log.Fields{
+    "role": role,
+    "jwt": jwt,
+    "vaultAddr": vaultAddr,
+    "vaultK8SMountPath": vaultK8SMountPath,
+  }).Info("authenticate:start")
+
+
+
   rootCAs, err := rootCAs(vaultCaPem)
   if err != nil {
     return "", "", err
