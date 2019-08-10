@@ -9,5 +9,5 @@ roleRef:
   name: system:auth-delegator
 subjects:
   - kind: ServiceAccount
-    name: vault-auth
-    namespace: appconfigmgrv2-system
+    name: uc-secrets-vault-k8s-ksa
+    namespace: uc-secrets-vault-k8s
