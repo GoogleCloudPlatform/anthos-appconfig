@@ -387,7 +387,8 @@ EOM
   gsutil -m cp -R "${EXAMPLES_BUCKET}/*" ${ACM_ENV_ROOT}/
 
 
-  git add ${ACM_ENV_ROOT}/namespaces/use-cases || echo "1"
+  git add ${ACM_ENV_ROOT} || echo "1"
+
   git commit -am "initialize $ACM_CLUSTER_REGISTRY_NAME demo apps" && git push
 }
 
