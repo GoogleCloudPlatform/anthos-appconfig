@@ -118,17 +118,16 @@ steps:
         PARM_AT_HOUR=$(cat $${MYENV_DIR}/_file_at_hr_TAG.out)
         PARM_AT_DAY=$(cat $${MYENV_DIR}/_file_at_day_TAG.out)
         echo "appcrd-$$PARM_EMAIL-$$PARM_AT_DAY" > /workspace/myenv/_fileproj_TAG.out
-        TEMP_CLUSTER="c-$(cat /workspace/myenv/_fileappversion_TAG.out)"
+        TEMP_CLUSTER="v-$(cat /workspace/myenv/_fileappversion_TAG.out)"
         echo ${TEMP_CLUSTER:0:30} > /workspace/myenv/_fileclus_TAG.out
         echo "us-west1" > /workspace/myenv/_filereg_TAG.out
         echo "us-west1-b" > /workspace/myenv/_filezone_TAG.out
         cp /workspace/myenv/_fileat_TAG.out /workspace/myenv/_filerepopath_TAG.out
-        echo "repo8" > /workspace/myenv/_filerepo_TAG.out
+        echo "repo9" > /workspace/myenv/_filerepo_TAG.out
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
         bash setup/setup_mapping_execution.sh
-        echo "repo8"="$(cat /workspace/myenv/_fileproj_TAG.out)"
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
         mkdir -p /workspace/myroot/.private/gsa_keys
