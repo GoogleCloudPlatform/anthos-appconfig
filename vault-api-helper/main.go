@@ -309,6 +309,8 @@ func main() {
     vaultCAPath           = mustGetenv("VAULT_CAPATH")
     gcpRolesetKeyPath     = mustGetenv("INIT_GCP_KEYPATH")
     k8sTokenPath     = mustGetenv("INIT_K8S_TOKEN_KEYPATH")
+    k8sPath = mustGetenv("INIT_K8S_KEYPATH")
+    k8sRole =mustGetenv("INIT_K8S_ROLE")
     credentialPath        = mustGetenv("GOOGLE_APPLICATION_CREDENTIALS")
     //k8sServiceAccountName = mustGetenv("MY_POD_SERVICE_ACCOUNT")
     k8sNamespace          = mustGetenv("MY_POD_NAMESPACE")
@@ -356,8 +358,8 @@ func main() {
 
   log.Infoln("authenticate", string(k8sJWT))
 
-  token, accessor, err := authenticate("app-crd-vault-test-role", string(k8sJWT),
-    string(ca), vaultAddr, "k8s-app-crd-vault-test-appcrd-cicenas-20190806-c-b-bcicen-uc-secrets-vault-13")
+  token, accessor, err := authenticate(k8sRole, string(k8sJWT),
+    string(ca), vaultAddr, k8sPath)
   if err != nil {
     panic(err)
   }
@@ -376,9 +378,9 @@ func main() {
   }
 
   //Auth with K8s vault
-  vaultK8sInfo := map[string]interface{}{"jwt": string(k8sJWT), "role": "app-crd-vault-test-role"}
+  vaultK8sInfo := map[string]interface{}{"jwt": string(k8sJWT), "role": k8sRole}
   secret, err := client.Logical().Write(fmt.Sprintf("auth/%s/login",
-    "k8s-app-crd-vault-test-appcrd-cicenas-20190806-c-b-bcicen-uc-secrets-vault-13"), vaultK8sInfo)
+    k8sPath), vaultK8sInfo)
   if err != nil {
     panic(err)
   }

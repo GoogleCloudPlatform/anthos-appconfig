@@ -33,6 +33,7 @@ spec:
       annotations:
         appconfigmgr.cft.dev/application: "app-secrets-vault-k8s"
     spec:
+      serviceAccountName: uc-secrets-vault-k8s-ksa
       containers:
         - name: hello-app-pubsub
           image: gcr.io/anthos-appconfig/gen-pubsub:v1.2.0

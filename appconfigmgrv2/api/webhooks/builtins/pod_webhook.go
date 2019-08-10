@@ -376,7 +376,11 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 			},
 			{
 				Name:  "INIT_K8S_KEYPATH",
-				Value: fmt.Sprintf("auth/k8s-%s/role/%s", config.Data["acm-cluster-name"], vaultInfo.Roleset),
+				Value: fmt.Sprintf("k8s-%s", config.Data["acm-cluster-name"]),
+			},
+			{
+				Name:  "INIT_K8S_ROLE",
+				Value: fmt.Sprintf("%s", vaultInfo.Roleset),
 			},
 			{
 				Name:  "VAULT_ADDR",
