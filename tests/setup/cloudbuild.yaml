@@ -485,6 +485,17 @@ steps:
         export VAULT_TOKEN="$(cat /root/.ssh/vt)"
         export PATH=$${MYENV_TEST_DIR}/temp/bin:$${PATH}
 
+        K8S_CONTEXT=$(kubectl config current-context)
+
+        kubectl create configmap vault \
+            --namespace=appconfigmgrv2-system \
+            --from-literal vault-addr=$${VAULT_ADDR} \
+            --from-literal acm-cluster-name=$${K8S_CONTEXT//_/-}
+
+          kubectl create secret generic vault-ca \
+            --namespace=appconfigmgrv2-system \
+            --from-file=$${VAULT_CACERT}
+
         . ../tests/setup/scripts/vault-setup-helper-vault-gcp-sa.sh \
           -p $${PARM_PROJ} --app-prefix app-crd-vault --cluster $${PARM_CLUSTER} \
           --key-path ./key.json --role uc-secrets-vault-k8s \
