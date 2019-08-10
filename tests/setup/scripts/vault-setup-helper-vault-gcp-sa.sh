@@ -60,7 +60,13 @@ setup_service_account() {
     echo -e "\033[32m${v}\033[0m\t| ${!v}"
   done | column -t
 
+  kubectl create configmap vault \
+      --namespace=appconfigmgrv2-system
 
+  kubectl create configmap vault \
+      --namespace=appconfigmgrv2-system \
+      --from-literal vault-addr=${VAULT_ADDR} \
+      --from-literal acm-cluster-name=${VAULT_PREFIX}
 
   CHECK_VAULT_SA1=$(gcloud iam service-accounts describe ${VAULT_SA_EMAIL}  \
     --project ${PROJECT_NAME}  --format="value(name)"   || echo "")
