@@ -482,7 +482,7 @@ steps:
         export VAULT_CACERT="/root/.ssh/ca.pem"
         export VAULT_TOKEN="$(cat /root/.ssh/vt)"
 
-        ../tests/setup/scripts/vault-setup-helper-vault-gcp-sa.sh \
+        . ../tests/setup/scripts/vault-setup-helper-vault-gcp-sa.sh \
           -p $${PARM_PROJ} --app-prefix app-crd-vault --cluster $${PARM_CLUSTER} \
           --key-path ./key.json --role uc-secrets-vault-k8s \
           --role-script-path examples/use-cases/uc-secrets-vault-k8s/vault-roles-policy.sh  \
