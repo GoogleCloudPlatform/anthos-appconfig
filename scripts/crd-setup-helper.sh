@@ -27,7 +27,7 @@ set -e
 
 # TODO - Add Branch Name
 TEMPLATE_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/${RELEASE_NAME}/acm-crd/config-management-root"
-EXAMPLES_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/${RELEASE_NAME}/acm-crd-examples/config-management-root/namespaces"
+EXAMPLES_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/${RELEASE_NAME}/acm-crd-examples/config-management-root"
 CM_OPERATOR_BUCKET="gs://config-management-release/released/latest/config-management-operator.yaml"
 HELM_IMAGE="alpine/helm:2.13.1"
 CM_CRD_COUNT=8
@@ -383,7 +383,9 @@ EOM
 
   _output "adding demo apps to policy config repo"
   echo "Current Dir:["$(pwd)
-  gsutil -m cp -R "${EXAMPLES_BUCKET}/*" ${ACM_ENV_ROOT}/namespaces/
+  gsutil -m cp -R "${EXAMPLES_BUCKET}/*" ${ACM_ENV_ROOT}/
+
+
   git add ${ACM_ENV_ROOT}/namespaces/use-cases || echo "1"
   git commit -am "initialize $ACM_CLUSTER_REGISTRY_NAME demo apps" && git push
 }
