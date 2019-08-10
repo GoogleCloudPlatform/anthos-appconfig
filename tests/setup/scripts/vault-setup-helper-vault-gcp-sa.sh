@@ -60,7 +60,7 @@ setup_service_account() {
     echo -e "\033[32m${v}\033[0m\t| ${!v}"
   done | column -t
 
-  kubectl create configmap vault \
+  kubectl delete configmap vault \
       --namespace=appconfigmgrv2-system
 
   kubectl create configmap vault \
