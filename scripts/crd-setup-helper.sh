@@ -26,6 +26,7 @@ set -e
 ####
 
 # TODO - Add Branch Name
+GATEKEEPER_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/${RELEASE_NAME}/gatekeeper-config"
 TEMPLATE_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/${RELEASE_NAME}/acm-crd/config-management-root"
 EXAMPLES_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/${RELEASE_NAME}/acm-crd-examples/config-management-root"
 CM_OPERATOR_BUCKET="gs://config-management-release/released/latest/config-management-operator.yaml"
@@ -514,6 +515,9 @@ install_operator() {
 
 install_gatekeeper() {
   kubectl apply -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml
+  gsutil cat ${GATEKEEPER_BUCKET}/config.yaml | kubectl apply -f -
+  gsutil cat ${GATEKEEPER_BUCKET}/constraint-templates.yaml | kubectl apply -f -
+  gsutil cat ${GATEKEEPER_BUCKET}/constraints.yaml | kubectl apply -f -
 }
 
 install_istio() {
