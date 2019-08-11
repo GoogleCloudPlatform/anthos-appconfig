@@ -567,7 +567,7 @@ steps:
           --zone "$$PARM_ZONE" \
           --project "$$PARM_PROJ"
 
-        kubectl config get-context
+        kubectl config current-context
         export INGRESS_ISTIO_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
         export INGRESS_NO_ISTIO_HOST=$(kubectl -n devtest get service test-service-external -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
         echo $$INGRESS_ISTIO_HOST > /workspace/myenv/_fileout_test_istio_host.out

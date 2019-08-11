@@ -134,6 +134,8 @@ setup_service_account() {
     project="${PROJECT_NAME}" \
     secret_type="service_account_key"  \
     bindings=@${VAULT_ROLE_NAME}-gcp.hcl \
+    token_scopes="https://www.googleapis.com/auth/pubsubß"
+
 
 
   vault write auth/${VAULT_PREFIX}/role/${VAULT_ROLE_NAME} \
