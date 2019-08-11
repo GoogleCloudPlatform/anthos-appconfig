@@ -494,7 +494,7 @@ steps:
         . ../tests/setup/scripts/vault-setup-helper-vault-gcp-sa.sh \
           -p $${PARM_PROJ} --app-prefix app-crd-vault --cluster $${K8S_CONTEXT//_/-} \
           --key-path ./key.json --role uc-secrets-vault-k8s \
-          --role-script-path examples/use-cases/uc-secrets-vault-k8s/vault-roles-policy.sh  \
+          --role-script-path ../examples/use-cases/uc-secrets-vault-k8s/vault-roles-policy.sh  \
           --ns uc-secrets-vault-k8s
 
 

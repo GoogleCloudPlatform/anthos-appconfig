@@ -124,7 +124,7 @@ setup_service_account() {
     --role roles/iam.serviceAccountKeyAdmin
 
   export ROLE_NAME=${VAULT_ROLE_NAME}
-  export GCP_VAULT_PREFIX
+  export GCP_VAULT_PREFIX=$GCP_VAULT_PREFIX
 
   . ${VAULT_ROLE_CREATE_SCRIPT}
 

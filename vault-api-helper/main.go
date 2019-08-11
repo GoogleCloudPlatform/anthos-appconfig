@@ -32,6 +32,7 @@ import (
   "net/http"
   "path/filepath"
   "strings"
+  "time"
 
   "fmt"
   "github.com/hashicorp/vault/api"
@@ -290,26 +291,29 @@ func updateGCPKey(credentialPath string, key string) (error) {
   return nil
 }
 
-//func updateKSAToken(k8sTokenPath string, key string) (error) {
-//  log.WithFields(log.Fields{
-//    "path": k8sTokenPath,
-//    "dir": filepath.Dir(k8sTokenPath),
-//  })
-//  err := os.MkdirAll(filepath.Dir(k8sTokenPath), os.ModePerm)
-//  if  err != nil {
-//    return err
-//  }
-//  err = ioutil.WriteFile(k8sTokenPath, []byte(key), 0644)
-//  if  err != nil {
-//    return err
-//  }
-//  return nil
-//}
+const (
+  version = "0.1"
+)
+
+func watch(dur time.Duration) {
+  log.Printf("vault-init-gcp v%s starting watcher", version)
+
+  log.Printf("next cycle in %ds", dur)
+  time.Sleep(time.Duration(dur))
+  log.Printf("cycling")
+}
 
 
 func main() {
   initMode := flag.String("mode", "GCP-KSA", "a string")
   flag.Parse()
+
+  if *initMode == "GCP-RECYCLE" {
+    dur, _ := time.ParseDuration("5m")
+    watch(dur)
+    os.Exit(0)
+
+  }
 
   log.WithFields(log.Fields{
     "initMode": *initMode,
