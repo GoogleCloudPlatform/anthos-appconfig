@@ -29,9 +29,11 @@ import (
   "flag"
   "io"
   "io/ioutil"
+  "k8s.io/client-go/rest"
   "net/http"
   "path/filepath"
   "strings"
+  "sync"
   "time"
 
   "fmt"
@@ -295,22 +297,72 @@ const (
   version = "0.1"
 )
 
-func watch(dur time.Duration) {
+func checkForWork(k8sConfig *rest.Config) {
   log.Printf("vault-init-gcp v%s starting watcher", version)
 
-  log.Printf("next cycle in %ds", dur)
-  time.Sleep(time.Duration(dur))
-  log.Printf("cycling")
+  log.Printf("Starting check")
+  log.Printf("Ending checkg")
+}
+
+var	ticker *time.Ticker
+var config *rest.Config
+
+
+func watch(k8sConfig *rest.Config) {
+  quit := make(chan struct{})
+  for {
+    select {
+    case <-ticker.C:
+      fmt.Println("check")
+      checkForWork(k8sConfig)
+      //if err != nil {
+      //  panic(err.Error())
+      //}
+      //checkForWork(k8sConfig)
+    case <-quit:
+      ticker.Stop()
+      return
+    }
+  }
+}
+
+type Server struct {
+serveWG sync.WaitGroup
+}
+
+var server Server
+
+func Start(k8sConfig *rest.Config) {
+  config = k8sConfig
+
+  go watch(k8sConfig)
+
+
+}
+
+//var TODO_FIND_KUBECONFIG = "/Users/joseret/g/pso/anthos/anthos-pso-app-crd-cm/.private/t2-stg/t2-stg-03-kc"
+func monitor() {
+  server.serveWG.Add(1)
+  config, err := rest.InClusterConfig()
+  //config, err := clientcmd.BuildConfigFromFlags("",TODO_FIND_KUBECONFIG)
+  if err != nil {
+    log.Fatalf("Cluster Config Error - %v", err)
+  }
+  Start(config)
+  server.serveWG.Wait()
+
 }
 
 
 func main() {
   initMode := flag.String("mode", "GCP-KSA", "a string")
+  ttlCheckInterval := flag.String( "duration", "3m", "ttl checks")
   flag.Parse()
 
   if *initMode == "GCP-RECYCLE" {
-    dur, _ := time.ParseDuration("5m")
-    watch(dur)
+    dur, _ := time.ParseDuration(*ttlCheckInterval)
+    ticker = time.NewTicker(dur)
+    monitor()
     os.Exit(0)
 
   }
