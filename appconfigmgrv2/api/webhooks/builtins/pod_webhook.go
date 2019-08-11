@@ -278,7 +278,11 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 		return fmt.Errorf("vaultInfo missing serviceAccount field")
 	}
 
-	pod.Spec.ServiceAccountName = vaultInfo.ServiceAccount
+	if vaultInfo.ServiceAccount != pod.Spec.ServiceAccountName {
+		return fmt.Errorf("pod serviceAccountName does not equal vaultInfo serviceAccount field")
+	}
+	// TODO - This did not work so we introduced a check and this might be outside vault
+	//pod.Spec.ServiceAccountName = vaultInfo.ServiceAccount
 
 	if vaultInfo.Path == "" {
 		return fmt.Errorf("vaultInfo missing gcpPath field")
