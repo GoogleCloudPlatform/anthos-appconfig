@@ -265,26 +265,31 @@ func getGCPKey(c *api.Client, keyRolesetPath string) (string, error) {
     return "", err
   }
 
-
   b, err := base64.StdEncoding.DecodeString(res.Data["private_key_data"].(string))
   if err != nil {
     return "", err
   }
   resAsJSON, _ := json.Marshal(b)
+  log.WithFields(log.Fields{
+    "private_key_data":        res.Data["private_key_data"],
+    "private_key_data_string": res.Data["private_key_data"].(string),
+    "b":                       b,
+    "json":                    resAsJSON}).Info("getGCPKey:results")
+
   return string(resAsJSON), nil
 }
 
 func updateGCPKey(credentialPath string, key string) (error) {
   log.WithFields(log.Fields{
     "path": credentialPath,
-    "dir": filepath.Dir(credentialPath),
+    "dir":  filepath.Dir(credentialPath),
   })
   err := os.MkdirAll(filepath.Dir(credentialPath), os.ModePerm)
-  if  err != nil {
+  if err != nil {
     return err
   }
   err = ioutil.WriteFile(credentialPath, []byte(key), 0644)
-  if  err != nil {
+  if err != nil {
     return err
   }
   return nil
@@ -301,9 +306,8 @@ func checkForWork(k8sConfig *rest.Config) {
   log.Printf("Ending checkg")
 }
 
-var	ticker *time.Ticker
+var ticker *time.Ticker
 var config *rest.Config
-
 
 func watch(k8sConfig *rest.Config) {
   quit := make(chan struct{})
@@ -320,7 +324,7 @@ func watch(k8sConfig *rest.Config) {
 }
 
 type Server struct {
-serveWG sync.WaitGroup
+  serveWG sync.WaitGroup
 }
 
 var server Server
@@ -329,7 +333,6 @@ func Start(k8sConfig *rest.Config) {
   config = k8sConfig
 
   go watch(k8sConfig)
-
 
 }
 
@@ -346,10 +349,9 @@ func monitor() {
 
 }
 
-
 func main() {
   initMode := flag.String("mode", "GCP-KSA", "a string")
-  ttlCheckInterval := flag.String( "duration", "3m", "ttl checks")
+  ttlCheckInterval := flag.String("duration", "3m", "ttl checks")
   flag.Parse()
 
   if *initMode == "GCP-RECYCLE" {
@@ -365,15 +367,15 @@ func main() {
   }).Info("main:start")
 
   var (
-    vaultAddr             = mustGetenv("VAULT_ADDR")
-    vaultCAPath           = mustGetenv("VAULT_CAPATH")
-    gcpRolesetKeyPath     = mustGetenv("INIT_GCP_KEYPATH")
-    k8sTokenPath     = mustGetenv("INIT_K8S_TOKEN_KEYPATH")
-    k8sPath = mustGetenv("INIT_K8S_KEYPATH")
-    k8sRole =mustGetenv("INIT_K8S_ROLE")
-    credentialPath        = mustGetenv("GOOGLE_APPLICATION_CREDENTIALS")
+    vaultAddr         = mustGetenv("VAULT_ADDR")
+    vaultCAPath       = mustGetenv("VAULT_CAPATH")
+    gcpRolesetKeyPath = mustGetenv("INIT_GCP_KEYPATH")
+    k8sTokenPath      = mustGetenv("INIT_K8S_TOKEN_KEYPATH")
+    k8sPath           = mustGetenv("INIT_K8S_KEYPATH")
+    k8sRole           = mustGetenv("INIT_K8S_ROLE")
+    credentialPath    = mustGetenv("GOOGLE_APPLICATION_CREDENTIALS")
     //k8sServiceAccountName = mustGetenv("MY_POD_SERVICE_ACCOUNT")
-    k8sNamespace          = mustGetenv("MY_POD_NAMESPACE")
+    k8sNamespace = mustGetenv("MY_POD_NAMESPACE")
   )
 
   log.WithFields(log.Fields{
@@ -390,7 +392,7 @@ func main() {
 
   k8sJWT, err := ioutil.ReadFile(k8sTokenPath)
   if err != nil {
-   panic(err)
+    panic(err)
   }
 
   //log.WithFields(log.Fields{
@@ -458,7 +460,5 @@ func main() {
   if err != nil {
     panic(err)
   }
-
-
 
 }
