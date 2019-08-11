@@ -65,6 +65,7 @@ spec:
       annotations:
         appconfigmgr.cft.dev/application: "app-secrets-vault-k8s"
     spec:
+      serviceAccountName: uc-secrets-vault-k8s-ksa
       containers:
         - name: hello-app-sm-py
           image: gcr.io/anthos-appconfig/hello-app-sm-py:v3.0.20
@@ -102,6 +103,7 @@ spec:
       annotations:
         appconfigmgr.cft.dev/application: "app-secrets-vault-k8s"
     spec:
+      serviceAccountName: uc-secrets-vault-k8s-ksa
       containers:
         - name: hello-app-sm-py
           image: gcr.io/anthos-appconfig/hello-app-sm-py:v3.0.20
@@ -139,6 +141,7 @@ spec:
       annotations:
         appconfigmgr.cft.dev/application: "app-secrets-vault-k8s"
     spec:
+      serviceAccountName: uc-secrets-vault-k8s-ksa
       containers:
         - name: hello-app-sm-py
           image: gcr.io/anthos-appconfig/hello-app-sm-py:v3.0.20
@@ -177,6 +180,7 @@ spec:
       annotations:
         appconfigmgr.cft.dev/application: "app-secrets-vault-k8s"
     spec:
+      serviceAccountName: uc-secrets-vault-k8s-ksa
       containers:
         - name: hello-app-sm-py
           image: gcr.io/anthos-appconfig/hello-app-sm-py:v3.0.20
