@@ -417,7 +417,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 		Name:            "vault-gcp-cycle",
 		Image:           image,
 		ImagePullPolicy: corev1.PullAlways,
-		Command:         []string{"watch", "--mode", "GCP-RECYCLE"},
+		Command:         []string{"./app", "--mode", "GCP-RECYCLE"},
 		Env: []corev1.EnvVar{
 			{
 				Name:  "GOOGLE_APPLICATION_CREDENTIALS",
