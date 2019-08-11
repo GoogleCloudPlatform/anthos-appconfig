@@ -29,7 +29,7 @@ spec:
       accessType: "vault"
       vaultInfo:
         serviceAccount: "uc-secrets-vault-k8s-ksa"
-        path: "gcp-appcrd-cicenas-20190805"
+        path: "gcp-app-crd-vault"
         roleset: "uc-secrets-vault-k8s"
   services:
   - name: "appconfigv2-service-sm-1"

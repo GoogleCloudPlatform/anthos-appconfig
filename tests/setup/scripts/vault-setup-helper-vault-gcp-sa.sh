@@ -54,7 +54,7 @@ setup_service_account() {
 
   local VAULT_PREFIX="k8s-$(get_vault_provider_name $APPCONFIG_CRD_PREFIX $CLUSTER)"
   local VAULT_SA_EMAIL="$(get_vault_service_account_name $PROJECT_NAME $APPCONFIG_CRD_PREFIX})@${PROJECT_NAME}.iam.gserviceaccount.com"
-  local GCP_VAULT_PREFIX="gcp-$(get_vault_provider_name $APPCONFIG_CRD_PREFIX $CLUSTER)"
+  local GCP_VAULT_PREFIX="gcp-$APPCONFIG_CRD_PREFIX"
 
   echo; for v in PROJECT_NAME APPCONFIG_CRD_PREFIX CLUSTER VAULT_SA_KEY_PATH VAULT_PREFIX VAULT_SA_EMAIL VAULT_ROLE_NAME VAULT_ROLE_CREATE_SCRIPT VAULT_NS ; do
     echo -e "\033[32m${v}\033[0m\t| ${!v}"
@@ -75,8 +75,12 @@ setup_service_account() {
 
 
   if [ ! -f ${VAULT_SA_KEY_PATH} ] ; then
-    gcloud iam service-accounts keys create "${VAULT_SA_KEY_PATH}" --project ${PROJECT_NAME} \
-      --iam-account=${VAULT_SA_EMAIL}
+    if [ ! -f /workspace/myroot/.private/gsa_keys/vault.json ] ; then
+      gcloud iam service-accounts keys create "/workspace/myroot/.private/gsa_keys/vault.json" --project ${PROJECT_NAME} \
+        --iam-account=${VAULT_SA_EMAIL}
+       gsutil cp  '/workspace/myroot/.private/gsa_keys/vault.json'  "gs://anthos-appconfig_build/tests/gsa_keys/${PROJECT_NAME}/vault.json"
+    fi
+    cp /workspace/myroot/.private/gsa_keys/vault.json ${VAULT_SA_KEY_PATH}
   fi
 
   CHECK_GCP_1=$(vault read "${GCP_VAULT_PREFIX}")
