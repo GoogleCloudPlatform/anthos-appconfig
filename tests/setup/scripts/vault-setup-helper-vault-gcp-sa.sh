@@ -91,8 +91,8 @@ setup_service_account() {
 
   CHECK_GCP_2=$(vault read "${GCP_VAULT_PREFIX}/config")
   [[ ! -z  "$CHECK_GCP_2" ]] || vault write ${GCP_VAULT_PREFIX}/config project=${PROJECT_NAME} \
-    ttl=180 \
-    max_ttl=300 \
+    ttl=600 \
+    max_ttl=3600 \
     credentials=@${VAULT_SA_KEY_PATH}
 
 
@@ -134,7 +134,7 @@ setup_service_account() {
     project="${PROJECT_NAME}" \
     secret_type="service_account_key"  \
     bindings=@${VAULT_ROLE_NAME}-gcp.hcl \
-    token_scopes="https://www.googleapis.com/auth/pubsub"
+
 
 
 
@@ -142,7 +142,7 @@ setup_service_account() {
     bound_service_account_names="${VAULT_KSA}" \
     bound_service_account_namespaces="${VAULT_NS}" \
     policies=${VAULT_ROLE_NAME} \
-    ttl=5m
+    ttl=3600
 
 
 }
