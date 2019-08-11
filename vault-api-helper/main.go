@@ -23,6 +23,7 @@ package main
 import (
   "context"
   "crypto/x509"
+  "encoding/base64"
   "encoding/json"
   "flag"
   "io/ioutil"
@@ -264,7 +265,12 @@ func getGCPKey(c *api.Client, keyRolesetPath string) (string, error) {
     return "", err
   }
 
-  resAsJSON, _ := json.Marshal(res.Data)
+
+  b, err := base64.StdEncoding.DecodeString(res.Data["private_key_data"].(string))
+  if err != nil {
+    return "", err
+  }
+  resAsJSON, _ := json.Marshal(b)
   return string(resAsJSON), nil
 }
 
