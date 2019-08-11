@@ -435,7 +435,6 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 			},
 			*serviceAccountVolumeMount,
 		},
-
 	})
 
 	// add GCP token volume to pod

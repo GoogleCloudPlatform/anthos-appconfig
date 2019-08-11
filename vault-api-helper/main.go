@@ -21,29 +21,21 @@
 package main
 
 import (
-  "bytes"
   "context"
-  "crypto/tls"
   "crypto/x509"
   "encoding/json"
   "flag"
-  "io"
   "io/ioutil"
   "k8s.io/client-go/rest"
-  "net/http"
   "path/filepath"
-  "strings"
   "sync"
   "time"
 
   "fmt"
   "github.com/hashicorp/vault/api"
-  //"encoding/base64"
-  "github.com/pkg/errors"
+
   //"io/ioutil"
   log "github.com/sirupsen/logrus"
-  "golang.org/x/net/http2"
-
   "os"
 
   corev1 "k8s.io/api/core/v1"
@@ -186,86 +178,85 @@ func svcAcctJWT(ctx context.Context, name, namespace string) (string, error) {
 //  return &appSecretInfo, nil
 //}
 
-func authenticate(role string, jwt string, vaultCaPem string, vaultAddr string, vaultK8SMountPath string) (string, string, error) {
-  // Setup the TLS (especially required for custom CAs)
-
-
-  log.WithFields(log.Fields{
-    "role": role,
-    "jwt": jwt,
-    "vaultAddr": vaultAddr,
-    "vaultK8SMountPath": vaultK8SMountPath,
-  }).Info("authenticate:start")
-
-
-
-  rootCAs, err := rootCAs(vaultCaPem)
-  if err != nil {
-    return "", "", err
-  }
-
-  tlsClientConfig := &tls.Config{
-    MinVersion: tls.VersionTLS12,
-    RootCAs:    rootCAs,
-  }
-
-  //if vaultSkipVerify {
-  //  tlsClientConfig.InsecureSkipVerify = true
-  //}
-
-  //if vaultServerName != "" {
-  //  tlsClientConfig.ServerName = vaultServerName
-  //}
-
-  transport := &http.Transport{
-    TLSClientConfig: tlsClientConfig,
-  }
-
-  if err := http2.ConfigureTransport(transport); err != nil {
-    return "", "", errors.New("failed to configure http2")
-  }
-
-  client := &http.Client{
-    Transport: transport,
-  }
-
-  transport.Proxy = http.ProxyFromEnvironment
-
-  addr := vaultAddr + "/v1/auth/" + vaultK8SMountPath + "/login"
-  body := fmt.Sprintf(`{"role": "%s", "jwt": "%s"}`, role, jwt)
-
-  req, err := http.NewRequest(http.MethodPost, addr, strings.NewReader(body))
-  req.Header.Set("Content-Type", "application/json")
-  if err != nil {
-    return "", "", errors.Wrap(err, "failed to create request")
-  }
-
-  resp, err := client.Do(req)
-  if err != nil {
-    return "", "", errors.Wrap(err, "failed to login")
-  }
-  defer resp.Body.Close()
-
-  if resp.StatusCode != 200 {
-    var b bytes.Buffer
-    io.Copy(&b, resp.Body)
-    return "", "", fmt.Errorf("failed to get successful response: %#v, %s",
-      resp, b.String())
-  }
-
-  var s struct {
-    Auth struct {
-      ClientToken    string `json:"client_token"`
-      ClientAccessor string `json:"accessor"`
-    } `json:"auth"`
-  }
-
-  if err := json.NewDecoder(resp.Body).Decode(&s); err != nil {
-    return "", "", errors.Wrap(err, "failed to read body")
-  }
-
-  return s.Auth.ClientToken, s.Auth.ClientAccessor, nil
-}
+//func authenticate(role string, jwt string, vaultCaPem string, vaultAddr string, vaultK8SMountPath string) (string, string, error) {
+//  // Setup the TLS (especially required for custom CAs)
+//
+//
+//  log.WithFields(log.Fields{
+//    "role": role,
+//    "vaultAddr": vaultAddr,
+//    "vaultK8SMountPath": vaultK8SMountPath,
+//  }).Info("authenticate:start")
+//
+//
+//
+//  rootCAs, err := rootCAs(vaultCaPem)
+//  if err != nil {
+//    return "", "", err
+//  }
+//
+//  tlsClientConfig := &tls.Config{
+//    MinVersion: tls.VersionTLS12,
+//    RootCAs:    rootCAs,
+//  }
+//
+//  //if vaultSkipVerify {
+//  //  tlsClientConfig.InsecureSkipVerify = true
+//  //}
+//
+//  //if vaultServerName != "" {
+//  //  tlsClientConfig.ServerName = vaultServerName
+//  //}
+//
+//  transport := &http.Transport{
+//    TLSClientConfig: tlsClientConfig,
+//  }
+//
+//  if err := http2.ConfigureTransport(transport); err != nil {
+//    return "", "", errors.New("failed to configure http2")
+//  }
+//
+//  client := &http.Client{
+//    Transport: transport,
+//  }
+//
+//  transport.Proxy = http.ProxyFromEnvironment
+//
+//  addr := vaultAddr + "/v1/auth/" + vaultK8SMountPath + "/login"
+//  body := fmt.Sprintf(`{"role": "%s", "jwt": "%s"}`, role, jwt)
+//
+//  req, err := http.NewRequest(http.MethodPost, addr, strings.NewReader(body))
+//  req.Header.Set("Content-Type", "application/json")
+//  if err != nil {
+//    return "", "", errors.Wrap(err, "failed to create request")
+//  }
+//
+//  resp, err := client.Do(req)
+//  if err != nil {
+//    return "", "", errors.Wrap(err, "failed to login")
+//  }
+//  defer resp.Body.Close()
+//
+//  if resp.StatusCode != 200 {
+//    var b bytes.Buffer
+//    io.Copy(&b, resp.Body)
+//    return "", "", fmt.Errorf("failed to get successful response: %#v, %s",
+//      resp, b.String())
+//  }
+//
+//  var s struct {
+//    Auth struct {
+//      ClientToken    string `json:"client_token"`
+//      ClientAccessor string `json:"accessor"`
+//    } `json:"auth"`
+//  }
+//
+//  if err := json.NewDecoder(resp.Body).Decode(&s); err != nil {
+//    return "", "", errors.Wrap(err, "failed to read body")
+//  }
+//
+//  return s.Auth.ClientToken, s.Auth.ClientAccessor, nil
+//}
 
 func getGCPKey(c *api.Client, keyRolesetPath string) (string, error) {
   res, err := c.Logical().Read(keyRolesetPath)
@@ -315,10 +306,6 @@ func watch(k8sConfig *rest.Config) {
     case <-ticker.C:
       fmt.Println("check")
       checkForWork(k8sConfig)
-      //if err != nil {
-      //  panic(err.Error())
-      //}
-      //checkForWork(k8sConfig)
     case <-quit:
       ticker.Stop()
       return
@@ -388,10 +375,10 @@ func main() {
     "vaultCAPath": vaultCAPath,
   }).Info("main:Parms")
 
-  ca, err := ioutil.ReadFile(vaultCAPath)
-  if err != nil {
-    panic(err)
-  }
+  //ca, err := ioutil.ReadFile(vaultCAPath)
+  //if err != nil {
+  //  panic(err)
+  //}
 
   log.Infoln("read jwt-ns", k8sNamespace)
 
@@ -416,25 +403,25 @@ func main() {
   //  panic(err)
   //}
 
-  log.Infoln("authenticate", string(k8sJWT))
-
-  //err = updateKSAToken(k8sTokenPath, k8sJWT)
+  //log.Infoln("authenticate", string(k8sJWT))
+  //
+  ////err = updateKSAToken(k8sTokenPath, k8sJWT)
+  ////if err != nil {
+  ////  panic(err)
+  ////}
+  //
+  //log.Infoln("authenticate", string(k8sJWT))
+  //
+  //token, accessor, err := authenticate(k8sRole, string(k8sJWT),
+  // string(ca), vaultAddr, k8sPath)
   //if err != nil {
-  //  panic(err)
+  // panic(err)
   //}
 
-  log.Infoln("authenticate", string(k8sJWT))
-
-  token, accessor, err := authenticate(k8sRole, string(k8sJWT),
-    string(ca), vaultAddr, k8sPath)
-  if err != nil {
-    panic(err)
-  }
-
-  log.WithFields(log.Fields{
-    "token":    token,
-    "accessor": accessor,
-  }).Info("authenticate")
+  //log.WithFields(log.Fields{
+  //  "token":    token,
+  //  "accessor": accessor,
+  //}).Info("authenticate")
 
   log.Infoln("client")
   client, err := api.NewClient(&api.Config{

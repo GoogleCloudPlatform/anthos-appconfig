@@ -181,7 +181,7 @@ steps:
           --ciphertext-file /root/.ssh/x2 \
           --plaintext-file /root/.ssh/vt
         gsutil cp gs://cicenas-vault/ca.pem /root/.ssh/ca.pem
-        ls -lR /root/.ssh
+
 
     dir: "build-source/tests"
     volumes:
@@ -466,7 +466,7 @@ steps:
       - |
         echo 'STEP-CRD1-b-vault1'
         [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1-b-vault1*SKIP*'; exit 0; }
-        set -x
+
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
@@ -509,7 +509,7 @@ steps:
       - |
         echo 'STEP-CRD1-c'
         [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1-c*SKIP*'; exit 0; }
-        set -x
+
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
@@ -548,7 +548,7 @@ steps:
     args:
       - '-c'
       - |
-        set -x
+
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
@@ -580,8 +580,6 @@ steps:
       - |
         echo 'STEP-TEST'
 
-        #set -x
-
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
@@ -597,8 +595,6 @@ steps:
 
         export INGRESS_ISTIO_HOST=$(cat /workspace/myenv/_fileout_test_istio_host.out)
         export INGRESS_NO_ISTIO_HOST=$(cat /workspace/myenv/_fileout_test_istio_no_host.out)
-        echo $(pwd)
-        ls -l
 
         export GOOGLE_APPLICATION_CREDENTIALS=/workspace/myroot/.private/gsa_keys/sa1.json
         export PUBSUB_GCP_PROJECT=$${PARM_PROJ}
@@ -613,7 +609,6 @@ steps:
       - |
         echo 'STEP-TEST-RESULTS'
 
-        #set -x
         PARM_AT_SEC=$(cat /workspace/myenv/_fileat_TAG.out)
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
