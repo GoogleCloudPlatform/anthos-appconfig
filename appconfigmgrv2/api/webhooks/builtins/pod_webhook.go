@@ -306,8 +306,8 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 		return fmt.Errorf("ConfigMap missing vault-addr")
 	}
 
-	if config.Data["acm-cluster-name"] == "" {
-		return fmt.Errorf("ConfigMap missing acm-cluster-name")
+	if config.Data["vault-cluster-path"] == "" {
+		return fmt.Errorf("ConfigMap missing vault-cluster-path")
 	}
 
 	//// get provided serviceAccount JWT token
@@ -376,7 +376,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 			},
 			{
 				Name:  "INIT_K8S_KEYPATH",
-				Value: fmt.Sprintf("k8s-%s", config.Data["acm-cluster-name"]),
+				Value: fmt.Sprintf("%s", config.Data["vault-cluster-path"]),
 			},
 			{
 				Name:  "INIT_K8S_ROLE",
