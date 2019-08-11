@@ -433,7 +433,9 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 				Name:      gcpVolName,
 				MountPath: "/var/run/secrets/google/token",
 			},
+			*serviceAccountVolumeMount,
 		},
+
 	})
 
 	// add GCP token volume to pod
