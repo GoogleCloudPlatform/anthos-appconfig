@@ -62,10 +62,10 @@ func injectEnvVar(pod *corev1.Pod, envVar corev1.EnvVar) {
 		idx := find(c)
 
 		if idx < 0 {
-			log.V(1).Info("injectEnvVar:Added", "Container.Name", c.Name, "EnvVar.Name", envVar.Name)
+			log.Info("injectEnvVar:Added", "Container.Name", c.Name, "EnvVar.Name", envVar.Name)
 			c.Env = append(c.Env, envVar)
 		} else {
-			log.V(1).Info("injectEnvVar:Updated", "Container.Name", c.Name, "EnvVar.Name", envVar.Name)
+			log.Info("injectEnvVar:Updated", "Container.Name", c.Name, "EnvVar.Name", envVar.Name)
 			c.Env[idx] = envVar
 		}
 	}
@@ -89,10 +89,10 @@ func injectVolumeMount(pod *corev1.Pod, volumeMount corev1.VolumeMount) {
 		idx := find(c)
 
 		if idx < 0 {
-			log.V(1).Info("injectVolumeMount:Added", "Container.Name", c.Name, "VolumeMount.Name", volumeMount.Name)
+			log.Info("injectVolumeMount:Added", "Container.Name", c.Name, "VolumeMount.Name", volumeMount.Name)
 			c.VolumeMounts = append(c.VolumeMounts, volumeMount)
 		} else {
-			log.V(1).Info("injectVolumeMount:Updated", "Container.Name", c.Name, "VolumeMount.Name", volumeMount.Name)
+			log.Info("injectVolumeMount:Updated", "Container.Name", c.Name, "VolumeMount.Name", volumeMount.Name)
 			c.VolumeMounts[idx] = volumeMount
 		}
 	}
