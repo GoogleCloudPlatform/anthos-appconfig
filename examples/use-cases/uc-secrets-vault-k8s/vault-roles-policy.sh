@@ -15,17 +15,23 @@
 # Copyright 2019 Google LLC. This software is provided as-is,
 # without warranty or representation for any use or purpose.#
 #
-apiVersion: config.gatekeeper.sh/v1alpha1
-kind: Config
-metadata:
-  name: config
-  namespace: "gatekeeper-system"
-spec:
-  sync:
-    syncOnly:
-      - group: ""
-        version: "v1"
-        kind: "Namespace"
-      - group: "appconfigmgr.cft.dev"
-        version: "v1alpha1"
-        kind: "AppEnvConfigTemplateV2"
+
+cat >  ${ROLE_NAME}-gcp.hcl <<EOF
+resource "projects/${PROJECT_NAME}/topics/appconfigcrd-demo-topic1" {
+  roles = [
+    "roles/pubsub.publisher",
+  ]
+}
+
+resource "projects/${PROJECT_NAME}/topics/appconfigcrd-demo-topic2" {
+  roles = [
+    "roles/pubsub.publisher",
+  ]
+}
+EOF
+
+cat > ${ROLE_NAME}-policy.hcl <<EOF
+path "${GCP_VAULT_PREFIX}/key/${ROLE_NAME}" {
+  capabilities = ["read"]
+}
+EOF

@@ -117,29 +117,21 @@ steps:
         PARM_EMAIL=$(cat $${MYENV_DIR}/_file_email_TAG.out)
         PARM_AT_HOUR=$(cat $${MYENV_DIR}/_file_at_hr_TAG.out)
         PARM_AT_DAY=$(cat $${MYENV_DIR}/_file_at_day_TAG.out)
-        #echo "tst-appconfig-$(cat /workspace/myenv/_filemin_TAG.out)" > /workspace/myenv/_fileproj_TAG.out
         echo "appcrd-$$PARM_EMAIL-$$PARM_AT_DAY" > /workspace/myenv/_fileproj_TAG.out
-        TEMP_CLUSTER="c-$(cat /workspace/myenv/_fileappversion_TAG.out)"
+        TEMP_CLUSTER="v-$(cat /workspace/myenv/_fileappversion_TAG.out)"
         echo ${TEMP_CLUSTER:0:30} > /workspace/myenv/_fileclus_TAG.out
         echo "us-west1" > /workspace/myenv/_filereg_TAG.out
         echo "us-west1-b" > /workspace/myenv/_filezone_TAG.out
         cp /workspace/myenv/_fileat_TAG.out /workspace/myenv/_filerepopath_TAG.out
-        echo "repo-$(cat $$MYENV_DIR/_fileat_TAG.out)" > /workspace/myenv/_filerepo_TAG.out
-
+        echo "repo9" > /workspace/myenv/_filerepo_TAG.out
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
         bash setup/setup_mapping_execution.sh
-
-        PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
         mkdir -p /workspace/myroot/.private/gsa_keys
-        gsutil cp  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/*" /workspace/myroot/.private/gsa_keys
-
-        ls -lR /workspace/myroot/.private/gsa_keys
-
-
+        gsutil cp  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/*" /workspace/myroot/.private/gsa_keys || echo "0"
 
     dir: "build-source/tests"
   - name: google/cloud-sdk
@@ -149,10 +141,6 @@ steps:
       - |
 
         echo 'STEP-PREPARE-STEP-GENERATE-ARTIFACTS'
-
-
-        set -x
-
 
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         MYENV_TEST_DIR=$(cat $${MYENV_DIR}/_testdir_TAG.out)
@@ -173,11 +161,32 @@ steps:
            https://storage.googleapis.com/anthos-appconfig_public/install/scripts/$${PARM_BUILD_BRANCH}/crd-setup-helper.sh
         chmod a+x $${MYENV_TEST_DIR}/crd-setup-helper.sh
 
+        mkdir -p $${MYENV_TEST_DIR}/temp/bin
+
+        gsutil cp gs://anthos-appconfig_public/install/vault-linux-64  $${MYENV_TEST_DIR}/temp/bin/vault
+        chmod a+x $${MYENV_TEST_DIR}/temp/bin/vault
+
         export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH;$${MYENV_TEST_DIR}/crd-setup-helper.sh pre-install "$${MYENV_TEST_DIR}/generated/istio" -genexternal
 
 
+        gsutil cp gs://cicenas-vault/root-token.enc /root/.ssh/x1
+        base64 --help
+
+        cat /root/.ssh/x1 | base64 --decode > /root/.ssh/x2| \
+          gcloud kms decrypt \
+          --project "anthos-crd-v1-dev-t2" \
+          --location global \
+          --keyring cicenas-vault \
+          --key cicenas-vault-init \
+          --ciphertext-file /root/.ssh/x2 \
+          --plaintext-file /root/.ssh/vt
+        gsutil cp gs://cicenas-vault/ca.pem /root/.ssh/ca.pem
+
 
     dir: "build-source/tests"
+    volumes:
+    - name: 'ssh'
+      path: /root/.ssh
   - name: alpine/helm:2.13.1
     entrypoint: "/bin/sh"
     args:
@@ -449,6 +458,50 @@ steps:
 
 
     dir: "build-source/tests"
+
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+    args:
+      - '-c'
+      - |
+        echo 'STEP-CRD1-b-vault1'
+        [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1-b-vault1*SKIP*'; exit 0; }
+
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
+        PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
+        PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat /workspace/myenv/_fileclus_TAG.out)
+        PARM_REGION=$(cat /workspace/myenv/_filereg_TAG.out)
+        PARM_ZONE=$(cat /workspace/myenv/_filezone_TAG.out)
+        PARM_REPO=$(cat /workspace/myenv/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
+        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
+        MYENV_TEST_DIR=$(cat /workspace/myenv/_testdir_TAG.out)
+
+        export VAULT_ADDR="https://35.245.198.47:8200"
+        export VAULT_CACERT="/root/.ssh/ca.pem"
+        export VAULT_TOKEN="$(cat /root/.ssh/vt)"
+        export PATH=$${MYENV_TEST_DIR}/temp/bin:$${PATH}
+
+        K8S_CONTEXT=$(kubectl config current-context)
+
+
+        kubectl create secret generic vault-ca \
+          --namespace=appconfigmgrv2-system \
+          --from-file=$${VAULT_CACERT}
+
+        . ../tests/setup/scripts/vault-setup-helper-vault-gcp-sa.sh \
+          -p $${PARM_PROJ} --app-prefix app-crd-vault --cluster $${K8S_CONTEXT//_/-} \
+          --key-path ./key.json --role uc-secrets-vault-k8s \
+          --role-script-path ../examples/use-cases/uc-secrets-vault-k8s/vault-roles-policy.sh  \
+          --ns uc-secrets-vault-k8s
+
+
+    dir: "build-source/tests"
+    volumes:
+      - name: 'ssh'
+        path: /root/.ssh
   - name: google/cloud-sdk
     entrypoint: "bash"
     args:
@@ -456,7 +509,7 @@ steps:
       - |
         echo 'STEP-CRD1-c'
         [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1-c*SKIP*'; exit 0; }
-        set -x
+
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
@@ -475,8 +528,9 @@ steps:
         gsutil cat  "$$PARM_PATH/uc-secrets-istio/deploy-apps.yaml" | kubectl delete -f -
         gsutil cat  "$$PARM_PATH/uc-firebase/deploy-apps.yaml" | kubectl delete -f -
         gsutil cat  "$$PARM_PATH/uc-opa/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-secrets-vault-k8s/deploy-apps.yaml" | kubectl delete -f -
 
-        sleep 30
+        sleep 60
 
         gsutil cat  "$$PARM_PATH/uc-allowed-services-k8s/deploy-apps.yaml" | kubectl apply -f -
         gsutil cat  "$$PARM_PATH/uc-allowed-services-istio/deploy-apps.yaml" | kubectl apply -f -
@@ -485,6 +539,7 @@ steps:
         gsutil cat  "$$PARM_PATH/uc-secrets-istio/deploy-apps.yaml" | kubectl apply -f -
         gsutil cat  "$$PARM_PATH/uc-firebase/deploy-apps.yaml" | kubectl apply -f -
         gsutil cat  "$$PARM_PATH/uc-opa/deploy-apps.yaml" | kubectl apply -f -
+        gsutil cat  "$$PARM_PATH/uc-secrets-vault-k8s/deploy-apps.yaml" | kubectl apply -f -
 
         sleep 120
     dir: "build-source/tests"
@@ -493,7 +548,7 @@ steps:
     args:
       - '-c'
       - |
-        set -x
+
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
@@ -512,7 +567,7 @@ steps:
           --zone "$$PARM_ZONE" \
           --project "$$PARM_PROJ"
 
-        kubectl config get-context
+        kubectl config current-context
         export INGRESS_ISTIO_HOST=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
         export INGRESS_NO_ISTIO_HOST=$(kubectl -n devtest get service test-service-external -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
         echo $$INGRESS_ISTIO_HOST > /workspace/myenv/_fileout_test_istio_host.out
@@ -524,8 +579,6 @@ steps:
       - '-c'
       - |
         echo 'STEP-TEST'
-
-        #set -x
 
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
@@ -542,8 +595,6 @@ steps:
 
         export INGRESS_ISTIO_HOST=$(cat /workspace/myenv/_fileout_test_istio_host.out)
         export INGRESS_NO_ISTIO_HOST=$(cat /workspace/myenv/_fileout_test_istio_no_host.out)
-        echo $(pwd)
-        ls -l
 
         export GOOGLE_APPLICATION_CREDENTIALS=/workspace/myroot/.private/gsa_keys/sa1.json
         export PUBSUB_GCP_PROJECT=$${PARM_PROJ}
@@ -558,7 +609,6 @@ steps:
       - |
         echo 'STEP-TEST-RESULTS'
 
-        #set -x
         PARM_AT_SEC=$(cat /workspace/myenv/_fileat_TAG.out)
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)

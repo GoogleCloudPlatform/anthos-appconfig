@@ -248,5 +248,60 @@ class SimpleHelloTestCase(unittest.TestCase):
     self.assertTrue(len(response) >  0, "response empty - len == 0")
     self.assertIn('PermissionDenied', response, "Failed Test - Publish")
 
+
+  def test_simple_hello_uc7_outbound_ok(self):
+    uc = "uc-secrets-vault-k8s"
+    self.assertTrue(len(os.environ['INGRESS_NO_ISTIO_HOST']) >  0, "INGRESS_NO_ISTIO_HOST empty - len == 0")
+    full_url = "http://" + os.environ['INGRESS_NO_ISTIO_HOST'] + "/testcallseq?"
+    full_url = full_url + self.util("1", "app-secrets-vault-k8s-appconfigv2-service-sm-2", uc)
+    full_url = full_url + "&" + self.util("2", "app-secrets-vault-k8s-appconfigv2-service-sm-1", uc)
+    full_url = full_url + "&call3=https://httpbin.org/get"
+
+
+    headers = {"Host": "test-simple-hello.example.com"}
+    response = RestHelper(full_url).get_text(None,headers)
+    self.assertTrue(len(response) >  0, "response empty - len == 0")
+    self.assertIn('"User-Agent": "python-requests/2.22.0"', response, "Failed Test")
+    self.assertIn('"Host": "httpbin.org"', response, "Failed Test")
+
+  def test_simple_hello_uc7_pubsub_ok_topic1(self):
+    uc = "uc-secrets-vault-k8s"
+    self.assertIn('INGRESS_NO_ISTIO_HOST', os.environ, "INGRESS_NO_ISTIO_HOST environment variable not set")
+    self.assertTrue(len(os.environ['INGRESS_NO_ISTIO_HOST']) >  0, "INGRESS_NO_ISTIO_HOST empty - len == 0")
+    self.assertIn('PUBSUB_GCP_PROJECT', os.environ, "PUBSUB_GCP_PROJECT environment variable not set")
+    self.assertTrue(len(os.environ['PUBSUB_GCP_PROJECT']) >  0, "PUBSUB_GCP_PROJECT empty - len == 0")
+    full_url = "http://" + os.environ['INGRESS_NO_ISTIO_HOST'] + "/testcallseq?"
+    full_url = full_url + self.util("1", "app-secrets-vault-k8s-appconfigv2-service-sm-2", uc)
+    full_url = full_url + "&" + self.util("2", "app-secrets-vault-k8s-appconfigv2-service-sm-1", uc)
+    full_url = full_url + "&call3=http://app-secrets-vault-k8s-appconfigv2-service-pubsub?"
+    full_url = full_url + "gcpProjectID=" + os.environ['PUBSUB_GCP_PROJECT']
+    full_url = full_url + "&topic=appconfigcrd-demo-topic1&message=hello1"
+
+
+
+    headers = {"Host": "test-simple-hello.example.com"}
+    response = RestHelper(full_url).get_text(None,headers)
+    self.assertTrue(len(response) >  0, "response empty - len == 0")
+    self.assertIn('Publish Success:', response, "Failed Test - Publish")
+
+  def test_simple_hello_uc7_pubsub_ok_topic2(self):
+    uc = "uc-secrets-vault-k8s"
+    self.assertIn('INGRESS_NO_ISTIO_HOST', os.environ, "INGRESS_NO_ISTIO_HOST environment variable not set")
+    self.assertTrue(len(os.environ['INGRESS_NO_ISTIO_HOST']) >  0, "INGRESS_NO_ISTIO_HOST empty - len == 0")
+    self.assertIn('PUBSUB_GCP_PROJECT', os.environ, "PUBSUB_GCP_PROJECT environment variable not set")
+    self.assertTrue(len(os.environ['PUBSUB_GCP_PROJECT']) >  0, "PUBSUB_GCP_PROJECT empty - len == 0")
+    full_url = "http://" + os.environ['INGRESS_NO_ISTIO_HOST'] + "/testcallseq?"
+    full_url = full_url + self.util("1", "app-secrets-vault-k8s-appconfigv2-service-sm-2", uc)
+    full_url = full_url + "&" + self.util("2", "app-secrets-vault-k8s-appconfigv2-service-sm-1", uc)
+    full_url = full_url + "&call3=http://app-secrets-vault-k8s-appconfigv2-service-pubsub?"
+    full_url = full_url + "gcpProjectID=" + os.environ['PUBSUB_GCP_PROJECT']
+    full_url = full_url + "&topic=appconfigcrd-demo-topic2&message=hello1"
+
+
+    headers = {"Host": "test-simple-hello.example.com"}
+    response = RestHelper(full_url).get_text(None,headers)
+    self.assertTrue(len(response) >  0, "response empty - len == 0")
+    self.assertIn('Publish Success:', response, "Failed Test - Publish")
+
 # if __name__ == '__main__':
 #   h = HtmlTestRunner.HTMLTestRunner(combine_reports=True, report_name="MyReport", add_timestamp=False).run(suite)

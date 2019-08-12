@@ -18,20 +18,41 @@
 
 
 
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
 metadata:
-  name: controller-manager
-  namespace: system
-spec:
-  template:
-    spec:
-      containers:
-      # Change the value of image field below to your controller image URL
-      - image: gcr.io/anthos-appconfig/appconfigtemplatev2_controller:v2.1.0-20190710-234948
-        name: manager
-        env:
-        - name: CONTROLLER_REGISTRY
-          value: "gcr.io/anthos-appconfig"
-        - name: CONTROLLER_BUILD
-          value: "latest-dev"
+  name: appconfigmgrv2-system-update
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - secrets/status
+  verbs:
+  - get
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: appconfigmgrv2-system-update-rb
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: appconfigmgrv2-system-update
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: appconfigmgrv2-system

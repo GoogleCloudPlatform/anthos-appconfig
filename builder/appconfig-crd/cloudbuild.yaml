@@ -98,6 +98,9 @@ steps:
         make || exit 1
         make test || exit 1
     dir: "build-source/appconfigmgrv2"
+    volumes:
+      - name: go-modules
+        path: /go
   - name: gcr.io/cloud-builders/docker
     entrypoint: '/bin/sh'
     args:
@@ -111,8 +114,11 @@ steps:
         docker build -t gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$$PARM_BUILD_BRANCH_TS . || exit 1
         docker push gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$$PARM_BUILD_BRANCH_TS || exit 1
     dir: "build-source/appconfigmgrv2"
-  - name: "gcr.io/${PROJECT_ID}/appconfighelper-build:${_BUILDER_VERSION}"
-    entrypoint: 'bash'
+    volumes:
+      - name: go-modules
+        path: /go
+  - name: gcr.io/cloud-builders/docker
+    entrypoint: '/bin/sh'
     args:
       - '-c'
       - |
@@ -121,9 +127,31 @@ steps:
         PARM_TS_SEC=$(cat $${MYENV_DIR}/_file_TAG.out)
         PARM_BUILD_BRANCH="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
         PARM_BUILD_BRANCH_TS="$$PARM_BUILD_BRANCH-$$PARM_TS_SEC"
-        sed -i'' -e 's@image: .*@image: '"gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$$PARM_BUILD_BRANCH_TS"'@' ./config/default/manager_image_patch.yaml
+        docker build -t gcr.io/${PROJECT_ID}/vault-api-helper:$$PARM_BUILD_BRANCH_TS . || exit 1
+        docker push gcr.io/${PROJECT_ID}/vault-api-helper:$$PARM_BUILD_BRANCH_TS || exit 1
+    dir: "build-source/vault-api-helper"
+    volumes:
+      - name: go-modules
+        path: /go
+  - name: "gcr.io/${PROJECT_ID}/appconfighelper-build:${_BUILDER_VERSION}"
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        PATCH_PATH="./config/default/manager_image_patch.yaml"
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+
+        PARM_TS_SEC=$(cat $${MYENV_DIR}/_file_TAG.out)
+        PARM_BUILD_BRANCH="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
+        PARM_BUILD_BRANCH_TS="$$PARM_BUILD_BRANCH-$$PARM_TS_SEC"
+        sed -i'' -e '/CONTROLLER_BUILD/{N;s@value: .*@value: '\"$$PARM_BUILD_BRANCH_TS\"'@}' $$PATCH_PATH
+        sed -i'' -e '/CONTROLLER_REGISTRY/{N;s@value: .*@value: '\"gcr.io/${PROJECT_ID}\"'@}' $$PATCH_PATH
+        sed -i'' -e 's@image: .*@image: '"gcr.io/${PROJECT_ID}/appconfigtemplatev2_controller:$$PARM_BUILD_BRANCH_TS"'@' $$PATCH_PATH
         make kustomize || exit 1
     dir: "build-source/appconfigmgrv2"
+    volumes:
+      - name: go-modules
+        path: /go
   - name: "gcr.io/${PROJECT_ID}/acmsplit:${_BUILDER_VERSION}"
     entrypoint:  "/app"
     dir: "build-source/appconfigmgrv2"

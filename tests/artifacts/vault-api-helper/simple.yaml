@@ -1,0 +1,76 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vault-api-helper-test-ns
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-api-helper-test-ksa
+  namespace: vault-api-helper-test-ns
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: vault-api-helper-test-deployment
+  namespace: vault-api-helper-test-ns
+  servicea
+  labels:
+    app: vault-api-helper-test-app
+    version: v1.0.0
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: vault-api-helper-test-app
+        version: v1.0.0
+    spec:
+      serviceAccountName: vault-api-helper-test-ksa
+      containers:
+        - name: vault-api-helper-test-c
+          image: gcr.io/anthos-appconfig/vault-api-helper:b-bcicen-uc-secrets-vault-134955364-webhook3-20190806-02312
+          imagePullPolicy: Always
+          command: ['/bin/sh -c "while [ true ] ; do echo 'sleeping..'; sleep 10; done"']
+          tty: true
+          env:
+           - name: KSA_JWT
+             value: eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJ1Yy1zZWNyZXRzLXZhdWx0LWs4cyIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJ1Yy1zZWNyZXRzLXZhdWx0LWs4cy1rc2EtdG9rZW4tYnBmYmoiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC5uYW1lIjoidWMtc2VjcmV0cy12YXVsdC1rOHMta3NhIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiOTFhNTIwNzgtYjdlMi0xMWU5LTgzY2MtNDIwMWFjMWMwMDAzIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OnVjLXNlY3JldHMtdmF1bHQtazhzOnVjLXNlY3JldHMtdmF1bHQtazhzLWtzYSJ9.NDEap29V1HC5pDSAjkQJtLBafPir8-3ZJeTY0Oj5eNCki3c7HBFM112FunWt-vOPh21blIZ7MIEXKPTwuitJ2ha_9TLDBhRMGNqjHWh-v4gm5quteu1xx4TLQ4eZM50YwXKXVuy5a2jApHXwq2goCuVqd6nSnUKJXWul7oysNW3puwGYApkU1xUifTu2lpR9Q3INqBF2zZSmtK3dkMzxbCPyGqS9vsZOu6i1zG45tWxor_rMy_QIVj5jFSPNI6I05sTbXMR9uciNOL-LnWeMDx3EvEXeXyDpQdWYDw84fF_LxsOaVRm76nThD1ErSi4A1eSQ_LwGIPyIUMvpoGqn3Q
+           - name: INIT_GCP_KEYPATH
+             value: gcp-appcrd-cicenas-20190806/key/uc-secrets-vault-k8s
+           - name: INIT_K8S_KEYPATH
+             value: auth/k8s-gke-appcrd-cicenas-20190806-us-west1-b-c-b-bcicen-uc-secrets-vault-13/role/vault-api-helper-test
+           - name: VAULT_ADDR
+             value: https://35.245.198.47:8200
+           - name: VAULT_CAPATH
+             value: /stuff/ca.pem
+           - name: GOOGLE_APPLICATION_CREDENTIALS
+             value: /stuff/key.json
+          volumeMounts:
+            - mountPath: /stuff/google-info
+              name: google-auth-token
+            - mountPath: /stuff/vault-info
+              name: cert
+              readOnly: true
+      volumes:
+        - emptyDir:
+            medium: Memory
+          name: google-auth-token
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: webhook-server-cert
