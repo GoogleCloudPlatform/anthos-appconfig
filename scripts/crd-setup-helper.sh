@@ -370,7 +370,8 @@ export VAULT_CACERT=</path/to/vault/ca.pem>
 kubectl create configmap vault \
   --namespace=appconfigmgrv2-system \
   --from-literal vault-addr=\${VAULT_ADDR} \
-  --from-literal acm-cluster-name=${ACM_CLUSTER_REGISTRY_NAME}
+  --from-literal acm-cluster-name=${ACM_CLUSTER_REGISTRY_NAME} \
+  --from-literal gcp-vault-path=gcp-${VAULT_INFO_PREFIX}-${PROJECT_ID}
 
 kubectl create secret generic vault-ca \
   --namespace=appconfigmgrv2-system \

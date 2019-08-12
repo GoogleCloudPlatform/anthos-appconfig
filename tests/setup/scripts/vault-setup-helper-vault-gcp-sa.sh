@@ -54,7 +54,7 @@ setup_service_account() {
 
   local VAULT_PREFIX="k8s-$(get_vault_provider_name $APPCONFIG_CRD_PREFIX $CLUSTER)"
   local VAULT_SA_EMAIL="$(get_vault_service_account_name $PROJECT_NAME $APPCONFIG_CRD_PREFIX})@${PROJECT_NAME}.iam.gserviceaccount.com"
-  local GCP_VAULT_PREFIX="gcp-$APPCONFIG_CRD_PREFIX"
+  local GCP_VAULT_PREFIX="gcp-$APPCONFIG_CRD_PREFIX-$PROJECT_NAME"
 
   echo; for v in PROJECT_NAME APPCONFIG_CRD_PREFIX CLUSTER VAULT_SA_KEY_PATH VAULT_PREFIX VAULT_SA_EMAIL VAULT_ROLE_NAME VAULT_ROLE_CREATE_SCRIPT VAULT_NS ; do
     echo -e "\033[32m${v}\033[0m\t| ${!v}"
@@ -66,7 +66,8 @@ setup_service_account() {
   kubectl create configmap vault \
       --namespace=appconfigmgrv2-system \
       --from-literal vault-addr=${VAULT_ADDR} \
-      --from-literal vault-cluster-path=${VAULT_PREFIX}
+      --from-literal vault-cluster-path=${VAULT_PREFIX} \
+      --from-literal gcp-vault-path=${GCP_VAULT_PREFIX}
 
   CHECK_VAULT_SA1=$(gcloud iam service-accounts describe ${VAULT_SA_EMAIL}  \
     --project ${PROJECT_NAME}  --format="value(name)"   || echo "")

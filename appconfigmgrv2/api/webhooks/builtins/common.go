@@ -90,7 +90,7 @@ func injectVolumeMount(pod *corev1.Pod, volumeMount corev1.VolumeMount) {
 
 		if idx < 0 {
 			log.Info("injectVolumeMount:Added", "Container.Name", c.Name, "VolumeMount.Name", volumeMount.Name)
-			pod.Spec.Containers[i].VolumeMounts = append(pod.Spec.Containers[i].VolumeMounts , volumeMount)
+			pod.Spec.Containers[i].VolumeMounts = append(pod.Spec.Containers[i].VolumeMounts, volumeMount)
 		} else {
 			log.Info("injectVolumeMount:Updated", "Container.Name", c.Name, "VolumeMount.Name", volumeMount.Name)
 			c.VolumeMounts[idx] = volumeMount

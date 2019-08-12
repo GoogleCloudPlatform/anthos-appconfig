@@ -314,6 +314,10 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 		return fmt.Errorf("ConfigMap missing vault-cluster-path")
 	}
 
+	if config.Data["gcp-vault-path"] == "" {
+		return fmt.Errorf("ConfigMap missing gcp-vault-path")
+	}
+
 	//// get provided serviceAccount JWT token
 	//log.Info("handleGCPVault:loadConfig", "ServiceAccount", vaultInfo.ServiceAccount)
 	//ksaToken, err := svcAcctJWT(ctx, vaultInfo.ServiceAccount, app.Namespace)
@@ -376,7 +380,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 			},
 			{
 				Name:  "INIT_GCP_KEYPATH",
-				Value: fmt.Sprintf("%s/key/%s", vaultInfo.Path, vaultInfo.Roleset),
+				Value: fmt.Sprintf("%s/key/%s", config.Data["gcp-vault-path"], vaultInfo.Roleset),
 			},
 			{
 				Name:  "INIT_K8S_KEYPATH",
