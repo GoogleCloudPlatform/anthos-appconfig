@@ -269,13 +269,11 @@ func getGCPKey(c *api.Client, keyRolesetPath string) (string, error) {
   if err != nil {
     return "", err
   }
-  resAsJSON, _ := json.Marshal(b)
+  resAsJSON, _ := json.Marshal(string(b))
   log.WithFields(log.Fields{
-    "private_key_data":        res.Data["private_key_data"],
-    "private_key_data_string": res.Data["private_key_data"].(string),
-    "b":                       b,
+    "b":                       string(b),
     "json":                    resAsJSON}).Info("getGCPKey:results")
-
+  
   return string(resAsJSON), nil
 }
 
