@@ -24,7 +24,6 @@ import (
   "context"
   "crypto/x509"
   "encoding/base64"
-  "encoding/json"
   "flag"
   "io/ioutil"
   "k8s.io/client-go/rest"
@@ -269,12 +268,7 @@ func getGCPKey(c *api.Client, keyRolesetPath string) (string, error) {
   if err != nil {
     return "", err
   }
-  resAsJSON, _ := json.Marshal(string(b))
-  log.WithFields(log.Fields{
-    "b":                       string(b),
-    "json":                    resAsJSON}).Info("getGCPKey:results")
-  
-  return string(resAsJSON), nil
+  return string(b), nil
 }
 
 func updateGCPKey(credentialPath string, key string) (error) {
