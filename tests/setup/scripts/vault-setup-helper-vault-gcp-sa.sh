@@ -92,8 +92,8 @@ setup_service_account() {
 
   CHECK_GCP_2=$(vault read "${GCP_VAULT_PREFIX}/config")
   [[ ! -z  "$CHECK_GCP_2" ]] || vault write ${GCP_VAULT_PREFIX}/config project=${PROJECT_NAME} \
-    ttl=600 \
-    max_ttl=3600 \
+    ttl=3600 \
+    max_ttl=7200 \
     credentials=@${VAULT_SA_KEY_PATH}
 
 
