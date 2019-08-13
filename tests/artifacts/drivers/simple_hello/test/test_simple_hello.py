@@ -18,6 +18,7 @@
 
 import os
 import sys
+import time
 import unittest
 
 
@@ -37,6 +38,24 @@ class SimpleHelloTestCase(unittest.TestCase):
       full_url += 'call' + str(k+1) + '=http://' + service_name + str(v) + '.' + namespace_name + '/testcallseq&'
 
     return full_url
+
+  def util(self, parm_call, parm_svc, parm_ns):
+    full_url = "call" + parm_call + "=http://" + parm_svc
+    if parm_ns:
+      full_url = full_url + "." + parm_ns
+    full_url += "/testcallseq"
+    return full_url
+
+  def warmup(self, up_to_number, sleep_seconds, check, url):
+
+    for i in range(1,up_to_number):
+      headers = {}
+      response = RestHelper(url).get_text(None, headers)
+      if len(response) >  0:
+        if check in response:
+          return
+      time.sleep(sleep_seconds)
+    return
 
   def test_simple_hello_uc3_empty_token(self):
 
@@ -63,12 +82,7 @@ class SimpleHelloTestCase(unittest.TestCase):
     self.assertTrue(len(response) >  0, "response empty - len == 0")
     self.assertIn("Last Call Successful", response, "Failed Test")
 
-  def util(self, parm_call, parm_svc, parm_ns):
-    full_url = "call" + parm_call + "=http://" + parm_svc
-    if parm_ns:
-      full_url = full_url + "." + parm_ns
-    full_url += "/testcallseq"
-    return full_url
+
 
   def test_simple_hello_uc1_outbound_ok(self):
     uc = "uc-allowed-services-k8s"
@@ -119,16 +133,20 @@ class SimpleHelloTestCase(unittest.TestCase):
 
   def test_simple_hello_uc2_service_blocked(self):
     uc = "uc-allowed-services-istio"
+
+
     self.assertTrue(len(os.environ['INGRESS_ISTIO_HOST']) >  0, "INGRESS_ISTIO_HOST empty - len == 0")
     full_url = "http://" + os.environ['INGRESS_ISTIO_HOST'] + "/testcallseq?"
     full_url = full_url + self.util("1", "app-allowed-istio-appconfigv2-service-sm-1", uc)
     full_url = full_url + "&" + self.util("2", "app-allowed-istio-appconfigv2-service-sm-3", uc)
 
+    # self.warmup(10,30,"403", full_url)
+
     headers = {}
     response = RestHelper(full_url).get_text(None,headers)
     self.assertTrue(len(response) >  0, "response empty - len == 0")
-    self.assertIn('403', response, "Failed Test- 403")
-    self.assertIn('PERMISSION_DENIED', response, "Failed Test - Denied Text")
+    self.assertIn('403', response, "Failed Test- 403-[" + full_url)
+    self.assertIn('PERMISSION_DENIED', response, "Failed Test - Denied Text-[" + full_url)
 
   def test_simple_hello_uc4_outbound_ok(self):
     uc = "uc-secrets-k8s"
