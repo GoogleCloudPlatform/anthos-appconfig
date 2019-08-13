@@ -491,7 +491,7 @@ steps:
           --key-path ./key.json --role uc-secrets-vault-k8s \
           --role-script-path ../examples/use-cases/uc-secrets-vault-k8s/vault-roles-policy.sh  \
           --ns uc-secrets-vault-k8s --key-check /workspace/myroot/.private/gsa_keys
-        gsutil cp  '/workspace/myroot/.private/gsa_keys/vault.json'  "gs://anthos-appconfig_build/tests/gsa_keys/${PROJECT_NAME}/vault.json"
+        gsutil cp  '/workspace/myroot/.private/gsa_keys/vault.json'  "gs://anthos-appconfig_build/tests/gsa_keys/$${PROJECT_NAME}/vault.json"
 
     dir: "build-source/tests"
     volumes:
