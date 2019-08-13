@@ -64,11 +64,14 @@ setup_service_account() {
   kubectl delete configmap vault \
       --namespace=appconfigmgrv2-system
 
+  # VAULT_PREFIX - https://www.vaultproject.io/docs/auth/kubernetes.html
   kubectl create configmap vault \
       --namespace=appconfigmgrv2-system \
       --from-literal vault-addr=${VAULT_ADDR} \
       --from-literal vault-cluster-path=${VAULT_PREFIX} \
       --from-literal gcp-vault-path=${GCP_VAULT_PREFIX}
+
+  # https://www.vaultproject.io/docs/auth/gcp.html
 
   CHECK_VAULT_SA1=$(gcloud iam service-accounts describe ${VAULT_SA_EMAIL}  \
     --project ${PROJECT_NAME}  --format="value(name)"   || echo "")
