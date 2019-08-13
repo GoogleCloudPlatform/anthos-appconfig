@@ -119,7 +119,7 @@ steps:
         PARM_AT_DAY=$(cat $${MYENV_DIR}/_file_at_day_TAG.out)
         echo "appcrd-$$PARM_EMAIL-$$PARM_AT_DAY" > /workspace/myenv/_fileproj_TAG.out
         TEMP_CLUSTER="c-$(cat /workspace/myenv/_fileappversion_TAG.out)"
-        TEMP_CLUSTER=$${TEMP_CLUSTER//./-}
+        TEMP_CLUSTER=${TEMP_CLUSTER//./-}
         echo ${TEMP_CLUSTER:0:30} > /workspace/myenv/_fileclus_TAG.out
         echo "us-west1" > /workspace/myenv/_filereg_TAG.out
         echo "us-west1-b" > /workspace/myenv/_filezone_TAG.out

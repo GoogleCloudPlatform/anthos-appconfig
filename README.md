@@ -31,6 +31,13 @@ which leverages the k8s controller framework.
 [[https://github.com/GoogleCloudPlatform/anthos-appconfig/wiki/images/global/ApplicationConfigTemplate.png|ApplicatinConfigTemplate High Level View]]
 
 
+## Documentation / Information (wiki)
+
+[AppConfig CRD Wiki](https://github.com/GoogleCloudPlatform/anthos-appconfig/wiki)
+
+[Releases](https://github.com/GoogleCloudPlatform/anthos-appconfig/releases)
+
+
 ### Source Code Headers
 
 Every file containing source code must include copyright and license
@@ -52,4 +59,8 @@ Apache header:
     distributed under the License is distributed on an "AS IS" BASIS,
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
-    limitations under the License.
+    limitations under the License.Copyright 2019 Google LLC. 
+    
+    This software is provided as-is, 
+    without warranty or representation for any use or purpose.
+
