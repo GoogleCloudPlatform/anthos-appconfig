@@ -382,6 +382,10 @@ export VAULT_ADDR=<vault_addr>
 export VAULT_CACERT=</path/to/vault/ca.pem>
 export VAULT_TOKEN="<vault token, to execute vault commands>"
 
+kubectl create secret generic vault-ca \
+  --namespace=appconfigmgrv2-system \
+  --from-file=${VAULT_CACERT}
+
 bash vault-setup-helper-vault-gcp-sa.sh \
   -p ${PROJECT_NAME} --app-prefix app-crd-vault --cluster ${ACM-CLUSTER-REGISTRY} \
   --key-path ./key.json --role uc-secrets-vault-k8s \
