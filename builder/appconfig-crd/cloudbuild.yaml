@@ -223,7 +223,7 @@ steps:
 
         if [ "$_REF_PATH" == 'BRANCH_VERSION' ]; then
           MY_REF_PATH="SHA_MANUAL_RELEASE"
-          MY_STEPS_X="CLUSTER1"
+          MY_STEPS_X=""
           gcloud builds submit --config=tests/setup/cloudbuild.yaml  tests/setup/jobtemp --project ${PROJECT_ID} \
             --substitutions="_REF_PATH=$$MY_REF_PATH,_POTENTIAL_VERSION=$$MY_APP_VERSION,_BRANCH_NAME=$$MY_CHECKOUT_REF,_INPUT_SHA_LONG=$$PARM_BUILD_SHA_LONG,_STEPS_X=$$MY_STEPS_X"
         fi
