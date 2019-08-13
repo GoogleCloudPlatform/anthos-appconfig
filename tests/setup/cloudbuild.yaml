@@ -65,13 +65,13 @@ steps:
         echo 'STEP-GIT-CHECKOUT'
         #set -x
         [ "$_REF_PATH" == 'BRANCH_AUTO' ] \
-          && { MY_CHECKOUT_REF="$_BRANCH_NAME";MY_APP_VERSION="b-$_BRANCH_NAME" }
+          && { MY_CHECKOUT_REF="$_BRANCH_NAME"; MY_APP_VERSION="b-$_BRANCH_NAME"; }
         [ "$_REF_PATH" == 'BRANCH_MANUAL' ] \
-          &&  { MY_CHECKOUT_REF="$_BRANCH_NAME"; MY_APP_VERSION="b-$_BRANCH_NAME" }
+          &&  { MY_CHECKOUT_REF="$_BRANCH_NAME"; MY_APP_VERSION="b-$_BRANCH_NAME"; }
         [ "$_REF_PATH" == 'SHA_MANUAL_BR' ] \
-          && { MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="b-$_BRANCH_NAME" }
+          && { MY_CHECKOUT_REF="$_INPUT_SHA_LONG"; MY_APP_VERSION="b-$_BRANCH_NAME"; }
         [ "$_REF_PATH" == 'SHA_MANUAL_RELEASE' ] \
-          && { MY_CHECKOUT_REF="$_INPUT_SHA_LONG";MY_APP_VERSION="$_POTENTIAL_VERSION" }
+          && { MY_CHECKOUT_REF="$_INPUT_SHA_LONG"; MY_APP_VERSION="$_POTENTIAL_VERSION"; }
 
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         echo "$_INPUT_SHA_LONG" > $${MYENV_DIR}/_fileappsha1_long_TAG.out
