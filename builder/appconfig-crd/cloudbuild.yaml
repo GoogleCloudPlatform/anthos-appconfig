@@ -186,6 +186,8 @@ steps:
         gsutil rm -R "gs://${PROJECT_ID}_public/install/scripts/$$PARM_BUILD_BRANCH/*"
         gsutil cp 'placeholder.txt' "gs://${PROJECT_ID}_public/install/scripts/$$PARM_BUILD_BRANCH/"
         gsutil cp -R 'scripts/*' "gs://${PROJECT_ID}_public/install/scripts/$$PARM_BUILD_BRANCH/"
+        gsutil cp -R 'examples/use-cases/uc-secrets-vault-k8s/vault-roles-policy.sh' "gs://${PROJECT_ID}_public/install/scripts/$$PARM_BUILD_BRANCH/uc-secrets-vault-k8s-vault-roles-policy.sh"
+        gsutil cp -R 'tests/setup/scripts/*' "gs://${PROJECT_ID}_public/install/scripts/$$PARM_BUILD_BRANCH/"
     dir: "build-source"
   - name: google/cloud-sdk
     entrypoint: "bash"

@@ -39,7 +39,7 @@ CM_CRD_COUNT=8
 _red() { echo -ne "\033[31m$@\033[0m"; }
 _grn() { echo -ne "\033[32m$@\033[0m"; }
 _ylw() { echo -ne "\033[33m$@\033[0m"; }
-_output() { echo -e "\n[$(_grn acm-init)] $@"; }
+_output() { echo -e "\n[$(_grn crd-setup-helper)] $@"; }
 _errexit() { echo -e "[$(_red error)] $@"; exit 1; }
 _installed() { command -v "$1" >/dev/null 2>&1; }
 _ensure_path() { mkdir -p $(dirname $1); echo "creating $1"; }
@@ -280,7 +280,7 @@ ssh-keygen -t rsa -b 4096 -N '' -q \
 2.  Create secret
 
 kubectl create secret generic git-creds \
---namespace=config-management-system \\
+--namespace=config-management-system \
 --from-file=ssh="private key path"
 
 **************IMPORTANT**************
@@ -339,45 +339,17 @@ init-demos() {
     iam_name=${app_name}-sa${i}
     iam_account="${iam_name}@${PROJECT_NAME}.iam.gserviceaccount.com"
     DEMO_COMMAND="${DEMO_COMMAND}gcloud iam service-accounts create ${iam_name} --display-name=${iam_name} --project $PROJECT_NAME\n"
-    DEMO_COMMAND="${DEMO_COMMAND}gcloud iam service-accounts keys create 'key path.json' --project $PROJECT_NAME \\\\\n"
-    DEMO_COMMAND="${DEMO_COMMAND}  --iam-account=${iam_account}\n"
+    DEMO_COMMAND="${DEMO_COMMAND}gcloud iam service-accounts keys create \"sa${i}.json\" --project $PROJECT_NAME \\\\\n"
+    DEMO_COMMAND="${DEMO_COMMAND}  --iam-account=${iam_account}\n\n"
     DEMO_COMMAND="${DEMO_COMMAND}gcloud beta pubsub topics add-iam-policy-binding ${topic} --project $PROJECT_NAME \\\\\n"
     DEMO_COMMAND="${DEMO_COMMAND}  --member=serviceAccount:${iam_account} \\\\\n"
-    DEMO_COMMAND="${DEMO_COMMAND}  --role=roles/pubsub.publisher\n"
+    DEMO_COMMAND="${DEMO_COMMAND}  --role=\"roles/pubsub.publisher\"\n\n"
     DEMO_COMMAND="${DEMO_COMMAND}\nkubectl create secret generic ${iam_name}-secret \\\\\n"
     DEMO_COMMAND="${DEMO_COMMAND}  -n appconfigmgrv2-system \\\\\n"
-    DEMO_COMMAND="${DEMO_COMMAND}  --from-file=key.json='key dir'/${iam_name}.json\n\n"
+    DEMO_COMMAND="${DEMO_COMMAND}  --from-file=key.json=sa${i}.json\n\n"
 
   done
 
-  cat <<EOM
-
-# Complete Setup
-
-Run the following commands to complete setup:
-
- - Create two service accounts and JSON Keys and corresponding subscriptions and secrets (to test pubsub ACL)
-
-EOM
-
-  echo -e ${DEMO_COMMAND}
-  echo -e '\n\n - (OPTIONAL) Enable and configure ACM Vault integration to your existing Vault Server'
-  cat <<EOM
-
-export VAULT_ADDR=<vault_addr>
-export VAULT_CACERT=</path/to/vault/ca.pem>
-
-kubectl create configmap vault \
-  --namespace=appconfigmgrv2-system \
-  --from-literal vault-addr=\${VAULT_ADDR} \
-  --from-literal acm-cluster-name=${ACM_CLUSTER_REGISTRY_NAME} \
-  --from-literal gcp-vault-path=gcp-${VAULT_INFO_PREFIX}-${PROJECT_ID}
-
-kubectl create secret generic vault-ca \
-  --namespace=appconfigmgrv2-system \
-  --from-file=\${VAULT_CACERT}
-
-EOM
 
   [[ -d "${ACM_ENV_ROOT}/namespaces/use-cases" ]] && {
     _output "WARN: ${ACM_ENV_ROOT}/namespaces/use-cases already exists"
@@ -391,6 +363,33 @@ EOM
   git add ${ACM_ENV_ROOT} || echo "1"
 
   git commit -am "initialize $ACM_CLUSTER_REGISTRY_NAME demo apps" && git push
+
+  cat <<EOM
+
+# Complete Setup
+
+Run the following commands to complete setup:
+
+ - Create two service accounts and JSON Keys and corresponding subscriptions and secrets (to test pubsub ACL)
+
+EOM
+
+  echo -e "${DEMO_COMMAND}"
+  echo -e '\n\n - (OPTIONAL) Enable and configure ACM Vault integration to your existing Vault Server'
+  cat <<EOM
+
+export VAULT_ADDR=<vault_addr>
+export VAULT_CACERT=</path/to/vault/ca.pem>
+export VAULT_TOKEN="<vault token, to execute vault commands>"
+
+bash vault-setup-helper-vault-gcp-sa.sh \
+  -p ${PROJECT_NAME} --app-prefix app-crd-vault --cluster ${ACM-CLUSTER-REGISTRY} \
+  --key-path ./key.json --role uc-secrets-vault-k8s \
+  --role-script-path vault-roles-policy.sh  \
+  --ns uc-secrets-vault-k8s
+
+EOM
+
 }
 
 status() {

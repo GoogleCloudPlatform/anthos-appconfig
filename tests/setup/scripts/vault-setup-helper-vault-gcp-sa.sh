@@ -51,6 +51,7 @@ setup_service_account() {
   local VAULT_ROLE_CREATE_SCRIPT=$6
   local VAULT_NS=$7
   local VAULT_KSA="${VAULT_NS}-ksa"
+  local KEY_CHECK=$8
 
   local VAULT_PREFIX="k8s-$(get_vault_provider_name $APPCONFIG_CRD_PREFIX $CLUSTER)"
   local VAULT_SA_EMAIL="$(get_vault_service_account_name $PROJECT_NAME $APPCONFIG_CRD_PREFIX})@${PROJECT_NAME}.iam.gserviceaccount.com"
@@ -76,21 +77,20 @@ setup_service_account() {
 
 
   if [ ! -f ${VAULT_SA_KEY_PATH} ] ; then
-    if [ ! -f /workspace/myroot/.private/gsa_keys/vault.json ] ; then
-      gcloud iam service-accounts keys create "/workspace/myroot/.private/gsa_keys/vault.json" --project ${PROJECT_NAME} \
+    if [ ! -f ${KEY_CHECK}/vault.json ] ; then
+      gcloud iam service-accounts keys create "${KEY_CHECK}/vault.json" --project ${PROJECT_NAME} \
         --iam-account=${VAULT_SA_EMAIL}
-       gsutil cp  '/workspace/myroot/.private/gsa_keys/vault.json'  "gs://anthos-appconfig_build/tests/gsa_keys/${PROJECT_NAME}/vault.json"
     fi
-    cp /workspace/myroot/.private/gsa_keys/vault.json ${VAULT_SA_KEY_PATH}
+    cp ${KEY_CHECK}/vault.json ${VAULT_SA_KEY_PATH}
   fi
 
-  CHECK_GCP_1=$(vault read "${GCP_VAULT_PREFIX}")
-  [ ! -z  $CHECK_GCP_1 ] || vault secrets enable --path="${GCP_VAULT_PREFIX}" gcp
+  CHECK_GCP_1=$(vault read "${GCP_VAULT_PREFIX}" || echo "")
+  [ ! -z  $CHECK_GCP_1 ] || (vault secrets enable --path="${GCP_VAULT_PREFIX}" gcp || echo "")
 
-  CHECK_K8S_1=$(vault read "${VAULT_PREFIX}")
-  [ ! -z  $CHECK_K8S_1 ] || vault auth enable --path="${VAULT_PREFIX}" kubernetes
+  CHECK_K8S_1=$(vault read "${VAULT_PREFIX}" || echo "")
+  [ ! -z  $CHECK_K8S_1 ] || (vault auth enable --path="${VAULT_PREFIX}" kubernetes || echo "")
 
-  CHECK_GCP_2=$(vault read "${GCP_VAULT_PREFIX}/config")
+  CHECK_GCP_2=$(vault read "${GCP_VAULT_PREFIX}/config" || echo "")
   [[ ! -z  "$CHECK_GCP_2" ]] || vault write ${GCP_VAULT_PREFIX}/config project=${PROJECT_NAME} \
     ttl=3600 \
     max_ttl=7200 \
@@ -159,7 +159,7 @@ if [ $NUMARGS -eq 0 ]; then
   HELP
 fi
 
-OPTS=`getopt -o vp:h --long "verbose,project:,help,app-prefix:,cluster:,key-path:,role:,role-script-path:,ns:" -n "$0" -- "$@"`
+OPTS=`getopt -o vp:h --long "verbose,project:,help,app-prefix:,cluster:,key-path:,role:,role-script-path:,ns:,key-check:" -n "$0" -- "$@"`
 
 if [ $? != 0 ] ; then echo "Failed parsing options." >&2 ; exit 1 ; fi
 
@@ -177,6 +177,7 @@ KEY_PATH=""
 ROLE=""
 ROLE_SCRIPT=""
 NS=""
+KEY_CHECK=""
 
 while true ; do
   case "$1" in
@@ -189,6 +190,7 @@ while true ; do
     --role ) ROLE="$2"; shift; shift ;;
     --role-script-path ) ROLE_SCRIPT="$2"; shift; shift ;;
     --ns ) NS="$2"; shift; shift ;;
+    --key-check ) KEY_CHECK="$2"; shift; shift ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
@@ -198,4 +200,5 @@ echo; for v in PROJECT APP_PREFIX APP_CLUSTER KEY_PATH ROLE ROLE_SCRIPT NS ; do
   echo -e "\033[32m${v}\033[0m\t| ${!v}"
 done | column -t
 
-setup_service_account "$PROJECT" "$APP_PREFIX" "$APP_CLUSTER" "$KEY_PATH" "$ROLE" "$ROLE_SCRIPT" "$NS"
+set -x
+setup_service_account "$PROJECT" "$APP_PREFIX" "$APP_CLUSTER" "$KEY_PATH" "$ROLE" "$ROLE_SCRIPT" "$NS" "$KEY_CHECK"

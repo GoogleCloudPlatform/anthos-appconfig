@@ -154,9 +154,6 @@ steps:
         PARM_REPO_LOCAL_PATH=$(cat $${MYENV_DIR}/_filerepopath_TAG.out)
         PARM_BUILD_BRANCH="$(cat $${MYENV_DIR}/_fileappversion_TAG.out)"
 
-        curl -Lo $${MYENV_TEST_DIR}/acm-init.sh \
-           https://storage.googleapis.com/anthos-appconfig_public/install/scripts/$${PARM_BUILD_BRANCH}/acm-init.sh
-        chmod a+x $${MYENV_TEST_DIR}/acm-init.sh
         curl -Lo $${MYENV_TEST_DIR}/crd-setup-helper.sh \
            https://storage.googleapis.com/anthos-appconfig_public/install/scripts/$${PARM_BUILD_BRANCH}/crd-setup-helper.sh
         chmod a+x $${MYENV_TEST_DIR}/crd-setup-helper.sh
@@ -253,6 +250,7 @@ steps:
       gcloud services enable sourcerepo.googleapis.com --project "$$PARM_PROJ" --quiet
       gcloud services enable monitoring.googleapis.com --project "$$PARM_PROJ" --quiet
       gcloud services enable logging.googleapis.com --project "$$PARM_PROJ" --quiet
+      gcloud services enable pubsub.googleapis.com --project "$$PARM_PROJ" --quiet
 
       echo $(gcloud beta compute routers create r"$$PARM_REGION" --network=default --region "$$PARM_REGION" --project "$$PARM_PROJ" || echo 0)
       echo $(gcloud beta compute routers nats create "n$$PARM_REGION" --router "r$$PARM_REGION" --project "$$PARM_PROJ" --auto-allocate-nat-external-ips --nat-all-subnet-ip-ranges --router-region "$$PARM_REGION" || echo 0)
@@ -334,9 +332,6 @@ steps:
 
 
         gcloud source repos clone  $$PARM_REPO "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" --project "$$PARM_PROJ"
-        curl -Lo acm-init.sh \
-           https://storage.googleapis.com/anthos-appconfig_public/install/scripts/$${PARM_BUILD_BRANCH}/acm-init.sh
-        chmod a+x acm-init.sh
         curl -Lo crd-setup-helper.sh \
            https://storage.googleapis.com/anthos-appconfig_public/install/scripts/$${PARM_BUILD_BRANCH}/crd-setup-helper.sh
         chmod a+x crd-setup-helper.sh
@@ -380,7 +375,7 @@ steps:
           echo "Waited and AppConfig Controller was not created!"; exit 1
         fi
 
-        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; yes | bash acm-init.sh status
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; yes | bash crd-setup-helper.sh status
         export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH;  echo -e "y\n" | ./crd-setup-helper.sh init-demos "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" "$(cat gcloud_user.txt)"
 
 
@@ -495,8 +490,8 @@ steps:
           -p $${PARM_PROJ} --app-prefix app-crd-vault --cluster $${K8S_CONTEXT//_/-} \
           --key-path ./key.json --role uc-secrets-vault-k8s \
           --role-script-path ../examples/use-cases/uc-secrets-vault-k8s/vault-roles-policy.sh  \
-          --ns uc-secrets-vault-k8s
-
+          --ns uc-secrets-vault-k8s --key-check /workspace/myroot/.private/gsa_keys
+        gsutil cp  '/workspace/myroot/.private/gsa_keys/vault.json'  "gs://anthos-appconfig_build/tests/gsa_keys/${PROJECT_NAME}/vault.json"
 
     dir: "build-source/tests"
     volumes:
