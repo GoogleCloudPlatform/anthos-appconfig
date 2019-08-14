@@ -523,9 +523,14 @@ install_gatekeeper() {
   gsutil cat ${GATEKEEPER_BUCKET}/config.yaml | kubectl apply -f -
   sleep 10
   gsutil cat ${GATEKEEPER_BUCKET}/constraint-templates.yaml | kubectl apply -f -
-  sleep 20
 
-  gsutil cat ${GATEKEEPER_BUCKET}/constraints.yaml | kubectl apply -f -
+  n=0
+  until [ $n -ge 10 ]
+  do
+    gsutil cat ${GATEKEEPER_BUCKET}/constraints.yaml | kubectl apply -f - && break
+    n=$[$n+1]
+    sleep 20
+  done
 }
 
 install_istio() {
