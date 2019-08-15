@@ -521,8 +521,17 @@ install_operator() {
 install_gatekeeper() {
   kubectl apply -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml
   gsutil cat ${GATEKEEPER_BUCKET}/config.yaml | kubectl apply -f -
+  sleep 10
   gsutil cat ${GATEKEEPER_BUCKET}/constraint-templates.yaml | kubectl apply -f -
-  gsutil cat ${GATEKEEPER_BUCKET}/constraints.yaml | kubectl apply -f -
+
+  n=0
+  until [ $n -ge 50 ]
+  do
+    echo "attempting to install constraints (attempt $n)"
+    gsutil cat ${GATEKEEPER_BUCKET}/constraints.yaml | kubectl apply -f - && break
+    n=$[$n+1]
+    sleep 20
+  done
 }
 
 install_istio() {
