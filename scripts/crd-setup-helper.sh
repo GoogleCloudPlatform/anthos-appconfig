@@ -506,7 +506,7 @@ pre-install() {
 
   CRD_SETUP_ISTIO_PREINSTALL_DIR="${ARGS[0]}"
   install_istio && _output "istio manual install OK ${CRD_SETUP_ISTIO_PREINSTALL_DIR}"
-  install_gatekeeper && _output "gatekeeper manual install OK"
+#  install_gatekeeper && _output "gatekeeper manual install OK"
 
   _output "done"
 }
