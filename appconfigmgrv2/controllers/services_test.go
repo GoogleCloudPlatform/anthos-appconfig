@@ -35,7 +35,7 @@ import (
 func TestReconcileServices(t *testing.T) {
 	r, stop := startTestReconciler(t)
 	defer stop()
-	in, cleanup := createTestInstance(t, false)
+	in, cleanup := createTestInstance(t, testFeatureFlags{})
 	defer cleanup()
 
 	svcs := services(in)

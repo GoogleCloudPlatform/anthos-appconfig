@@ -33,7 +33,7 @@ import (
 func TestReconcileNetworkPolicies(t *testing.T) {
 	r, stop := startTestReconciler(t)
 	defer stop()
-	in, cleanup := createTestInstance(t, false)
+	in, cleanup := createTestInstance(t, testFeatureFlags{istio: false})
 	defer cleanup()
 
 	var n int

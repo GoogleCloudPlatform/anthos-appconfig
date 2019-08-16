@@ -25,7 +25,7 @@ import (
 func TestOPAConstraints(t *testing.T) {
 	r, stop := startTestReconciler(t)
 	defer stop()
-	instance, cleanup := createTestInstance(t, true)
+	instance, cleanup := createTestInstance(t, testFeatureFlags{})
 	defer cleanup()
 
 	gvr := opaConstraintGVR()
