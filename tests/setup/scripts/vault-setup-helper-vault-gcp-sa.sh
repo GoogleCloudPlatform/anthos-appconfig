@@ -203,5 +203,5 @@ echo; for v in PROJECT APP_PREFIX APP_CLUSTER KEY_PATH ROLE ROLE_SCRIPT NS ; do
   echo -e "\033[32m${v}\033[0m\t| ${!v}"
 done | column -t
 
-set -x
+#set -x
 setup_service_account "$PROJECT" "$APP_PREFIX" "$APP_CLUSTER" "$KEY_PATH" "$ROLE" "$ROLE_SCRIPT" "$NS" "$KEY_CHECK"

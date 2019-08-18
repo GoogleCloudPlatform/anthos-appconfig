@@ -548,7 +548,7 @@ install_istio() {
 
   if [ "${genexternal}" == "1" ]; then
     tmpdir="${CRD_SETUP_ISTIO_PREINSTALL_DIR}"
-    rmdir -rf "$(pwd)/istio-external"
+    rm -rf "$(pwd)/istio-external"
     mkdir -p ${tmpdir}
     istio_dir="${tmpdir}/istio-generated"
   fi
@@ -560,6 +560,9 @@ install_istio() {
       kubectl label namespace istio-system appconfigmgr.cft.dev/trusted="true"
     }
     cat ${CRD_SETUP_ISTIO_PREINSTALL_DIR}/istio-init.yaml | kubectl apply -f -
+    sleep 30
+    cat ${CRD_SETUP_ISTIO_PREINSTALL_DIR}/istio-init.yaml | kubectl apply -f -
+    sleep 30
     cat ${CRD_SETUP_ISTIO_PREINSTALL_DIR}/istio.yaml | kubectl apply -f -
   else
     istio_version=$(curl -L -s https://api.github.com/repos/istio/istio/releases | \
