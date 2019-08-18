@@ -44,6 +44,36 @@ steps:
         gsutil cp -DD "gs://${PROJECT_ID}_build/repo/github/build-ssh-config-git-hub" '/builder/home/.ssh/config'
         gsutil cp -DD "gs://${PROJECT_ID}_build/billing/billing_acount_testing.txt" '/builder/home/.ssh/billing_acount_testing.txt'
 
+        CMD1="\$(kubectl get ns \"\$1\" --output 'jsonpath={.metadata.name}')"
+        CMD2="\$(( NEXT_WAIT_TIME ))"
+        CMD3="\$(date '+%Y%m%d-%H%M%S')"
+        CMD4="\$(( 5*NEXT_WAIT_TIME++  ))"
+        cat  > $${MYENV_TEST_DIR}/deploy_helper.sh << -EOF
+          #set -x
+          NEXT_WAIT_TIME=0
+
+          until ([ ! -z  "$$CMD1" ] || [ "$$CMD2" -gt 10 ]); do
+            echo "Waiting for NS \$1 to get going... - $$CMD3"
+            sleep $$CMD4
+          done
+
+
+          gsutil cat  "\$2/\$1/deploy-apps.yaml" | kubectl apply -f -
+          [ ! -z "\$3" ] || exit 0
+          kubectl -n \$1 rollout status deploy/\$3-1
+          kubectl -n \$1 rollout status deploy/\$3-2
+          kubectl -n \$1 rollout status deploy/\$3-3
+          kubectl -n \$1 rollout status deploy/\$3-4
+          [ -z "\$4" ] || kubectl -n \$1 rollout status deploy/\$4
+
+
+
+        -EOF
+
+
+        cat $${MYENV_TEST_DIR}/deploy_helper.sh
+        #return "1"
+
   - name: 'gcr.io/cloud-builders/git'
     entrypoint: 'bash'
     args:
@@ -115,9 +145,11 @@ steps:
         echo "20190724000300" > /workspace/myenv/_file_TAG.out
         echo "201907240003" > /workspace/myenv/_filemin_TAG.out
         PARM_EMAIL=$(cat $${MYENV_DIR}/_file_email_TAG.out)
+        PARM_AT_SEC=$(cat $${MYENV_DIR}/_fileat_TAG.out)
         PARM_AT_HOUR=$(cat $${MYENV_DIR}/_file_at_hr_TAG.out)
         PARM_AT_DAY=$(cat $${MYENV_DIR}/_file_at_day_TAG.out)
-        echo "appcrd-$$PARM_EMAIL-$$PARM_AT_DAY" > /workspace/myenv/_fileproj_TAG.out
+        echo "appcrd-$$PARM_EMAIL-$$PARM_AT_HOUR" > /workspace/myenv/_fileproj_TAG.out
+        #echo "appcrd-joseret-20190818-06" > /workspace/myenv/_fileproj_TAG.out
         TEMP_CLUSTER="c-$(cat /workspace/myenv/_fileappversion_TAG.out)"
         TEMP_CLUSTER=${TEMP_CLUSTER//./-}
         echo ${TEMP_CLUSTER:0:30} > /workspace/myenv/_fileclus_TAG.out
@@ -164,11 +196,10 @@ steps:
         gsutil cp gs://anthos-appconfig_public/install/vault-linux-64  $${MYENV_TEST_DIR}/temp/bin/vault
         chmod a+x $${MYENV_TEST_DIR}/temp/bin/vault
 
-        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH;$${MYENV_TEST_DIR}/crd-setup-helper.sh pre-install "$${MYENV_TEST_DIR}/generated/istio" -genexternal
+        export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; echo -e "1.1.13\nyyyyyy" | $${MYENV_TEST_DIR}/crd-setup-helper.sh pre-install "$${MYENV_TEST_DIR}/generated/istio" -genexternal
 
 
         gsutil cp gs://cicenas-vault/root-token.enc /root/.ssh/x1
-        base64 --help
 
         cat /root/.ssh/x1 | base64 --decode > /root/.ssh/x2| \
           gcloud kms decrypt \
@@ -192,7 +223,7 @@ steps:
       - |
         echo 'STEP-GENERATE-ARTIFACTS'
 
-        set -x
+        # set -x
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         MYENV_TEST_DIR=$(cat /workspace/myenv/_testdir_TAG.out)
 
@@ -222,11 +253,49 @@ steps:
   - name: google/cloud-sdk
     entrypoint: "bash"
     args:
+      - '-c'
+      - |
+
+        echo 'STEP-CLUSTER1a'
+        [[ "$_STEPS_X" == *"CLUSTER1a"* ]] && { echo 'STEP-CLUSTER1a*SKIP*'; exit 0; }
+
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+        PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
+        PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
+        PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
+        PARM_CLUSTER=$(cat /workspace/myenv/_fileclus_TAG.out)
+        PARM_REGION=$(cat /workspace/myenv/_filereg_TAG.out)
+        PARM_ZONE=$(cat /workspace/myenv/_filezone_TAG.out)
+        PARM_REPO=$(cat /workspace/myenv/_filerepo_TAG.out)
+        PARM_REPO_LOCAL_PATH=$(cat /workspace/myenv/_filerepopath_TAG.out)
+        PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
+
+        gcloud config list  --quiet
+        [ ! -z "$(gcloud projects list --filter=name=\'$$PARM_PROJ\' --format='table[no-heading](name)')" ] \
+          || gcloud projects create --folder=611791615006  $$PARM_PROJ --name="$$PARM_PROJ" --quiet
+        gcloud services enable cloudbilling.googleapis.com --project "$$PARM_PROJ" --quiet
+        gcloud beta billing projects link "$$PARM_PROJ" --billing-account="$(cat /builder/home/.ssh/billing_acount_testing.txt)" --quiet
+        gcloud services enable compute.googleapis.com --project "$$PARM_PROJ" --quiet
+        gcloud services enable container.googleapis.com sourcerepo.googleapis.com monitoring.googleapis.com \
+        logging.googleapis.com pubsub.googleapis.com \
+        --project "$$PARM_PROJ" --quiet
+
+        [ ! -z "$(gcloud beta compute routers list --filter=name=\'r$$PARM_REGION\' --project "$$PARM_PROJ" --format='table[no-heading](name)')" ] \
+          || gcloud beta compute routers create "r$$PARM_REGION" --network=default --region "$$PARM_REGION" --project "$$PARM_PROJ"
+        [ ! -z "$(gcloud beta compute routers nats list --router "r$$PARM_REGION" --router-region "$$PARM_REGION" --project "$$PARM_PROJ" --format='table[no-heading](name)')" ] \
+          || gcloud beta compute routers nats create "n$$PARM_REGION" --router "r$$PARM_REGION" --region "$$PARM_REGION" --project "$$PARM_PROJ" \
+          --auto-allocate-nat-external-ips --nat-all-subnet-ip-ranges --router-region "$$PARM_REGION"
+
+
+    dir: "build-source/tests/setup"
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+    args:
     - '-c'
     - |
 
-      echo 'STEP-CLUSTER1'
-      [[ "$_STEPS_X" == *"CLUSTER1"* ]] && { echo 'STEP-CLUSTER1*SKIP*'; exit 0; }
+      echo 'STEP-CLUSTER1b'
+      [[ "$_STEPS_X" == *"CLUSTER1b"* ]] && { echo 'STEP-CLUSTER1b*SKIP*'; exit 0; }
 
       #set -x
 
@@ -242,20 +311,7 @@ steps:
       PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
 
-      gcloud config list  --quiet
-      gcloud projects create --folder=611791615006  $$PARM_PROJ --name="$$PARM_PROJ" --quiet  || echo 0
-      gcloud services enable cloudbilling.googleapis.com --project "$$PARM_PROJ" --quiet
-      gcloud beta billing projects link "$$PARM_PROJ" --billing-account="$(cat /builder/home/.ssh/billing_acount_testing.txt)" --quiet
-      gcloud services enable compute.googleapis.com --project "$$PARM_PROJ" --quiet
-      gcloud services enable container.googleapis.com  --project "$$PARM_PROJ" --quiet
-      gcloud services enable sourcerepo.googleapis.com --project "$$PARM_PROJ" --quiet
-      gcloud services enable monitoring.googleapis.com --project "$$PARM_PROJ" --quiet
-      gcloud services enable logging.googleapis.com --project "$$PARM_PROJ" --quiet
-      gcloud services enable pubsub.googleapis.com --project "$$PARM_PROJ" --quiet
-
-      echo $(gcloud beta compute routers create r"$$PARM_REGION" --network=default --region "$$PARM_REGION" --project "$$PARM_PROJ" || echo 0)
-      echo $(gcloud beta compute routers nats create "n$$PARM_REGION" --router "r$$PARM_REGION" --project "$$PARM_PROJ" --auto-allocate-nat-external-ips --nat-all-subnet-ip-ranges --router-region "$$PARM_REGION" || echo 0)
-      echo $(gcloud container clusters describe $$PARM_CLUSTER --zone $$PARM_ZONE --format="value(selfLink.basename())" --project "$$PARM_PROJ" || echo "") > out_cluster_TAG.out
+      echo $(gcloud container clusters list --filter=name=\'$$PARM_CLUSTER\' --format='table[no-heading](name)'  --project "$$PARM_PROJ")  > out_cluster_TAG.out
 
       PARM_SUBNET_MASTER_INC=$(gcloud container clusters list --format 'table[no-heading](name)'  --project "$$PARM_PROJ" | wc -l)
       PARM_SUBNET_MASTER="$((28 + $$PARM_SUBNET_MASTER_INC))"
@@ -393,7 +449,7 @@ steps:
       - |
         echo 'STEP-CRD1-b'
         [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1-b*SKIP*'; exit 0; }
-        set -x
+        # set -x
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
@@ -506,6 +562,8 @@ steps:
         echo 'STEP-CRD1-c'
         [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1-c*SKIP*'; exit 0; }
 
+        MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
+        MYENV_TEST_DIR=$(cat /workspace/myenv/_testdir_TAG.out)
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
         PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
@@ -528,16 +586,18 @@ steps:
 
         sleep 60
 
-        gsutil cat  "$$PARM_PATH/uc-allowed-services-k8s/deploy-apps.yaml" | kubectl apply -f -
-        gsutil cat  "$$PARM_PATH/uc-allowed-services-istio/deploy-apps.yaml" | kubectl apply -f -
-        gsutil cat  "$$PARM_PATH/uc-allowed-jwt-istio/deploy-apps.yaml" | kubectl apply -f -
-        gsutil cat  "$$PARM_PATH/uc-secrets-k8s/deploy-apps.yaml" | kubectl apply -f -
-        gsutil cat  "$$PARM_PATH/uc-secrets-istio/deploy-apps.yaml" | kubectl apply -f -
-        gsutil cat  "$$PARM_PATH/uc-firebase/deploy-apps.yaml" | kubectl apply -f -
-        gsutil cat  "$$PARM_PATH/uc-opa/deploy-apps.yaml" | kubectl apply -f -
-        gsutil cat  "$$PARM_PATH/uc-secrets-vault-k8s/deploy-apps.yaml" | kubectl apply -f -
 
-        sleep 120
+        bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-allowed-services-k8s' "$$PARM_PATH" "hello-app-sm-py" "hello-app-pubsub"
+        bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-allowed-services-istio' "$$PARM_PATH" "appconfigv2-service-sm" ""
+        bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-allowed-jwt-istio' "$$PARM_PATH" "appconfigv2-service-sm" ""
+        bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-secrets-k8s' "$$PARM_PATH" "hello-app-sm-py" "hello-app-pubsub"
+        bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-secrets-istio' "$$PARM_PATH" "appconfigv2-service-sm" "hello-app-pubsub"
+        bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-secrets-vault-k8s' "$$PARM_PATH" "hello-app-sm-py" "hello-app-pubsub"
+        bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-opa' "$$PARM_PATH"
+        bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-firebase' "$$PARM_PATH"
+
+        sleep 60
+
     dir: "build-source/tests"
   - name: google/cloud-sdk
     entrypoint: "bash"
@@ -605,6 +665,7 @@ steps:
       - |
         echo 'STEP-TEST-RESULTS'
 
+        MYENV_TEST_DIR=$(cat /workspace/myenv/_testdir_TAG.out)
         PARM_AT_SEC=$(cat /workspace/myenv/_fileat_TAG.out)
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
         PARM_TS_MIN=$(cat /workspace/myenv/_filemin_TAG.out)
@@ -625,16 +686,31 @@ steps:
         if [ "$$TEST_RESULTS_ALL_1" == "0" ]; then
           TEST_RESULTS_DIR='pass'
         fi
-        echo -e "AppVersion:[$$PARM_BUILD_BRANCH]\n" > /workspace/myenv/tests/build_info.txt
+        echo -e "<html><body>" > /workspace/myenv/tests/build_info.html
+        echo -e "AppVersion:[$$PARM_BUILD_BRANCH]<br/>\n" >> /workspace/myenv/tests/build_info.html
         echo; for v in PARM_BUILD_BRANCH PARM_BUILD_SHA PARM_BUILD_SHA_LONG PARM_AT_SEC PARM_PROJ K8S_CONTEXT PARM_CLUSTER PARM_REGION PARM_ZONE ; do
-          echo -e "${v}[${!v}]\n"  >> /workspace/myenv/tests/build_info.txt
+          echo -e "${v}[${!v}]<br/>\n"  >> /workspace/myenv/tests/build_info.html
         done
-
+        echo -e "</body></html>" >> /workspace/myenv/tests/build_info.html
 
 
         TEST_RESULTS_FULL_DIR="gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${TEST_RESULTS_DIR}/$${PARM_AT_SEC}-sha-$${PARM_BUILD_SHA}"
-        gsutil cp '/workspace/myenv/tests/build_info.txt' "$${TEST_RESULTS_FULL_DIR}/app_version.txt"
+        gsutil cp '/workspace/myenv/tests/build_info.html' "$${TEST_RESULTS_FULL_DIR}/build_info.html"
         gsutil cp  -R "../tests/artifacts/drivers/simple_hello/reports/temp/*" "$${TEST_RESULTS_FULL_DIR}/reports/"
+
+        gsutil cp gs://${PROJECT_ID}_build_reports/build_test/all_include.inc $${MYENV_TEST_DIR}/all_include.inc
+        [ -f $${MYENV_TEST_DIR}/all_include.inc ] || echo "" > $${MYENV_TEST_DIR}/all_include.inc
+        echo "<a href='$${PARM_BUILD_BRANCH}/$${TEST_RESULTS_DIR}/$${PARM_AT_SEC}-sha-$${PARM_BUILD_SHA}/build_info.html'>" >> $${MYENV_TEST_DIR}/all_include.inc
+        echo "build info details</a>" >> $${MYENV_TEST_DIR}/all_include.inc
+
+        echo "<a href='$${PARM_BUILD_BRANCH}/$${TEST_RESULTS_DIR}/$${PARM_AT_SEC}-sha-$${PARM_BUILD_SHA}/reports/all_tests.html'>" >> $${MYENV_TEST_DIR}/all_include.inc
+        echo "$${PARM_BUILD_BRANCH}/$${TEST_RESULTS_DIR}/$${PARM_AT_SEC}-sha-$${PARM_BUILD_SHA}</a><br>" >> $${MYENV_TEST_DIR}/all_include.inc
+        echo "<html><body>" > $${MYENV_TEST_DIR}/all.html
+
+        cat $${MYENV_TEST_DIR}/all_include.inc >> $${MYENV_TEST_DIR}/all.html
+        echo "</body><html>" >> $${MYENV_TEST_DIR}/all.html
+        gsutil cp $${MYENV_TEST_DIR}/all_include.inc gs://${PROJECT_ID}_build_reports/build_test
+        gsutil cp $${MYENV_TEST_DIR}/all.html gs://${PROJECT_ID}_build_reports/build_test
 
         exit $$TEST_RESULTS_ALL_1
     dir: "build-source/tests"
