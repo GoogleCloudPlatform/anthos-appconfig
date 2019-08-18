@@ -49,7 +49,7 @@ steps:
         CMD3="\$(date '+%Y%m%d-%H%M%S')"
         CMD4="\$(( 5*NEXT_WAIT_TIME++  ))"
         cat  > $${MYENV_TEST_DIR}/deploy_helper.sh << -EOF
-          set -x
+          #set -x
           NEXT_WAIT_TIME=0
 
           until ([ ! -z  "$$CMD1" ] || [ "$$CMD2" -gt 10 ]); do
@@ -148,9 +148,8 @@ steps:
         PARM_AT_SEC=$(cat $${MYENV_DIR}/_fileat_TAG.out)
         PARM_AT_HOUR=$(cat $${MYENV_DIR}/_file_at_hr_TAG.out)
         PARM_AT_DAY=$(cat $${MYENV_DIR}/_file_at_day_TAG.out)
-        # TODO (Back to per day)
-        echo "appcrd-$$PARM_EMAIL-$$PARM_AT_SEC" > /workspace/myenv/_fileproj_TAG.out
-        #echo "appcrd-joseret-20190816-153859" > /workspace/myenv/_fileproj_TAG.out
+        echo "appcrd-$$PARM_EMAIL-$$PARM_AT_HOUR" > /workspace/myenv/_fileproj_TAG.out
+        #echo "appcrd-joseret-20190818-06" > /workspace/myenv/_fileproj_TAG.out
         TEMP_CLUSTER="c-$(cat /workspace/myenv/_fileappversion_TAG.out)"
         TEMP_CLUSTER=${TEMP_CLUSTER//./-}
         echo ${TEMP_CLUSTER:0:30} > /workspace/myenv/_fileclus_TAG.out
@@ -563,8 +562,6 @@ steps:
         echo 'STEP-CRD1-c'
         [[ "$_STEPS_X" == *"CRD1"* ]] && { echo 'STEP-CRD1-c*SKIP*'; exit 0; }
 
-        set -x
-
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
         MYENV_TEST_DIR=$(cat /workspace/myenv/_testdir_TAG.out)
         PARM_TS_SEC=$(cat /workspace/myenv/_file_TAG.out)
@@ -689,26 +686,31 @@ steps:
         if [ "$$TEST_RESULTS_ALL_1" == "0" ]; then
           TEST_RESULTS_DIR='pass'
         fi
-        echo -e "AppVersion:[$$PARM_BUILD_BRANCH]\n" > /workspace/myenv/tests/build_info.txt
+        echo -e "<html><body>" > /workspace/myenv/tests/build_info.html
+        echo -e "AppVersion:[$$PARM_BUILD_BRANCH]<br/>\n" >> /workspace/myenv/tests/build_info.html
         echo; for v in PARM_BUILD_BRANCH PARM_BUILD_SHA PARM_BUILD_SHA_LONG PARM_AT_SEC PARM_PROJ K8S_CONTEXT PARM_CLUSTER PARM_REGION PARM_ZONE ; do
-          echo -e "${v}[${!v}]\n"  >> /workspace/myenv/tests/build_info.txt
+          echo -e "${v}[${!v}]<br/>\n"  >> /workspace/myenv/tests/build_info.html
         done
-
+        echo -e "</body></html>" >> /workspace/myenv/tests/build_info.html
 
 
         TEST_RESULTS_FULL_DIR="gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${TEST_RESULTS_DIR}/$${PARM_AT_SEC}-sha-$${PARM_BUILD_SHA}"
-        gsutil cp '/workspace/myenv/tests/build_info.txt' "$${TEST_RESULTS_FULL_DIR}/app_version.txt"
+        gsutil cp '/workspace/myenv/tests/build_info.html' "$${TEST_RESULTS_FULL_DIR}/build_info.html"
         gsutil cp  -R "../tests/artifacts/drivers/simple_hello/reports/temp/*" "$${TEST_RESULTS_FULL_DIR}/reports/"
 
         gsutil cp gs://${PROJECT_ID}_build_reports/build_test/all_include.inc $${MYENV_TEST_DIR}/all_include.inc
         [ -f $${MYENV_TEST_DIR}/all_include.inc ] || echo "" > $${MYENV_TEST_DIR}/all_include.inc
-        echo "<a href=\'http://34.96.81.119/build_test/$${PARM_BUILD_BRANCH}/$${TEST_RESULTS_DIR}/$${PARM_AT_SEC}-sha-$${PARM_BUILD_SHA}/all_tests.html\'>" $${MYENV_TEST_DIR}/all_include.inc
-        echo "$${PARM_BUILD_BRANCH}/$${TEST_RESULTS_DIR}/$${PARM_AT_SEC}-sha-$${PARM_BUILD_SHA}</a>" >> $${MYENV_TEST_DIR}/all_include.inc
+        echo "<a href='$${PARM_BUILD_BRANCH}/$${TEST_RESULTS_DIR}/$${PARM_AT_SEC}-sha-$${PARM_BUILD_SHA}/build_info.html'>" >> $${MYENV_TEST_DIR}/all_include.inc
+        echo "build info details</a>" >> $${MYENV_TEST_DIR}/all_include.inc
+
+        echo "<a href='$${PARM_BUILD_BRANCH}/$${TEST_RESULTS_DIR}/$${PARM_AT_SEC}-sha-$${PARM_BUILD_SHA}/reports/all_tests.html'>" >> $${MYENV_TEST_DIR}/all_include.inc
+        echo "$${PARM_BUILD_BRANCH}/$${TEST_RESULTS_DIR}/$${PARM_AT_SEC}-sha-$${PARM_BUILD_SHA}</a><br>" >> $${MYENV_TEST_DIR}/all_include.inc
         echo "<html><body>" > $${MYENV_TEST_DIR}/all.html
+
         cat $${MYENV_TEST_DIR}/all_include.inc >> $${MYENV_TEST_DIR}/all.html
         echo "</body><html>" >> $${MYENV_TEST_DIR}/all.html
-        gsutil cp $${MYENV_TEST_DIR}/all_include.inc cp gs://${PROJECT_ID}_build_reports/build_test/all_include.inc
-        gsutil cp $${MYENV_TEST_DIR}/all.html cp gs://${PROJECT_ID}_build_reports/build_test/all.html
+        gsutil cp $${MYENV_TEST_DIR}/all_include.inc gs://${PROJECT_ID}_build_reports/build_test
+        gsutil cp $${MYENV_TEST_DIR}/all.html gs://${PROJECT_ID}_build_reports/build_test
 
         exit $$TEST_RESULTS_ALL_1
     dir: "build-source/tests"
