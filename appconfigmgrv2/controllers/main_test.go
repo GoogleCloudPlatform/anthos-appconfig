@@ -126,7 +126,7 @@ func startTestManager(t *testing.T, mgr manager.Manager) func() {
 	}
 }
 
-func createTestNamespace(t *testing.T, istio bool) func() {
+func createTestNamespace(t *testing.T, f testFeatureFlags) func() {
 	c, err := client.New(restConfig, client.Options{Scheme: scheme})
 	require.NoError(t, err)
 
@@ -135,7 +135,7 @@ func createTestNamespace(t *testing.T, istio bool) func() {
 
 	create := &corev1.Namespace{}
 	create.SetName(namespace)
-	if istio {
+	if f.istio {
 		create.SetLabels(map[string]string{"istio-injection": "enabled"})
 	}
 	require.NoError(t, c.Create(context.TODO(), create))
@@ -153,19 +153,24 @@ func testNamespace(t *testing.T) string {
 	return strings.ToLower(t.Name())
 }
 
-func createTestInstance(t *testing.T, istio bool) (*appconfig.AppEnvConfigTemplateV2, func()) {
+type testFeatureFlags struct {
+	istio bool
+	vault bool
+}
+
+func createTestInstance(t *testing.T, f testFeatureFlags) (*appconfig.AppEnvConfigTemplateV2, func()) {
 	c, err := client.New(restConfig, client.Options{Scheme: scheme})
 	require.NoError(t, err)
 
-	deleteNS := createTestNamespace(t, istio)
-	in := newTestInstance(t)
+	deleteNS := createTestNamespace(t, f)
+	in := newTestInstance(t, f)
 	require.NoError(t, c.Create(context.Background(), in))
 	return in, deleteNS
 }
 
-func newTestInstance(t *testing.T) *appconfig.AppEnvConfigTemplateV2 {
+func newTestInstance(t *testing.T, f testFeatureFlags) *appconfig.AppEnvConfigTemplateV2 {
 	namespace := testNamespace(t)
-	return &appconfig.AppEnvConfigTemplateV2{
+	in := &appconfig.AppEnvConfigTemplateV2{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-appconfig", Namespace: namespace},
 		Spec: appconfig.AppEnvConfigTemplateV2Spec{
 			Services: []appconfig.AppEnvConfigTemplateServiceInfo{
@@ -194,6 +199,19 @@ func newTestInstance(t *testing.T) *appconfig.AppEnvConfigTemplateV2 {
 			},
 		},
 	}
+
+	if f.vault {
+		in.Spec.Auth.GCPAccess = &appconfig.AppEnvConfigTemplateGCPAccess{
+			AccessType: "vault",
+			VaultInfo: &appconfig.AppEnvConfigTemplateGCPAccessVaultInfo{
+				ServiceAccount: "TODO",
+				Path:           "TODO",
+				Roleset:        "TODO",
+			},
+		}
+	}
+
+	return in
 }
 
 func unstructuredShouldExist(t *testing.T, dyn dynamic.Interface, gvr schema.GroupVersionResource, obj *unstructured.Unstructured) {

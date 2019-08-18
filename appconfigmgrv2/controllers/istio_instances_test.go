@@ -27,7 +27,7 @@ import (
 func TestIstioInstances(t *testing.T) {
 	r, stop := startTestReconciler(t)
 	defer stop()
-	in, cleanup := createTestInstance(t, true)
+	in, cleanup := createTestInstance(t, testFeatureFlags{istio: true})
 	defer cleanup()
 
 	gvr := istioInstanceGVR()
