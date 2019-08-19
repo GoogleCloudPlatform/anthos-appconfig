@@ -19,13 +19,10 @@
 package builtins
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
+
 	corev1 "k8s.io/api/core/v1"
-	k8sapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
@@ -175,85 +172,6 @@ func injectInitContainer(pod *corev1.Pod, container corev1.Container) {
 	}
 }
 
-// cloneSecret ensures a duplicate of a secret existing in appconfigmgr
-// namespace exists in the app namespace
-func cloneSecret(ctx context.Context, name string, app *appconfig.AppEnvConfigTemplateV2) error {
-	var (
-		err    error
-		create bool
-		update bool
-
-		cl        = localMgr.GetClient()
-		secret    = &corev1.Secret{}
-		appSecret = &corev1.Secret{}
-	)
-
-	// get source secret
-	err = cl.Get(ctx, types.NamespacedName{Name: name, Namespace: TODO_FIND_NAMESPACE}, secret)
-	if err != nil {
-		log.Error(err, "get appconfig secret")
-		return fmt.Errorf("%s secret not found", name)
-	}
-
-	// copy into app namespace if needed
-	err = cl.Get(ctx, types.NamespacedName{Name: name, Namespace: app.Namespace}, appSecret)
-	if err != nil {
-		if !k8sapierrors.IsNotFound(err) {
-			return err
-		}
-
-		// new secret
-		create = true
-		appSecret = &corev1.Secret{
-			Type: secret.Type,
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: app.Namespace,
-			},
-		}
-	}
-
-	// duplicate secret type
-	if appSecret.Type != secret.Type {
-		update = true
-		appSecret.Type = secret.Type
-	}
-
-	// duplicate secret body
-	appSecret.Data = make(map[string][]byte)
-	appSecret.StringData = make(map[string]string)
-	for k, v := range secret.Data {
-		if !bytes.Equal(appSecret.Data[k], v) {
-			update = true
-		}
-		appSecret.Data[k] = v
-	}
-	for k, v := range secret.StringData {
-		if appSecret.StringData[k] != v {
-			update = true
-		}
-		appSecret.StringData[k] = v
-	}
-
-	if create {
-		err = cl.Create(ctx, appSecret)
-		if err == nil {
-			log.V(1).Info("cloneSecret:secretCreated", "element.Name", name)
-		}
-		return err
-	}
-
-	if update {
-		err = cl.Update(ctx, appSecret)
-		if err == nil {
-			log.V(1).Info("cloneSecret:secretUpdated", "element.Name", name)
-		}
-		return err
-	}
-
-	return nil
-}
-
 // svcAcctJWT looks up the stored JWT secret token for a given service account
 func svcAcctJWT(ctx context.Context, name, namespace string) (string, error) {
 	log.Info("common:svcAcctJWT")
@@ -294,57 +212,5 @@ func svcAcctJWT(ctx context.Context, name, namespace string) (string, error) {
 	//	return "", err
 	//}
 
-	return string(b), nil
-}
-
-// create secret creates a simple secret
-func createSecret(ctx context.Context, name string, namespace string, secretData *map[string]string) error {
-	var (
-		err          error
-		cl           = localMgr.GetClient()
-		secret       = &corev1.Secret{}
-		newSecretMap map[string][]byte
-	)
-
-	// get source secret
-	err = cl.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, secret)
-	if err != nil && !k8sapierrors.IsNotFound(err) {
-		return fmt.Errorf("%s/%s secret not found", name, namespace)
-	}
-
-	for k, v := range *secretData {
-		newSecretMap[k] = []byte(v)
-	}
-
-	if err != nil {
-		if !k8sapierrors.IsNotFound(err) {
-			return err
-		}
-
-		// new secret
-		secret = &corev1.Secret{
-			Type: corev1.SecretTypeOpaque,
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: namespace,
-			},
-			Data: newSecretMap,
-		}
-		err = cl.Create(ctx, secret)
-		if err == nil {
-			log.V(1).Info("cloneSecret:secretCreated", "element.Name", name)
-		}
-		return err
-
-	} else {
-
-		secret.Data = newSecretMap
-		err = cl.Update(ctx, secret)
-		if err == nil {
-			log.V(1).Info("cloneSecret:secretUpdated", "element.Name", name)
-		}
-		return err
-
-	}
-
+	return b, nil
 }
