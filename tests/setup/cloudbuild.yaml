@@ -362,6 +362,42 @@ steps:
     dir: "build-source/tests/setup"
   - name: google/cloud-sdk
     entrypoint: "bash"
+    dir: "build-source/tests"
+    args:
+      - '-c'
+      - |
+        echo 'STEP-WORKLOAD-IDENTITY'
+
+        export PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
+        export PROJECT_NAME="$$PARM_PROJ"
+        
+        export GSA_NAME="gcp-pubsuber" # GoogleCloudPlatform Service Account
+        export KSA_NAME="k8s-pubsuber" # Kubernetes Service Account
+        export KSA_NAMESPACE="uc-workload-identity"
+        export TOPIC="workload-identity-topic"
+
+        gcloud pubsub topics create $TOPIC --project $PROJECT_NAME
+        gcloud iam service-accounts create $GSA_NAME
+        gcloud iam service-accounts add-iam-policy-binding \
+          --role roles/iam.workloadIdentityUser \
+          --member "serviceAccount:$PROJECT_NAME.svc.id.goog[$KSA_NAMESPACE/$KSA_NAME]" \
+          $GSA_NAME@$PROJECT_NAME.iam.gserviceaccount.com
+        gcloud iam service-accounts add-iam-policy-binding \
+            --role='roles/pubsub.publisher' \
+            --member="serviceAccount:$GSA_NAME@$PROJECT_NAME.iam.gserviceaccount.com" \
+          $GSA_NAME@$PROJECT_NAME.iam.gserviceaccount.com
+        
+        cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+            name: $KSA_NAME
+            namespace: $KSA_NAMESPACE
+            annotations:
+              "iam.gke.io/gcp-service-account": "$GSA_NAME@$PROJECT_NAME.iam.gserviceaccount.com"
+        EOF
+  - name: google/cloud-sdk
+    entrypoint: "bash"
     args:
       - '-c'
       - |
@@ -583,6 +619,7 @@ steps:
         gsutil cat  "$$PARM_PATH/uc-firebase/deploy-apps.yaml" | kubectl delete -f -
         gsutil cat  "$$PARM_PATH/uc-opa/deploy-apps.yaml" | kubectl delete -f -
         gsutil cat  "$$PARM_PATH/uc-secrets-vault-k8s/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-workload-identity/deploy-apps.yaml" | kubectl delete -f -
 
         sleep 60
 
@@ -595,6 +632,7 @@ steps:
         bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-secrets-vault-k8s' "$$PARM_PATH" "hello-app-sm-py" "hello-app-pubsub"
         bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-opa' "$$PARM_PATH"
         bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-firebase' "$$PARM_PATH"
+        bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-workload-identity' "$$PARM_PATH"
 
         sleep 60
 

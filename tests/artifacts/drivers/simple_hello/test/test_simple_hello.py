@@ -321,5 +321,20 @@ class SimpleHelloTestCase(unittest.TestCase):
     self.assertTrue(len(response) >  0, "response empty - len == 0")
     self.assertIn('Publish Success:', response, "Failed Test - Publish")
 
+  def test_workload_identity_pubsub_ok(self):
+    uc = "uc-workload-identity"
+    self.assertIn('INGRESS_NO_ISTIO_HOST', os.environ, "INGRESS_NO_ISTIO_HOST environment variable not set")
+    self.assertTrue(len(os.environ['INGRESS_NO_ISTIO_HOST']) >  0, "INGRESS_NO_ISTIO_HOST empty - len == 0")
+    self.assertIn('PUBSUB_GCP_PROJECT', os.environ, "PUBSUB_GCP_PROJECT environment variable not set")
+    self.assertTrue(len(os.environ['PUBSUB_GCP_PROJECT']) >  0, "PUBSUB_GCP_PROJECT empty - len == 0")
+    full_url = "http://" + os.environ['INGRESS_NO_ISTIO_HOST'] + "/testcallseq?"
+    full_url = full_url + "call1=http://pubsub-app." + uc
+    full_url = full_url + "?gcpProjectID=" + os.environ['PUBSUB_GCP_PROJECT']
+    full_url = full_url + "&topic=workload-identity-topic&message=hello"
+
+    headers = {"Host": "test-simple-hello.example.com"}
+    response = RestHelper(full_url).get_text(None,headers)
+    self.assertTrue(len(response) >  0, "response empty - len == 0")
+
 # if __name__ == '__main__':
 #   h = HtmlTestRunner.HTMLTestRunner(combine_reports=True, report_name="MyReport", add_timestamp=False).run(suite)

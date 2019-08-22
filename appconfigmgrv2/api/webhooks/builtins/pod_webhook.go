@@ -567,9 +567,12 @@ func (a *podAnnotator) Handle(ctx context.Context, req admission.Request) admiss
 	}
 
 	if req.Operation == "CREATE" {
-		err := a.handleGCPSecretIfNeeded(ctx, pod, app)
-		if err != nil {
+		if err := a.handleGCPSecretIfNeeded(ctx, pod, app); err != nil {
 			log.Error(err, "Application GCP Secret could not be handled see error")
+			return admission.Errored(http.StatusBadRequest, err)
+		}
+		if err := a.handleServiceAccount(ctx, pod, app); err != nil {
+			log.Error(err, "Handling service account")
 			return admission.Errored(http.StatusBadRequest, err)
 		}
 	}
@@ -602,6 +605,25 @@ func (a *podAnnotator) InjectClient(c client.Client) error {
 // InjectDecoder injects the decoder.
 func (a *podAnnotator) InjectDecoder(d *admission.Decoder) error {
 	a.decoder = d
+	return nil
+}
+
+// handleServiceAccount sets the pod's service account if one is specified for the
+// corresponding service.
+func (a *podAnnotator) handleServiceAccount(ctx context.Context, pod *corev1.Pod, appcfg *appconfig.AppEnvConfigTemplateV2) error {
+	// Find the service spec that matches the pod.
+	app := pod.GetLabels()["app"]
+	for _, s := range appcfg.Spec.Services {
+		if app != s.DeploymentApp {
+			continue
+		}
+
+		if s.ServiceAccount == "" {
+			return nil
+		}
+		pod.Spec.ServiceAccountName = s.ServiceAccount
+	}
+
 	return nil
 }
 
