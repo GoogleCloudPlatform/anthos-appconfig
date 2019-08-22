@@ -376,26 +376,27 @@ steps:
         export KSA_NAMESPACE="uc-workload-identity"
         export TOPIC="workload-identity-topic"
 
-        gcloud pubsub topics create $TOPIC --project $PROJECT_NAME
-        gcloud iam service-accounts create $GSA_NAME
+        gcloud pubsub topics create $$TOPIC --project $$PROJECT_NAME
+        gcloud iam service-accounts create $$GSA_NAME
         gcloud iam service-accounts add-iam-policy-binding \
           --role roles/iam.workloadIdentityUser \
-          --member "serviceAccount:$PROJECT_NAME.svc.id.goog[$KSA_NAMESPACE/$KSA_NAME]" \
-          $GSA_NAME@$PROJECT_NAME.iam.gserviceaccount.com
+          --member "serviceAccount:$${PROJECT_NAME}.svc.id.goog[$${KSA_NAMESPACE}/$${KSA_NAME}]" \
+          $${GSA_NAME}@$${PROJECT_NAME}.iam.gserviceaccount.com
         gcloud iam service-accounts add-iam-policy-binding \
             --role='roles/pubsub.publisher' \
-            --member="serviceAccount:$GSA_NAME@$PROJECT_NAME.iam.gserviceaccount.com" \
-          $GSA_NAME@$PROJECT_NAME.iam.gserviceaccount.com
+            --member="serviceAccount:$${GSA_NAME}@$${PROJECT_NAME}.iam.gserviceaccount.com" \
+          $${GSA_NAME}@$${PROJECT_NAME}.iam.gserviceaccount.com
         
         cat <<EOF | kubectl apply -f -
           apiVersion: v1
           kind: ServiceAccount
           metadata:
-            name: $KSA_NAME
-            namespace: $KSA_NAMESPACE
+            name: $$KSA_NAME
+            namespace: $$KSA_NAMESPACE
             annotations:
-              "iam.gke.io/gcp-service-account": "$GSA_NAME@$PROJECT_NAME.iam.gserviceaccount.com"
+              "iam.gke.io/gcp-service-account": "$${GSA_NAME}@$${PROJECT_NAME}.iam.gserviceaccount.com"
         EOF
+
   - name: google/cloud-sdk
     entrypoint: "bash"
     args:
