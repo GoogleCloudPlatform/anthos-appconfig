@@ -370,13 +370,14 @@ steps:
 
         export PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
         export PROJECT_NAME="$$PARM_PROJ"
+        export CLOUDSDK_CORE_PROJECT="$$PROJECT_NAME"
         
         export GSA_NAME="gcp-pubsuber" # GoogleCloudPlatform Service Account
         export KSA_NAME="k8s-pubsuber" # Kubernetes Service Account
         export KSA_NAMESPACE="uc-workload-identity"
         export TOPIC="workload-identity-topic"
 
-        gcloud pubsub topics create $$TOPIC --project $$PROJECT_NAME
+        gcloud pubsub topics create $$TOPIC
         gcloud iam service-accounts create $$GSA_NAME
         gcloud iam service-accounts add-iam-policy-binding \
           --role roles/iam.workloadIdentityUser \
