@@ -373,21 +373,31 @@ steps:
         export CLOUDSDK_CORE_PROJECT="$$PROJECT_NAME"
         
         export GSA_NAME="gcp-pubsuber" # GoogleCloudPlatform Service Account
+        export GSA_FULLNAME="$${GSA_NAME}@$${PROJECT_NAME}.iam.gserviceaccount.com"
         export KSA_NAME="k8s-pubsuber" # Kubernetes Service Account
         export KSA_NAMESPACE="uc-workload-identity"
         export TOPIC="workload-identity-topic"
 
         gcloud pubsub topics create $$TOPIC
         gcloud iam service-accounts create $$GSA_NAME
+
+        # Wait for topic to be gettable.
+        n=0; until [ $n -ge 15 ]; do; gcloud pubsub topics describe $$TOPIC && break; n=$[$n+1]; sleep 5; done
+        # Wait for service account to be gettable.
+        n=0; until [ $n -ge 15 ]; do; gcloud iam service-accounts describe $$GSA_FULLNAME && break; n=$[$n+1]; sleep 5; done
+
         gcloud iam service-accounts add-iam-policy-binding \
           --role roles/iam.workloadIdentityUser \
           --member "serviceAccount:$${PROJECT_NAME}.svc.id.goog[$${KSA_NAMESPACE}/$${KSA_NAME}]" \
-          $${GSA_NAME}@$${PROJECT_NAME}.iam.gserviceaccount.com
-        gcloud iam service-accounts add-iam-policy-binding \
-            --role='roles/pubsub.publisher' \
-            --member="serviceAccount:$${GSA_NAME}@$${PROJECT_NAME}.iam.gserviceaccount.com" \
-          $${GSA_NAME}@$${PROJECT_NAME}.iam.gserviceaccount.com
+          $$GSA_FULLNAME
+
+        gcloud beta pubsub topics add-iam-policy-binding $$TOPIC \
+          --member="serviceAccount:$${GSA_FULLNAME}}" \
+          --role=roles/pubsub.publisher
         
+        # Wait for namespace to exist.
+        n=0; until [ $n -ge 15 ]; do; kubectl get ns $$KSA_NAMESPACE && break; n=$[$n+1]; sleep 5; done
+
         cat <<EOF | kubectl apply -f -
           apiVersion: v1
           kind: ServiceAccount
