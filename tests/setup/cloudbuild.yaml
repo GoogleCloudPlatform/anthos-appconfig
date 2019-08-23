@@ -382,9 +382,21 @@ steps:
         gcloud iam service-accounts create $$GSA_NAME
 
         # Wait for topic to be gettable.
-        n=0; until [ $n -ge 15 ]; do; gcloud pubsub topics describe $$TOPIC && break; n=$[$n+1]; sleep 5; done
+        n=0
+        until [ $n -ge 15 ]
+        do
+          gcloud pubsub topics describe $$TOPIC && break
+          n=$[$n+1]
+          sleep 5
+        done
         # Wait for service account to be gettable.
-        n=0; until [ $n -ge 15 ]; do; gcloud iam service-accounts describe $$GSA_FULLNAME && break; n=$[$n+1]; sleep 5; done
+        n=0
+        until [ $n -ge 15 ]
+        do
+          gcloud iam service-accounts describe $$GSA_FULLNAME && break
+          n=$[$n+1]
+          sleep 5
+        done
 
         gcloud iam service-accounts add-iam-policy-binding \
           --role roles/iam.workloadIdentityUser \
@@ -396,7 +408,13 @@ steps:
           --role=roles/pubsub.publisher
         
         # Wait for namespace to exist.
-        n=0; until [ $n -ge 15 ]; do; kubectl get ns $$KSA_NAMESPACE && break; n=$[$n+1]; sleep 5; done
+        n=0
+        until [ $n -ge 15 ]
+        do
+          kubectl get ns $$KSA_NAMESPACE && break
+          n=$[$n+1]
+          sleep 5
+        done
 
         cat <<EOF | kubectl apply -f -
           apiVersion: v1
