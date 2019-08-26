@@ -20,6 +20,8 @@ metadata:
   labels:
     app: pubsub-app
     version: v1.0.0
+  annotations:
+    appconfigmgr.cft.dev/application: "workload-identity"
 spec:
   replicas: 1
   template:
@@ -27,6 +29,8 @@ spec:
       labels:
         app: pubsub-app
         version: v1.0.0
+      annotations:
+        appconfigmgr.cft.dev/application: "workload-identity"
     spec:
       containers:
       - name: pubsub-app
