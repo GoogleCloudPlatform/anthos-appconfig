@@ -519,7 +519,7 @@ install_operator() {
 }
 
 install_gatekeeper() {
-  kubectl apply -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/master/deploy/gatekeeper.yaml
+  kubectl apply -f https://raw.githubusercontent.com/open-policy-agent/gatekeeper/v3.0.4-beta.1/deploy/gatekeeper.yaml
   gsutil cat ${GATEKEEPER_BUCKET}/config.yaml | kubectl apply -f -
   sleep 10
   gsutil cat ${GATEKEEPER_BUCKET}/constraint-templates.yaml | kubectl apply -f -
