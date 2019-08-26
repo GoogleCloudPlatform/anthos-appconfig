@@ -335,6 +335,7 @@ class SimpleHelloTestCase(unittest.TestCase):
     headers = {"Host": "test-simple-hello.example.com"}
     response = RestHelper(full_url).get_text(None,headers)
     self.assertTrue(len(response) >  0, "response empty - len == 0")
+    self.assertIn('Publish Success:', response, "Failed Test - Publish")
 
 # if __name__ == '__main__':
 #   h = HtmlTestRunner.HTMLTestRunner(combine_reports=True, report_name="MyReport", add_timestamp=False).run(suite)
