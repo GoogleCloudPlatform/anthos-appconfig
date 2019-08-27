@@ -328,7 +328,7 @@ class SimpleHelloTestCase(unittest.TestCase):
     self.assertIn('PUBSUB_GCP_PROJECT', os.environ, "PUBSUB_GCP_PROJECT environment variable not set")
     self.assertTrue(len(os.environ['PUBSUB_GCP_PROJECT']) >  0, "PUBSUB_GCP_PROJECT empty - len == 0")
     full_url = "http://" + os.environ['INGRESS_NO_ISTIO_HOST'] + "/testcallseq?"
-    full_url = full_url + "call1=http://workload-identity-pubsub-app." + uc
+    full_url = full_url + "call1=http://workload-identity-pubsub-app." + uc + ":8000"
     full_url = full_url + "?gcpProjectID=" + os.environ['PUBSUB_GCP_PROJECT']
     full_url = full_url + "&topic=workload-identity-topic&message=hello"
 
