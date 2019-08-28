@@ -44,6 +44,8 @@ type AppEnvConfigTemplateServiceInfo struct {
 	AllowedClients []AppEnvConfigTemplateRelatedClientInfo `json:"allowedClients,omitempty"`
 	// Disables the application-wide auth policy (i.e. JWT) for this service.
 	DisableAuth bool `json:"disableAuth,omitempty"`
+	// Attaches a kubernetes service account to created pods.
+	ServiceAccount string `json:"serviceAccount,omitempty"`
 }
 
 type AppEnvConfigTemplateRelatedClientInfo struct {

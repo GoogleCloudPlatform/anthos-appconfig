@@ -425,10 +425,10 @@ spec:
                         service accounts for use by the application. See https://www.vaultproject.io/docs/secrets/gcp/index.html
                         for details on creating roleSets.
                       properties:
-                        gcpPath:
+                        path:
                           description: Vault Google Cloud Secrets Engine mounted path.
                           type: string
-                        gcpRoleset:
+                        roleset:
                           description: Vault Google Cloud Secrets Engine roleset name
                             to retrieve credentials from.
                           type: string

@@ -17,7 +17,7 @@
 #
 
 
-timeout: 3600s
+timeout: 7200s
 options:
   machineType: N1_HIGHCPU_8
 steps:
@@ -149,7 +149,7 @@ steps:
         PARM_AT_HOUR=$(cat $${MYENV_DIR}/_file_at_hr_TAG.out)
         PARM_AT_DAY=$(cat $${MYENV_DIR}/_file_at_day_TAG.out)
         echo "appcrd-$$PARM_EMAIL-$$PARM_AT_HOUR" > /workspace/myenv/_fileproj_TAG.out
-        #echo "appcrd-joseret-20190818-06" > /workspace/myenv/_fileproj_TAG.out
+#        echo "appcrd-stogner-20190826-22" > /workspace/myenv/_fileproj_TAG.out
         TEMP_CLUSTER="c-$(cat /workspace/myenv/_fileappversion_TAG.out)"
         TEMP_CLUSTER=${TEMP_CLUSTER//./-}
         echo ${TEMP_CLUSTER:0:30} > /workspace/myenv/_fileclus_TAG.out
@@ -338,6 +338,7 @@ steps:
           --num-nodes "3" \
           --network "projects/$$PARM_PROJ/global/networks/default" \
           --subnetwork "projects/$$PARM_PROJ/regions/$$PARM_REGION/subnetworks/default" \
+          --identity-namespace "$$PARM_PROJ.svc.id.goog" \
           --zone "$$PARM_ZONE"
 
       echo $(gcloud container clusters describe "$$PARM_CLUSTER" --zone "$$PARM_ZONE" --format="value(selfLink.basename())" --project "$$PARM_PROJ"  || echo "") > out2_cluster_TAG.out
@@ -442,6 +443,72 @@ steps:
     volumes:
       - name: 'ssh'
         path: /root/.ssh
+  - name: google/cloud-sdk
+    entrypoint: "bash"
+    dir: "build-source/tests"
+    args:
+      - '-c'
+      - |
+        echo 'STEP-WORKLOAD-IDENTITY'
+
+        export PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
+        export PROJECT_NAME="$$PARM_PROJ"
+        export CLOUDSDK_CORE_PROJECT="$$PROJECT_NAME"
+        
+        export GSA_NAME="gcp-pubsuber" # GoogleCloudPlatform Service Account
+        export GSA_FULLNAME="$${GSA_NAME}@$${PROJECT_NAME}.iam.gserviceaccount.com"
+        export KSA_NAME="k8s-pubsuber" # Kubernetes Service Account
+        export KSA_NAMESPACE="uc-workload-identity"
+        export TOPIC="workload-identity-topic"
+
+        gcloud pubsub topics create $$TOPIC
+        gcloud iam service-accounts create $$GSA_NAME
+
+        # Wait for topic to be gettable.
+        n=0
+        until [ $n -ge 15 ]
+        do
+          gcloud pubsub topics describe $$TOPIC && break
+          n=$[$n+1]
+          sleep 5
+        done
+        # Wait for service account to be gettable.
+        n=0
+        until [ $n -ge 15 ]
+        do
+          gcloud iam service-accounts describe $$GSA_FULLNAME && break
+          n=$[$n+1]
+          sleep 5
+        done
+
+        gcloud iam service-accounts add-iam-policy-binding \
+          --role roles/iam.workloadIdentityUser \
+          --member "serviceAccount:$${PROJECT_NAME}.svc.id.goog[$${KSA_NAMESPACE}/$${KSA_NAME}]" \
+          $$GSA_FULLNAME
+
+        gcloud beta pubsub topics add-iam-policy-binding $$TOPIC \
+          --member="serviceAccount:$${GSA_FULLNAME}" \
+          --role=roles/pubsub.publisher
+        
+        # Wait for namespace to exist.
+        n=0
+        until [ $n -ge 15 ]
+        do
+          kubectl get ns $$KSA_NAMESPACE && break
+          n=$[$n+1]
+          sleep 5
+        done
+
+        cat <<EOF | kubectl apply -f -
+          apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+            name: $$KSA_NAME
+            namespace: $$KSA_NAMESPACE
+            annotations:
+              "iam.gke.io/gcp-service-account": "$${GSA_NAME}@$${PROJECT_NAME}.iam.gserviceaccount.com"
+        EOF
+
   - name: google/cloud-sdk
     entrypoint: "bash"
     args:
@@ -583,6 +650,7 @@ steps:
         gsutil cat  "$$PARM_PATH/uc-firebase/deploy-apps.yaml" | kubectl delete -f -
         gsutil cat  "$$PARM_PATH/uc-opa/deploy-apps.yaml" | kubectl delete -f -
         gsutil cat  "$$PARM_PATH/uc-secrets-vault-k8s/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-workload-identity/deploy-apps.yaml" | kubectl delete -f -
 
         sleep 60
 
@@ -595,6 +663,7 @@ steps:
         bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-secrets-vault-k8s' "$$PARM_PATH" "hello-app-sm-py" "hello-app-pubsub"
         bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-opa' "$$PARM_PATH"
         bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-firebase' "$$PARM_PATH"
+        bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-workload-identity' "$$PARM_PATH"
 
         sleep 60
 
