@@ -328,7 +328,7 @@ class SimpleHelloTestCase(unittest.TestCase):
         self.workload_identity_pubsub_ok()
         time.sleep(5)
         break
-      except unittest.AssertionError:
+      except:
         retries -= 1
     if retries == 0:
       self.workload_identity_pubsub_ok()
