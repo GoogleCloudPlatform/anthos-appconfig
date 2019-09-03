@@ -488,8 +488,21 @@ spec:
                     description: Disables the application-wide auth policy (i.e. JWT)
                       for this service.
                     type: boolean
+                  ingress:
+                    description: Specifies the ingress policy for this service (external
+                      access).
+                    properties:
+                      host:
+                        type: string
+                      path:
+                        type: string
+                    type: object
                   name:
                     description: Name of the service.
+                    type: string
+                  serviceAccount:
+                    description: Attaches a kubernetes service account to created
+                      pods.
                     type: string
                   servicePort:
                     description: The port for the Kubernetes Service that will be

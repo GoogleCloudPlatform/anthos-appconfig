@@ -46,6 +46,18 @@ type AppEnvConfigTemplateServiceInfo struct {
 	DisableAuth bool `json:"disableAuth,omitempty"`
 	// Attaches a kubernetes service account to created pods.
 	ServiceAccount string `json:"serviceAccount,omitempty"`
+	// Specifies the ingress policy for this service (external access).
+	Ingress ServiceIngress `json:"ingress,omitempty"`
+}
+
+type ServiceIngress struct {
+	Host string `json:"host,omitempty"`
+	Path string `json:"path,omitempty"`
+}
+
+// None returns true if no ingress is specified.
+func (si ServiceIngress) None() bool {
+	return ServiceIngress{} == si
 }
 
 type AppEnvConfigTemplateRelatedClientInfo struct {

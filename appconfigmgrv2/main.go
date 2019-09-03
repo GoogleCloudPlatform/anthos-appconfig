@@ -28,6 +28,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -47,6 +48,7 @@ func init() {
 	////metav1.AddToScheme(scheme)
 	//scheme.AllKnownTypes()
 	appconfig.AddToScheme(scheme)
+	v1beta1.AddToScheme(scheme)
 }
 
 func main() {

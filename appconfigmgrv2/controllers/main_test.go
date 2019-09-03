@@ -34,6 +34,7 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -63,6 +64,7 @@ func TestMain(m *testing.M) {
 	corev1.AddToScheme(scheme)
 	netv1.AddToScheme(scheme)
 	appconfig.AddToScheme(scheme)
+	v1beta1.AddToScheme(scheme)
 
 	var err error
 	if restConfig, err = t.Start(); err != nil {
@@ -183,6 +185,10 @@ func newTestInstance(t *testing.T, f testFeatureFlags) *appconfig.AppEnvConfigTe
 					DeploymentPortProtocol: "TCP",
 					AllowedClients: []appconfig.AppEnvConfigTemplateRelatedClientInfo{
 						{Name: "my-allowed-service-name-0"},
+					},
+					Ingress: appconfig.ServiceIngress{
+						Host: "my-host",
+						Path: "/my-path",
 					},
 				},
 			},

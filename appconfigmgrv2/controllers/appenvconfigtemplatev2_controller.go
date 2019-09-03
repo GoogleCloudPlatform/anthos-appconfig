@@ -111,6 +111,11 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 		return ctrl.Result{}, fmt.Errorf("reconciling services: %v", err)
 	}
 
+	log.Info("Reconciling", "resource", "ingress")
+	if err := r.reconcileIngress(ctx, instance); err != nil {
+		return ctrl.Result{}, fmt.Errorf("reconciling ingress: %v", err)
+	}
+
 	if istioEnabled {
 		log.Info("Reconciling", "resource", "virtualservices")
 		if err := r.reconcileIstioVirtualServices(ctx, instance); err != nil {
