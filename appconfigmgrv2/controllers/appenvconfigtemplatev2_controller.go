@@ -25,6 +25,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/api/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -177,6 +178,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) SetupWithManager(mgr ctrl.Manager) er
 		// Watch namespaces for enforcing opa constraints.
 		Watches(&source.Kind{Type: &corev1.Namespace{}}, &handler.EnqueueRequestForObject{}).
 		Owns(&corev1.Service{}).
+		Owns(&v1beta1.Ingress{}).
 		Owns(&netv1.NetworkPolicy{})
 
 	istioInstalled := true
