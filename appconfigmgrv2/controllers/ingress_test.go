@@ -22,6 +22,7 @@ import (
 	"context"
 	"testing"
 
+	appconfig "github.com/GoogleCloudPlatform/anthos-appconfig/appconfigmgrv2/api/v1alpha1"
 	"github.com/stretchr/testify/require"
 	"k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
@@ -44,4 +45,13 @@ func TestReconcileIngress(t *testing.T) {
 
 	ctx := context.Background()
 	retryTest(t, func() error { return r.Client.Get(ctx, key, obj) })
+
+	// Clear the ingress spec and expect the ingress to be garbage collected.
+	noIng := in.DeepCopy()
+	for i := range noIng.Spec.Services {
+		noIng.Spec.Services[i].Ingress = appconfig.ServiceIngress{}
+	}
+	require.NoError(t, r.Client.Update(ctx, noIng))
+
+	retryTest(t, func() error { return shouldBeNotFound(r.Client.Get(ctx, key, obj)) })
 }

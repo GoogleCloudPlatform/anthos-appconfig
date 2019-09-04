@@ -39,19 +39,10 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileIngress(
 ) error {
 	ing := ingress(in)
 	if ing == nil {
-		err := r.Get(ctx, types.NamespacedName{Name: ing.Name, Namespace: ing.Namespace}, &v1beta1.Ingress{})
-		if err != nil && errors.IsNotFound(err) {
-			// Should not exist, we are good.
-			return nil
-		} else if err != nil {
-			// Error issuing GET.
-			return err
+		if err := r.removeIngress(ctx, in); err != nil {
+			return fmt.Errorf("garbage collecting: %v", err)
 		}
-		// Exists but should not. Garbage collect.
-		log.Info("Deleting", "resource", "ingress", "namespace", ing.Namespace, "name", ing.Name)
-		if err := r.Delete(ctx, ing); err != nil {
-			return fmt.Errorf("deleting: %v", err)
-		}
+		return nil
 	}
 
 	if err := controllerutil.SetControllerReference(in, ing, r.Scheme); err != nil {
@@ -74,6 +65,29 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileIngress(
 		if err := r.Update(ctx, found); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (r *AppEnvConfigTemplateV2Reconciler) removeIngress(
+	ctx context.Context,
+	t *appconfig.AppEnvConfigTemplateV2,
+) error {
+	meta := ingressMeta(t)
+	err := r.Get(ctx, types.NamespacedName{Name: meta.Name, Namespace: meta.Namespace}, &v1beta1.Ingress{})
+	if err != nil && errors.IsNotFound(err) {
+		// Should not exist, we are good.
+		return nil
+	} else if err != nil {
+		// Error issuing GET.
+		return err
+	}
+	// Exists but should not. Garbage collect.
+	log.Info("Deleting", "resource", "ingress", "namespace", meta.Namespace, "name", meta.Name)
+	ing := &v1beta1.Ingress{ObjectMeta: meta}
+	if err := r.Delete(ctx, ing); err != nil {
+		return fmt.Errorf("deleting: %v", err)
 	}
 
 	return nil
@@ -108,10 +122,7 @@ func ingress(t *appconfig.AppEnvConfigTemplateV2) *v1beta1.Ingress {
 	}
 
 	ing := &v1beta1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ingressName(t),
-			Namespace: t.Namespace,
-		},
+		ObjectMeta: ingressMeta(t),
 		Spec: v1beta1.IngressSpec{
 			Rules: rules,
 		},
@@ -120,6 +131,9 @@ func ingress(t *appconfig.AppEnvConfigTemplateV2) *v1beta1.Ingress {
 	return ing
 }
 
-func ingressName(t *appconfig.AppEnvConfigTemplateV2) string {
-	return fmt.Sprintf("%v", t.Name)
+func ingressMeta(t *appconfig.AppEnvConfigTemplateV2) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name:      fmt.Sprintf("%v", t.Name),
+		Namespace: t.Namespace,
+	}
 }
