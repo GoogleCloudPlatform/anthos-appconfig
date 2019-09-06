@@ -80,6 +80,9 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileService(
 		// ClusterIP is assigned after creation when it is not originally set
 		// so we will preserve the value.
 		s.Spec.ClusterIP = found.Spec.ClusterIP
+		for i := range s.Spec.Ports {
+			s.Spec.Ports[i].NodePort = found.Spec.Ports[i].NodePort
+		}
 		found.Spec = s.Spec
 		log.Info("Updating", "resource", "services", "namespace", s.Namespace, "name", s.Name)
 		if err := r.Update(ctx, found); err != nil {
@@ -119,12 +122,17 @@ func services(t *appconfig.AppEnvConfigTemplateV2) []*corev1.Service {
 	var list []*corev1.Service
 
 	for i := range t.Spec.Services {
+		typ := corev1.ServiceTypeClusterIP
+		if !t.Spec.Services[i].Ingress.None() {
+			typ = corev1.ServiceTypeNodePort
+		}
 		s := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      serviceName(t, i),
 				Namespace: t.Namespace,
 			},
 			Spec: corev1.ServiceSpec{
+				Type: typ,
 				Selector: map[string]string{
 					"app": t.Spec.Services[i].DeploymentApp,
 				},
