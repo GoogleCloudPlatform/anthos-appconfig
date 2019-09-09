@@ -26,5 +26,8 @@ spec:
   - name: httpbin
     deploymentApp: httpbin
     deploymentPort: 80
-    servicePort: 8000
+    servicePort: 80
     deploymentPortProtocol: TCP
+    ingress:
+      host: my-httpbin-host
+      path: /get
