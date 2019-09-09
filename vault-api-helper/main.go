@@ -295,6 +295,7 @@ func checkForWork(k8sConfig *rest.Config) {
   log.Printf("vault-init-gcp v%s starting watcher", version)
 
   log.Printf("Starting check")
+  getSecrets()
   log.Printf("Ending checkg")
 }
 
@@ -316,7 +317,17 @@ func watch(k8sConfig *rest.Config) {
 }
 
 type Server struct {
-  serveWG sync.WaitGroup
+  serveWG       sync.WaitGroup
+  SecretsConfig struct {
+    vaultAddr         string
+    vaultCAPath       string
+    gcpRolesetKeyPath string
+    k8sTokenPath      string
+    k8sPath           string
+    k8sRole           string
+    credentialPath    string
+    k8sNamespace      string
+  }
 }
 
 var server Server
@@ -341,10 +352,70 @@ func monitor() {
 
 }
 
+
+func getSecrets() {
+
+  log.Infoln("read jwt-ns", server.SecretsConfig.k8sNamespace)
+
+  k8sJWT, err := ioutil.ReadFile(server.SecretsConfig.k8sTokenPath)
+  if err != nil {
+    panic(err)
+  }
+
+
+  log.Infoln("client")
+  client, err := api.NewClient(&api.Config{
+    Address: server.SecretsConfig.vaultAddr,
+  })
+  if err != nil {
+    panic(err)
+  }
+
+  //Auth with K8s vault
+  vaultK8sInfo := map[string]interface{}{"jwt": string(k8sJWT), "role": server.SecretsConfig.k8sRole}
+  secret, err := client.Logical().Write(fmt.Sprintf("auth/%s/login",
+    server.SecretsConfig.k8sPath), vaultK8sInfo)
+  if err != nil {
+    panic(err)
+  }
+
+  client.SetToken(string(secret.Auth.ClientToken))
+
+  log.Infoln("getGCPKey")
+
+  data, err := getGCPKey(client, server.SecretsConfig.gcpRolesetKeyPath)
+  if err != nil {
+    panic(err)
+  }
+
+  err = updateGCPKey(server.SecretsConfig.credentialPath, data)
+  if err != nil {
+    panic(err)
+  }
+}
+
 func main() {
   initMode := flag.String("mode", "GCP-KSA", "a string")
-  ttlCheckInterval := flag.String("duration", "3m", "ttl checks")
+  ttlCheckInterval := flag.String("duration", "5m", "ttl checks")
   flag.Parse()
+
+  server.SecretsConfig.vaultAddr = mustGetenv("VAULT_ADDR")
+  server.SecretsConfig.vaultCAPath = mustGetenv("VAULT_CAPATH")
+  server.SecretsConfig.gcpRolesetKeyPath = mustGetenv("INIT_GCP_KEYPATH")
+  server.SecretsConfig.k8sTokenPath = mustGetenv("INIT_K8S_TOKEN_KEYPATH")
+  server.SecretsConfig.k8sPath = mustGetenv("INIT_K8S_KEYPATH")
+  server.SecretsConfig.k8sRole = mustGetenv("INIT_K8S_ROLE")
+  server.SecretsConfig.credentialPath = mustGetenv("GOOGLE_APPLICATION_CREDENTIALS")
+  server.SecretsConfig.k8sNamespace = mustGetenv("MY_POD_NAMESPACE")
+
+  log.WithFields(log.Fields{
+    "initMode": *initMode,
+  }).Info("main:start")
+
+  log.WithFields(log.Fields{
+    "vaultAddr":   server.SecretsConfig.vaultAddr,
+    "vaultCAPath": server.SecretsConfig.vaultCAPath,
+  }).Info("main:Parms")
 
   if *initMode == "GCP-RECYCLE" {
     dur, _ := time.ParseDuration(*ttlCheckInterval)
@@ -354,103 +425,8 @@ func main() {
 
   }
 
-  log.WithFields(log.Fields{
-    "initMode": *initMode,
-  }).Info("main:start")
+  getSecrets()
 
-  var (
-    vaultAddr         = mustGetenv("VAULT_ADDR")
-    vaultCAPath       = mustGetenv("VAULT_CAPATH")
-    gcpRolesetKeyPath = mustGetenv("INIT_GCP_KEYPATH")
-    k8sTokenPath      = mustGetenv("INIT_K8S_TOKEN_KEYPATH")
-    k8sPath           = mustGetenv("INIT_K8S_KEYPATH")
-    k8sRole           = mustGetenv("INIT_K8S_ROLE")
-    credentialPath    = mustGetenv("GOOGLE_APPLICATION_CREDENTIALS")
-    //k8sServiceAccountName = mustGetenv("MY_POD_SERVICE_ACCOUNT")
-    k8sNamespace = mustGetenv("MY_POD_NAMESPACE")
-  )
 
-  log.WithFields(log.Fields{
-    "vaultAddr":   vaultAddr,
-    "vaultCAPath": vaultCAPath,
-  }).Info("main:Parms")
-
-  //ca, err := ioutil.ReadFile(vaultCAPath)
-  //if err != nil {
-  //  panic(err)
-  //}
-
-  log.Infoln("read jwt-ns", k8sNamespace)
-
-  k8sJWT, err := ioutil.ReadFile(k8sTokenPath)
-  if err != nil {
-    panic(err)
-  }
-
-  //log.WithFields(log.Fields{
-  //  "ca": string(ca),
-  //}).Info("main:ca")
-  //
-  //VAULT_ADDITIONAL_SECRET := "vault-helper-info"
-  //secretsAuthInfo, err := getApplicationsSecrets(context.TODO(),VAULT_ADDITIONAL_SECRET, k8sNamespace )
-  //k8sJWT := (*secretsAuthInfo)["ksa.token"]
-  //k8sJWT, err := svcAcctJWT(context.TODO(), k8sServiceAccountName, k8sNamespace)
-  //if err != nil {
-  //  panic(err)
-  //}
-  //k8sJWT, err := ioutil.ReadFile(k8sTokenPath)
-  //if err != nil {
-  //  panic(err)
-  //}
-
-  //log.Infoln("authenticate", string(k8sJWT))
-  //
-  ////err = updateKSAToken(k8sTokenPath, k8sJWT)
-  ////if err != nil {
-  ////  panic(err)
-  ////}
-  //
-  //log.Infoln("authenticate", string(k8sJWT))
-  //
-  //token, accessor, err := authenticate(k8sRole, string(k8sJWT),
-  // string(ca), vaultAddr, k8sPath)
-  //if err != nil {
-  // panic(err)
-  //}
-
-  //log.WithFields(log.Fields{
-  //  "token":    token,
-  //  "accessor": accessor,
-  //}).Info("authenticate")
-
-  log.Infoln("client")
-  client, err := api.NewClient(&api.Config{
-    Address: vaultAddr,
-  })
-  if err != nil {
-    panic(err)
-  }
-
-  //Auth with K8s vault
-  vaultK8sInfo := map[string]interface{}{"jwt": string(k8sJWT), "role": k8sRole}
-  secret, err := client.Logical().Write(fmt.Sprintf("auth/%s/login",
-    k8sPath), vaultK8sInfo)
-  if err != nil {
-    panic(err)
-  }
-
-  client.SetToken(string(secret.Auth.ClientToken))
-
-  log.Infoln("getGCPKey")
-
-  data, err := getGCPKey(client, gcpRolesetKeyPath)
-  if err != nil {
-    panic(err)
-  }
-
-  err = updateGCPKey(credentialPath, data)
-  if err != nil {
-    panic(err)
-  }
 
 }
