@@ -219,24 +219,24 @@ steps:
 
         gsutil cp '$${MYENV_DIR}/build_info.txt' "gs://${_GS_PROJECT_ID}_public/build_info/anthos-config-management/$$PARM_BUILD_BRANCH/$${PARM_TS_SEC}/build_info.txt"
 
-
+        MY_GS_PROJECT_ID=${_GS_PROJECT_ID}
 
         if [ "$_REF_PATH" == 'BRANCH_VERSION' ]; then
           MY_REF_PATH="SHA_MANUAL_RELEASE"
           MY_STEPS_X=""
-          gcloud builds submit --config=tests/setup/cloudbuild.yaml  tests/setup/jobtemp --project ${_GS_PROJECT_ID} \
-            --substitutions="_REF_PATH=$$MY_REF_PATH,_POTENTIAL_VERSION=$$MY_APP_VERSION,_BRANCH_NAME=$$MY_CHECKOUT_REF,_INPUT_SHA_LONG=$$PARM_BUILD_SHA_LONG,_STEPS_X=$$MY_STEPS_X"
+          gcloud builds submit --config=tests/setup/cloudbuild.yaml  tests/setup/jobtemp --project ${PROJECT_ID} \
+            --substitutions="_GS_PROJECT_ID=$$MY_GS_PROJECTID,_REF_PATH=$$MY_REF_PATH,_POTENTIAL_VERSION=$$MY_APP_VERSION,_BRANCH_NAME=$$MY_CHECKOUT_REF,_INPUT_SHA_LONG=$$PARM_BUILD_SHA_LONG,_STEPS_X=$$MY_STEPS_X"
         fi
         if [ "$_REF_PATH" == 'BRANCH_MANUAL' ]; then
           MY_REF_PATH="BRANCH_MANUAL"
           MY_STEPS_X=""
-          gcloud builds submit --config=tests/setup/cloudbuild.yaml  tests/setup/jobtemp --project ${_GS_PROJECT_ID} \
-            --substitutions="_REF_PATH=$$MY_REF_PATH,_POTENTIAL_VERSION=$$MY_APP_VERSION,_BRANCH_NAME=$$MY_CHECKOUT_REF,_INPUT_SHA_LONG=$$PARM_BUILD_SHA_LONG,_STEPS_X=$$MY_STEPS_X"
+          gcloud builds submit --config=tests/setup/cloudbuild.yaml  tests/setup/jobtemp --project ${PROJECT_ID} \
+            --substitutions="_GS_PROJECT_ID=$$MY_GS_PROJECTID,_REF_PATH=$$MY_REF_PATH,_POTENTIAL_VERSION=$$MY_APP_VERSION,_BRANCH_NAME=$$MY_CHECKOUT_REF,_INPUT_SHA_LONG=$$PARM_BUILD_SHA_LONG,_STEPS_X=$$MY_STEPS_X"
         fi
         if [ "$_REF_PATH" == 'BRANCH_AUTO' ]; then
           MY_REF_PATH="BRANCH_AUTO"
           MY_STEPS_X=""
-          gcloud builds submit --config=tests/setup/cloudbuild.yaml  tests/setup/jobtemp --project ${_GS_PROJECT_ID} \
-            --substitutions="_REF_PATH=$$MY_REF_PATH,_POTENTIAL_VERSION=$$MY_APP_VERSION,_BRANCH_NAME=$$MY_CHECKOUT_REF,_INPUT_SHA_LONG=$$PARM_BUILD_SHA_LONG,_STEPS_X=$$MY_STEPS_X"
+          gcloud builds submit --config=tests/setup/cloudbuild.yaml  tests/setup/jobtemp --project ${PROJECT_ID} \
+            --substitutions="_GS_PROJECT_ID=$$MY_GS_PROJECTID,_REF_PATH=$$MY_REF_PATH,_POTENTIAL_VERSION=$$MY_APP_VERSION,_BRANCH_NAME=$$MY_CHECKOUT_REF,_INPUT_SHA_LONG=$$PARM_BUILD_SHA_LONG,_STEPS_X=$$MY_STEPS_X"
         fi
     dir: "build-source"
