@@ -1,7 +1,7 @@
 terraform {
   backend "gcs" {
-    bucket  = "anthos-appconfig_build"
-    prefix    = "env-r2/build/projects"
+    bucket  = "appconfig-crd-env-bld"
+    prefix    = "env-r2/build/build"
   }
 }
 

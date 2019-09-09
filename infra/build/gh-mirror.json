@@ -1,0 +1,8 @@
+{
+  "name": "projects/anthos-appconfig/repos/github_googlecloudplatform_anthos-appconfig",
+  "size": "13931633",
+  "url": "https://source.developers.google.com/p/anthos-appconfig/r/github_googlecloudplatform_anthos-appconfig",
+  "mirrorConfig": {
+    "url": "https://github.com/GoogleCloudPlatform/anthos-appconfig.git"
+  }
+}

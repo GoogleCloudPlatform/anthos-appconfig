@@ -17,7 +17,7 @@
 
 variable "suffix" {
   description = "suffix"
-  default = "sb"
+  default = "bld"
 }
 
 variable "billing_id" {
