@@ -56,7 +56,9 @@ var testEnv *envtest.Environment
 var scheme = runtime.NewScheme()
 
 func TestMain(m *testing.M) {
-	logf.SetLogger(logf.ZapLogger(false))
+	if strings.ToLower(os.Getenv("TEST_LOGS")) == "enabled" {
+		logf.SetLogger(logf.ZapLogger(false))
+	}
 
 	const istioVersion = "1.1.7"
 	t := &envtest.Environment{}
