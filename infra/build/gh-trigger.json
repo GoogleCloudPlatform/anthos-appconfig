@@ -1,0 +1,17 @@
+{
+
+  "triggerTemplate": {
+    "projectId": "anthos-appconfig",
+    "repoName": "github_googlecloudplatform_anthos-appconfig",
+    "branchName": ".*"
+  },
+  "description": "Controller Changes - Branch",
+  "substitutions": {
+    "_BRANCH_NAME": "*AUTO*",
+    "_BUILDER_VERSION": "v2.0.1",
+    "_REF_PATH": "BRANCH_AUTO",
+    "_APP_VERSION": "*AUTO*"
+  },
+  "name": "ee206828-8f2a-40b4-b675-99bd2d03b3fc",
+  "filename": "builder/appconfig-crd/cloudbuild.yaml"
+}

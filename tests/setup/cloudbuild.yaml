@@ -40,9 +40,9 @@ steps:
         echo "$${MYENV_TEST_DIR}" > /workspace/myenv/_testdir_TAG.out
         MYENV_TEST_DIR=$(cat /workspace/myenv/_testdir_TAG.out)
 
-        gsutil cp -DD "gs://${PROJECT_ID}_build/repo/keys/id_rsa_${PROJECT_ID}-repo" '/builder/home/.ssh/id_rsa'
-        gsutil cp -DD "gs://${PROJECT_ID}_build/repo/github/build-ssh-config-git-hub" '/builder/home/.ssh/config'
-        gsutil cp -DD "gs://${PROJECT_ID}_build/billing/billing_acount_testing.txt" '/builder/home/.ssh/billing_acount_testing.txt'
+        gsutil cp -DD "gs://${_GS_PROJECT_ID}_build/repo/keys/id_rsa_${_GS_PROJECT_ID}-repo" '/builder/home/.ssh/id_rsa'
+        gsutil cp -DD "gs://${_GS_PROJECT_ID}_build/repo/github/build-ssh-config-git-hub" '/builder/home/.ssh/config'
+        gsutil cp -DD "gs://${_GS_PROJECT_ID}_build/billing/billing_acount_testing.txt" '/builder/home/.ssh/billing_acount_testing.txt'
 
         CMD1="\$(kubectl get ns \"\$1\" --output 'jsonpath={.metadata.name}')"
         CMD2="\$(( NEXT_WAIT_TIME ))"
@@ -413,8 +413,8 @@ steps:
         # TODO - Check for Istio Install
         # kubectl get deployment  -o yaml -n istio-system | grep image:
 
-        gsutil cp gs://${PROJECT_ID}_build/repo/keys/id_rsa_test* .
-        gsutil cp gs://${PROJECT_ID}_build/repo/gcloud_user.txt .
+        gsutil cp gs://${_GS_PROJECT_ID}_build/repo/keys/id_rsa_test* .
+        gsutil cp gs://${_GS_PROJECT_ID}_build/repo/gcloud_user.txt .
         cp ./id_rsa_test* /root/.ssh/
 
         export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; echo "yy" | ./crd-setup-helper.sh init-repo "$$PARM_REPO_LOCAL_PATH/$$PARM_REPO" "$(cat gcloud_user.txt)"
@@ -765,11 +765,11 @@ steps:
         echo -e "</body></html>" >> /workspace/myenv/tests/build_info.html
 
 
-        TEST_RESULTS_FULL_DIR="gs://${PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${TEST_RESULTS_DIR}/$${PARM_AT_SEC}-sha-$${PARM_BUILD_SHA}"
+        TEST_RESULTS_FULL_DIR="gs://${_GS_PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${TEST_RESULTS_DIR}/$${PARM_AT_SEC}-sha-$${PARM_BUILD_SHA}"
         gsutil cp '/workspace/myenv/tests/build_info.html' "$${TEST_RESULTS_FULL_DIR}/build_info.html"
         gsutil cp  -R "../tests/artifacts/drivers/simple_hello/reports/temp/*" "$${TEST_RESULTS_FULL_DIR}/reports/"
 
-        gsutil cp gs://${PROJECT_ID}_build_reports/build_test/all_include.inc $${MYENV_TEST_DIR}/all_include.inc
+        gsutil cp gs://${_GS_PROJECT_ID}_build_reports/build_test/all_include.inc $${MYENV_TEST_DIR}/all_include.inc
         [ -f $${MYENV_TEST_DIR}/all_include.inc ] || echo "" > $${MYENV_TEST_DIR}/all_include.inc
         echo "<a href='$${PARM_BUILD_BRANCH}/$${TEST_RESULTS_DIR}/$${PARM_AT_SEC}-sha-$${PARM_BUILD_SHA}/build_info.html'>" >> $${MYENV_TEST_DIR}/all_include.inc
         echo "build info details</a>" >> $${MYENV_TEST_DIR}/all_include.inc
@@ -780,8 +780,8 @@ steps:
 
         cat $${MYENV_TEST_DIR}/all_include.inc >> $${MYENV_TEST_DIR}/all.html
         echo "</body><html>" >> $${MYENV_TEST_DIR}/all.html
-        gsutil cp $${MYENV_TEST_DIR}/all_include.inc gs://${PROJECT_ID}_build_reports/build_test
-        gsutil cp $${MYENV_TEST_DIR}/all.html gs://${PROJECT_ID}_build_reports/build_test
+        gsutil cp $${MYENV_TEST_DIR}/all_include.inc gs://${_GS_PROJECT_ID}_build_reports/build_test
+        gsutil cp $${MYENV_TEST_DIR}/all.html gs://${_GS_PROJECT_ID}_build_reports/build_test
 
         exit $$TEST_RESULTS_ALL_1
     dir: "build-source/tests"
