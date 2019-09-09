@@ -322,6 +322,18 @@ class SimpleHelloTestCase(unittest.TestCase):
     self.assertIn('Publish Success:', response, "Failed Test - Publish")
 
   def test_workload_identity_pubsub_ok(self):
+    retries = 5
+    while retries > 0:
+      try:
+        self.workload_identity_pubsub_ok()
+        time.sleep(5)
+        break
+      except:
+        retries -= 1
+    if retries == 0:
+      self.workload_identity_pubsub_ok()
+
+  def workload_identity_pubsub_ok(self):
     uc = "uc-workload-identity"
     self.assertIn('INGRESS_NO_ISTIO_HOST', os.environ, "INGRESS_NO_ISTIO_HOST environment variable not set")
     self.assertTrue(len(os.environ['INGRESS_NO_ISTIO_HOST']) >  0, "INGRESS_NO_ISTIO_HOST empty - len == 0")
