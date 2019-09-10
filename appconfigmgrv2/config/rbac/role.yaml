@@ -107,7 +107,7 @@ rules:
   - update
   - patch
 - apiGroups:
-  - networking.k8s.io
+  - extensions.k8s.io
   resources:
   - ingresses
   verbs:
@@ -119,7 +119,7 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - networking.k8s.io
+  - extensions.k8s.io
   resources:
   - ingresses/status
   verbs:
