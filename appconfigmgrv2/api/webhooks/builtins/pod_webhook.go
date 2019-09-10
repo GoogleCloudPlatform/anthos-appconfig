@@ -408,7 +408,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 		Name:            "vault-gcp-auth",
 		Image:           image,
 		ImagePullPolicy: corev1.PullAlways,
-		Env: envVar,
+		Env:             envVar,
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      caVolName,
@@ -428,7 +428,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 		Image:           image,
 		ImagePullPolicy: corev1.PullAlways,
 		Command:         []string{"./app", "--mode", "GCP-RECYCLE"},
-		Env: envVar,
+		Env:             envVar,
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      caVolName,

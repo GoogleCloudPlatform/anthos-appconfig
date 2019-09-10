@@ -605,7 +605,7 @@ steps:
 
         K8S_CONTEXT=$(kubectl config current-context)
 
-
+        kubectl delete secret vault-ca --namespace=appconfigmgrv2-system || echo "OK"
         kubectl create secret generic vault-ca \
           --namespace=appconfigmgrv2-system \
           --from-file=$${VAULT_CACERT}
