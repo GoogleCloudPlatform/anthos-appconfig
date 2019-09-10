@@ -457,7 +457,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 	log.Info("handleGCPVault:applyConfig", "VolumeMount", gcpVolName)
 	injectVolumeMount(pod, corev1.VolumeMount{
 		Name:      gcpVolName,
-		ReadOnly:  true,
+		ReadOnly:  false,
 		MountPath: "/var/run/secrets/google/token",
 	})
 
