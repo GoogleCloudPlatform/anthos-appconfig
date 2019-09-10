@@ -346,6 +346,56 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 		},
 	})
 
+	var envVar = []corev1.EnvVar{
+		{
+			Name: "MY_POD_NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "metadata.namespace",
+				},
+			},
+		},
+
+		{
+			Name: "MY_POD_SERVICE_ACCOUNT",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					APIVersion: "v1",
+					FieldPath:  "spec.serviceAccountName",
+				},
+			},
+		},
+		{
+			Name:  "INIT_GCP_KEYPATH",
+			Value: fmt.Sprintf("%s/key/%s", config.Data["gcp-vault-path"], vaultInfo.Roleset),
+		},
+		{
+			Name:  "INIT_K8S_KEYPATH",
+			Value: fmt.Sprintf("%s", config.Data["vault-cluster-path"]),
+		},
+		{
+			Name:  "INIT_K8S_ROLE",
+			Value: fmt.Sprintf("%s", vaultInfo.Roleset),
+		},
+		{
+			Name:  "VAULT_ADDR",
+			Value: config.Data["vault-addr"],
+		},
+		{
+			Name:  "VAULT_CAPATH",
+			Value: "/var/run/secrets/vault/ca.pem",
+		},
+		{
+			Name:  "GOOGLE_APPLICATION_CREDENTIALS",
+			Value: "/var/run/secrets/google/token/key.json",
+		},
+		{
+			Name:  "INIT_K8S_TOKEN_KEYPATH",
+			Value: "/var/run/secrets/kubernetes.io/serviceaccount/token",
+		},
+	}
+
 	log.Info("handleGCPVault:applyConfig", "getVolumeMountForToken", gcpVolName)
 	serviceAccountVolumeMount := getVolumeMountsInExistingContainers(pod)
 	if serviceAccountVolumeMount == nil {
@@ -358,55 +408,7 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 		Name:            "vault-gcp-auth",
 		Image:           image,
 		ImagePullPolicy: corev1.PullAlways,
-		Env: []corev1.EnvVar{
-			{
-				Name: "MY_POD_NAMESPACE",
-				ValueFrom: &corev1.EnvVarSource{
-					FieldRef: &corev1.ObjectFieldSelector{
-						APIVersion: "v1",
-						FieldPath:  "metadata.namespace",
-					},
-				},
-			},
-
-			{
-				Name: "MY_POD_SERVICE_ACCOUNT",
-				ValueFrom: &corev1.EnvVarSource{
-					FieldRef: &corev1.ObjectFieldSelector{
-						APIVersion: "v1",
-						FieldPath:  "spec.serviceAccountName",
-					},
-				},
-			},
-			{
-				Name:  "INIT_GCP_KEYPATH",
-				Value: fmt.Sprintf("%s/key/%s", config.Data["gcp-vault-path"], vaultInfo.Roleset),
-			},
-			{
-				Name:  "INIT_K8S_KEYPATH",
-				Value: fmt.Sprintf("%s", config.Data["vault-cluster-path"]),
-			},
-			{
-				Name:  "INIT_K8S_ROLE",
-				Value: fmt.Sprintf("%s", vaultInfo.Roleset),
-			},
-			{
-				Name:  "VAULT_ADDR",
-				Value: config.Data["vault-addr"],
-			},
-			{
-				Name:  "VAULT_CAPATH",
-				Value: "/var/run/secrets/vault/ca.pem",
-			},
-			{
-				Name:  "GOOGLE_APPLICATION_CREDENTIALS",
-				Value: "/var/run/secrets/google/token/key.json",
-			},
-			{
-				Name:  "INIT_K8S_TOKEN_KEYPATH",
-				Value: "/var/run/secrets/kubernetes.io/serviceaccount/token",
-			},
-		},
+		Env: envVar,
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      caVolName,
@@ -426,13 +428,12 @@ func (a *podAnnotator) handleGCPVault(ctx context.Context, pod *corev1.Pod, app 
 		Image:           image,
 		ImagePullPolicy: corev1.PullAlways,
 		Command:         []string{"./app", "--mode", "GCP-RECYCLE"},
-		Env: []corev1.EnvVar{
-			{
-				Name:  "GOOGLE_APPLICATION_CREDENTIALS",
-				Value: "/var/run/secrets/google/token/key.json",
-			},
-		},
+		Env: envVar,
 		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      caVolName,
+				MountPath: "/var/run/secrets/vault",
+			},
 			{
 				Name:      gcpVolName,
 				MountPath: "/var/run/secrets/google/token",
