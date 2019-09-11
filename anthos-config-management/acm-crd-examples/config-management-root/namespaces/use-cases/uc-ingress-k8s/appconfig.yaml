@@ -30,4 +30,3 @@ spec:
     deploymentPortProtocol: TCP
     ingress:
       host: my-httpbin-host
-      path: /get
