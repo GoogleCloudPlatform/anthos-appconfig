@@ -28,5 +28,4 @@ spec:
     deploymentPort: 80
     servicePort: 80
     deploymentPortProtocol: TCP
-    ingress:
-      host: my-httpbin-host
+    ingress: {}

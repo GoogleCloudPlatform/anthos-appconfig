@@ -96,7 +96,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) removeIngress(
 func ingress(t *appconfig.AppEnvConfigTemplateV2) *v1beta1.Ingress {
 	var rules []v1beta1.IngressRule
 	for i, s := range t.Spec.Services {
-		if s.Ingress.None() {
+		if s.Ingress == nil {
 			continue
 		}
 

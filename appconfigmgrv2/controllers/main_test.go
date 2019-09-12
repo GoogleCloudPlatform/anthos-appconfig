@@ -188,7 +188,7 @@ func newTestInstance(t *testing.T, f testFeatureFlags) *appconfig.AppEnvConfigTe
 					AllowedClients: []appconfig.AppEnvConfigTemplateRelatedClientInfo{
 						{Name: "my-allowed-service-name-0"},
 					},
-					Ingress: appconfig.ServiceIngress{
+					Ingress: &appconfig.ServiceIngress{
 						Host: "my-host",
 						Path: "/my-path",
 					},

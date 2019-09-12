@@ -125,7 +125,7 @@ func services(t *appconfig.AppEnvConfigTemplateV2) []*corev1.Service {
 
 	for i := range t.Spec.Services {
 		typ := corev1.ServiceTypeClusterIP
-		if !t.Spec.Services[i].Ingress.None() {
+		if t.Spec.Services[i].Ingress != nil {
 			typ = corev1.ServiceTypeNodePort
 		}
 		s := &corev1.Service{
