@@ -34,9 +34,12 @@ spec:
     spec:
       containers:
       - name: httpbin
-        image: docker.io/kennethreitz/httpbin
+        image: docker.io/nstogner/itsallok
         imagePullPolicy: Always
         tty: true
+        env:
+        - name: ADDR
+          value: ":80"
         ports:
         - containerPort: 80
           name: http
