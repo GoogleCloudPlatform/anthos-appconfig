@@ -452,6 +452,17 @@ spec:
                       type: string
                   type: object
               type: object
+            ingress:
+              description: Ingress configuration.
+              properties:
+                tls:
+                  properties:
+                    certSecrets:
+                      items:
+                        type: string
+                      type: array
+                  type: object
+              type: object
             services:
               description: Services that make up this application (set of services).
               items:

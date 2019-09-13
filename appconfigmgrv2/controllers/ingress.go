@@ -121,9 +121,15 @@ func ingress(t *appconfig.AppEnvConfigTemplateV2) *v1beta1.Ingress {
 		return nil
 	}
 
+	tls := []v1beta1.IngressTLS{}
+	for _, name := range t.Spec.Ingress.TLS.CertSecrets {
+		tls = append(tls, v1beta1.IngressTLS{SecretName: name})
+	}
+
 	ing := &v1beta1.Ingress{
 		ObjectMeta: ingressMeta(t),
 		Spec: v1beta1.IngressSpec{
+			TLS:   tls,
 			Rules: rules,
 		},
 	}

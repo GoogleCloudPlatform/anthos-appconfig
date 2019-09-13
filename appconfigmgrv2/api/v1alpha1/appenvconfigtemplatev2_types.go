@@ -117,6 +117,18 @@ type AppEnvConfigTemplateV2Spec struct {
 	AllowedEgress []AppEnvConfigTemplateAllowedEgress `json:"allowedEgress,omitempty"`
 	// Application-wide authentication configuration.
 	Auth *AppEnvConfigTemplateAuth `json:"auth,omitempty"`
+	// Ingress configuration.
+	Ingress AppEnvConfigTemplateIngress `json:"ingress,omitempty"`
+}
+
+// AppEnvConfigTemplateIngress configures app-wide ingress.
+type AppEnvConfigTemplateIngress struct {
+	TLS AppEnvConfigTemplateIngressTLS `json:"tls,omitempty"`
+}
+
+// AppEnvConfigTemplateIngressTLS configures app-wide ingress TLS policy.
+type AppEnvConfigTemplateIngressTLS struct {
+	CertSecrets []string `json:"certSecrets,omitempty"`
 }
 
 // AppEnvConfigTemplateV2Status defines the observed state of AppEnvConfigTemplateV2

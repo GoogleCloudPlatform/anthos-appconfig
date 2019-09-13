@@ -510,6 +510,30 @@ steps:
 
   - name: google/cloud-sdk
     entrypoint: "bash"
+    dir: "build-source/tests"
+    args:
+      - '-c'
+      - |
+        echo 'STEP-HTTPS-INGRESS'
+
+        export PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
+        export CLOUDSDK_CORE_PROJECT="$$PARM_PROJ"
+        
+        export K8S_NAMESPACE="uc-ingress-k8s-https"
+        
+        openssl genrsa -out ingress.key 2048
+
+        openssl req -new -key ingress.key -out ingress.csr \
+            -subj "/CN=example.com"
+
+        openssl x509 -req -days 365 -in ingress.csr -signkey ingress.key \
+            -out ingress.crt
+        
+        kubectl create secret tls my-secret --namespace uc-ingress-k8s-https \
+          --cert ingress.crt --key ingress.key
+
+  - name: google/cloud-sdk
+    entrypoint: "bash"
     args:
       - '-c'
       - |

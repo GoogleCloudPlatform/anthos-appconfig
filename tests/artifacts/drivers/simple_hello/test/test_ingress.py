@@ -34,22 +34,39 @@ class IngressTestCase(unittest.TestCase):
 
   def test_k8s_ingress(self):
     retries = 20
+    ns = "uc-ingress-k8s"
+    proto = "http"
     while retries > 0:
       try:
-        self.call_k8s_ingress()
+        self.call_k8s_ingress(ns, proto)
         break
         time.sleep(15)
       except:
         retries -= 1
     if retries == 0:
-      self.call_k8s_ingress()
+      self.call_k8s_ingress(ns, proto)
 
-  def call_k8s_ingress(self):
+  def test_k8s_ingress_https(self):
+    retries = 20
+    ns = "uc-ingress-k8s-https"
+    proto = "https"
+    while retries > 0:
+      try:
+        self.call_k8s_ingress(ns, proto)
+        break
+        time.sleep(15)
+      except:
+        retries -= 1
+    if retries == 0:
+      self.call_k8s_ingress(ns, proto)
+
+  def call_k8s_ingress(self, ns, proto):
     exts = client.ExtensionsV1beta1Api()
-    ig = exts.read_namespaced_ingress("ingress-k8s", "uc-ingress-k8s")
+    ig = exts.read_namespaced_ingress("ingress-k8s", ns)
     ip = ig.status.load_balancer.ingress[0].ip
-    r = requests.get(url="http://"+ip+"/get", headers={'Host':'my-httpbin-host'})
+    r = requests.get(url=proto+"://"+ip+"/get", headers={'Host':'example.com'})
     self.assertEqual(r.status_code, 200)
+
 
 if __name__ == '__main__':
   unittest.main()

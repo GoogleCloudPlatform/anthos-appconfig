@@ -16,16 +16,9 @@
 # without warranty or representation for any use or purpose.#
 #
 
-apiVersion: appconfigmgr.cft.dev/v1alpha1
-kind: AppEnvConfigTemplateV2
+apiVersion: v1
+kind: Namespace
 metadata:
-  name: ingress-k8s
-  namespace: uc-ingress-k8s
-spec:
-  services:
-  - name: my-server
-    deploymentApp: my-server
-    deploymentPort: 80
-    servicePort: 80
-    deploymentPortProtocol: TCP
-    ingress: {}
+  name: uc-ingress-k8s-https
+  labels:
+    mutating-create-update-pod-appconfig-cft-dev: "enabled"

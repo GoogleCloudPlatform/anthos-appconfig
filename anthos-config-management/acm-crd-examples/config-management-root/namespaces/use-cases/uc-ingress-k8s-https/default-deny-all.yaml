@@ -16,16 +16,16 @@
 # without warranty or representation for any use or purpose.#
 #
 
-apiVersion: appconfigmgr.cft.dev/v1alpha1
-kind: AppEnvConfigTemplateV2
+
+
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
 metadata:
-  name: ingress-k8s
-  namespace: uc-ingress-k8s
+  name: default-deny-all
 spec:
-  services:
-  - name: my-server
-    deploymentApp: my-server
-    deploymentPort: 80
-    servicePort: 80
-    deploymentPortProtocol: TCP
-    ingress: {}
+  podSelector: {}
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          devtest: "true"

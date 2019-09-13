@@ -16,7 +16,7 @@ apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: my-server
-  namespace: uc-ingress-k8s
+  namespace: uc-ingress-k8s-https
   labels:
     app: my-server
     version: v1.0.0

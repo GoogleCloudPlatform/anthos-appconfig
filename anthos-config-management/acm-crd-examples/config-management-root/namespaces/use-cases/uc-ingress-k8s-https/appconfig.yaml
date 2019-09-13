@@ -20,12 +20,17 @@ apiVersion: appconfigmgr.cft.dev/v1alpha1
 kind: AppEnvConfigTemplateV2
 metadata:
   name: ingress-k8s
-  namespace: uc-ingress-k8s
+  namespace: uc-ingress-k8s-https
 spec:
+  ingress:
+    tls:
+      certSecrets:
+      - my-secret
   services:
   - name: my-server
     deploymentApp: my-server
     deploymentPort: 80
     servicePort: 80
     deploymentPortProtocol: TCP
-    ingress: {}
+    ingress:
+      host: example.com
