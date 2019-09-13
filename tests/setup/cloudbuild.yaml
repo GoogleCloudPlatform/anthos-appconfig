@@ -199,17 +199,17 @@ steps:
         export PROJECT_NAME="$$PARM_PROJ"; export RELEASE_NAME=$$PARM_BUILD_BRANCH; echo -e "1.1.13\nyyyyyy" | $${MYENV_TEST_DIR}/crd-setup-helper.sh pre-install "$${MYENV_TEST_DIR}/generated/istio" -genexternal
 
 
-        gsutil cp gs://cicenas-vault/root-token.enc /root/.ssh/x1
+        gsutil cp gs://${_GS_PROJECT_ID}_build/repo/vault/root-token.enc /root/.ssh/x1
 
         cat /root/.ssh/x1 | base64 --decode > /root/.ssh/x2| \
           gcloud kms decrypt \
-          --project "anthos-crd-v1-dev-t2" \
-          --location global \
-          --keyring cicenas-vault \
-          --key cicenas-vault-init \
+          --project "appconfig-crd-vault2-dev" \
+          --location us-west1 \
+          --keyring vault-kms-key-ring\
+          --key vault-kms-crypto-key-init \
           --ciphertext-file /root/.ssh/x2 \
           --plaintext-file /root/.ssh/vt
-        gsutil cp gs://cicenas-vault/ca.pem /root/.ssh/ca.pem
+        gsutil cp gs://${_GS_PROJECT_ID}_build/repo/vault/ca.crt /root/.ssh/ca.pem
 
 
     dir: "build-source/tests"
@@ -597,14 +597,14 @@ steps:
         PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
         MYENV_TEST_DIR=$(cat /workspace/myenv/_testdir_TAG.out)
 
-        export VAULT_ADDR="https://35.245.198.47:8200"
+        export VAULT_ADDR="https://34.82.218.234"
         export VAULT_CACERT="/root/.ssh/ca.pem"
         export VAULT_TOKEN="$(cat /root/.ssh/vt)"
         export PATH=$${MYENV_TEST_DIR}/temp/bin:$${PATH}
 
         K8S_CONTEXT=$(kubectl config current-context)
 
-
+        kubectl delete secret vault-ca --namespace=appconfigmgrv2-system || echo "OK"
         kubectl create secret generic vault-ca \
           --namespace=appconfigmgrv2-system \
           --from-file=$${VAULT_CACERT}

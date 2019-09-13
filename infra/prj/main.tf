@@ -32,6 +32,7 @@ module "project-factory-build" {
     "container.googleapis.com",
     "sourcerepo.googleapis.com",
     "cloudkms.googleapis.com",
+    "serviceusage.googleapis.com",
   ],
   //  shared_vpc_subnets = "${local.subnet_self_links_clean_join}"
 }

@@ -146,7 +146,7 @@ setup_service_account() {
     bound_service_account_names="${VAULT_KSA}" \
     bound_service_account_namespaces="${VAULT_NS}" \
     policies=${VAULT_ROLE_NAME} \
-    ttl=3600
+    ttl=600
 
 
 }
