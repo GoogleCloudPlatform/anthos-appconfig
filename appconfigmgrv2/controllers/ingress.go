@@ -131,6 +131,7 @@ func ingress(t *appconfig.AppEnvConfigTemplateV2) *v1beta1.Ingress {
 	return ing
 }
 
+// ingressMeta returns a populated name and namespace.
 func ingressMeta(t *appconfig.AppEnvConfigTemplateV2) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:      fmt.Sprintf("%v", t.Name),
