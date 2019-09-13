@@ -43,3 +43,7 @@ spec:
         ports:
         - containerPort: 80
           name: http
+        readinessProbe:
+          httpGet:
+            path: /get
+            port: 80
