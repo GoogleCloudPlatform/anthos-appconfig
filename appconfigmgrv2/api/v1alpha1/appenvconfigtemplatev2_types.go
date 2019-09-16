@@ -121,7 +121,7 @@ type AppEnvConfigTemplateV2Spec struct {
 	Ingress AppEnvConfigTemplateIngress `json:"ingress,omitempty"`
 }
 
-// AppEnvConfigTemplateIngress configures app-wide ingress.
+// AppEnvConfigTemplateIngress configures app-wide ingress policies.
 type AppEnvConfigTemplateIngress struct {
 	TLS AppEnvConfigTemplateIngressTLS `json:"tls,omitempty"`
 }
