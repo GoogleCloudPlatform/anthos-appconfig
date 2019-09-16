@@ -675,6 +675,7 @@ steps:
         gsutil cat  "$$PARM_PATH/uc-secrets-vault-k8s/deploy-apps.yaml" | kubectl delete -f -
         gsutil cat  "$$PARM_PATH/uc-workload-identity/deploy-apps.yaml" | kubectl delete -f -
         gsutil cat  "$$PARM_PATH/uc-ingress-k8s/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-ingress-k8s-https/deploy-apps.yaml" | kubectl delete -f -
 
         sleep 60
 
@@ -689,6 +690,7 @@ steps:
         bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-firebase' "$$PARM_PATH"
         bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-workload-identity' "$$PARM_PATH"
         bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-ingress-k8s' "$$PARM_PATH"
+        bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-ingress-k8s-https' "$$PARM_PATH"
 
         sleep 60
 
