@@ -16,16 +16,14 @@
 # without warranty or representation for any use or purpose.#
 #
 
-
-
-kind: NetworkPolicy
 apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
 metadata:
-  name: default-deny-all
+  namespace: uc-ingress-k8s-https
+  name: allow-all
 spec:
   podSelector: {}
   ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          devtest: "true"
+  - {}
+  policyTypes:
+  - Ingress
