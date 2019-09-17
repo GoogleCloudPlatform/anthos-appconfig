@@ -326,6 +326,7 @@ steps:
           --enable-ip-alias \
           --enable-master-authorized-networks \
           --enable-network-policy \
+          --enable-private-nodes \
           --enable-stackdriver-kubernetes \
           --image-type "COS" \
           --machine-type "n1-standard-4" \
