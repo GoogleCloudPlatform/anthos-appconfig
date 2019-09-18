@@ -316,6 +316,14 @@ steps:
       PARM_SUBNET_MASTER_INC=$(gcloud container clusters list --format 'table[no-heading](name)'  --project "$$PARM_PROJ" | wc -l)
       PARM_SUBNET_MASTER="$((28 + $$PARM_SUBNET_MASTER_INC))"
       echo "CLUS-$(cat out_cluster_TAG.out)"
+
+      echo "PARM_CLUSTER=$$PARM_CLUSTER"
+      echo "PARM_SUBNET_MASTER=$$PARM_SUBNET_MASTER"
+      echo "PARM_PROJ=$$PARM_PROJ"
+      echo "PARM_REGION=$$PARM_REGION"
+      echo "PARM_ZONE=$$PARM_ZONE"
+      echo "PARM_SUBNET_MASTER=$$PARM_SUBNET_MASTER"
+
       [  ! -z  "$(cat out_cluster_TAG.out)" ] ||  gcloud beta container --project "$$PARM_PROJ" \
           clusters create "$$PARM_CLUSTER" \
           --disk-size "500" \
