@@ -351,8 +351,6 @@ steps:
       echo $(gcloud container clusters describe "$$PARM_CLUSTER" --zone "$$PARM_ZONE" --format="value(selfLink.basename())" --project "$$PARM_PROJ"  || echo "") > out2_cluster_TAG.out
       echo "CLUS2-$(cat out2_cluster_TAG.out)"
 
-      sleep 600
-
       gcloud container clusters update "$$PARM_CLUSTER"  --zone "$$PARM_ZONE" \
         --enable-master-authorized-networks \
         --master-authorized-networks 0.0.0.0/0 --zone "$$PARM_ZONE" --project "$$PARM_PROJ"
