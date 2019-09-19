@@ -64,7 +64,7 @@ class IngressTestCase(unittest.TestCase):
     exts = client.ExtensionsV1beta1Api()
     ig = exts.read_namespaced_ingress("ingress-k8s", ns)
     ip = ig.status.load_balancer.ingress[0].ip
-    r = requests.get(url=proto+"://"+ip+"/get", headers={'Host':'example.com'})
+    r = requests.get(url=proto+"://"+ip+"/get", headers={'Host':'example.com'}, verify=False)
     self.assertEqual(r.status_code, 200)
 
 
