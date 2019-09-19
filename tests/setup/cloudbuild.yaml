@@ -346,7 +346,6 @@ steps:
           --num-nodes "3" \
           --network "projects/$$PARM_PROJ/global/networks/default" \
           --subnetwork "projects/$$PARM_PROJ/regions/$$PARM_REGION/subnetworks/default" \
-          --identity-namespace "$$PARM_PROJ.svc.id.goog" \
           --zone "$$PARM_ZONE"
 
       echo $(gcloud container clusters describe "$$PARM_CLUSTER" --zone "$$PARM_ZONE" --format="value(selfLink.basename())" --project "$$PARM_PROJ"  || echo "") > out2_cluster_TAG.out
