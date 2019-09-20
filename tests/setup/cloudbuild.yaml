@@ -537,7 +537,16 @@ steps:
         openssl x509 -req -days 365 -in ingress.csr -signkey ingress.key \
             -out ingress.crt
         
-        kubectl create secret tls my-secret --namespace uc-ingress-k8s-https \
+        # Wait for namespace to exist.
+        n=0
+        until [ $n -ge 15 ]
+        do
+          kubectl get ns $$K8S_NAMESPACE && break
+          n=$[$n+1]
+          sleep 5
+        done
+
+        kubectl create secret tls my-secret --namespace $$K8S_NAMESPACE \
           --cert ingress.crt --key ingress.key
 
   - name: google/cloud-sdk:261.0.0
