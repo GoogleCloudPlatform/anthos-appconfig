@@ -526,7 +526,6 @@ steps:
 
         export PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
         export CLOUDSDK_CORE_PROJECT="$$PARM_PROJ"
-        
         export K8S_NAMESPACE="uc-ingress-k8s-https"
         
         openssl genrsa -out ingress.key 2048
