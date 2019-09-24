@@ -166,7 +166,7 @@ steps:
         gsutil cp  "gs://anthos-appconfig_build/tests/gsa_keys/$${PARM_PROJ}/*" /workspace/myroot/.private/gsa_keys || echo "0"
 
     dir: "build-source/tests"
-  - name: google/cloud-sdk:261.0.0
+  - name: google/cloud-sdk
     entrypoint: "bash"
     args:
       - '-c'
@@ -249,7 +249,7 @@ steps:
         > $${MYENV_TEST_DIR}/generated/yaml/istio.yaml
 
     dir: "build-source/tests/setup"
-  - name: google/cloud-sdk:261.0.0
+  - name: google/cloud-sdk
     entrypoint: "bash"
     args:
       - '-c'
@@ -287,7 +287,7 @@ steps:
 
 
     dir: "build-source/tests/setup"
-  - name: google/cloud-sdk:261.0.0
+  - name: google/cloud-sdk
     entrypoint: "bash"
     args:
     - '-c'
@@ -367,7 +367,7 @@ steps:
 
 
     dir: "build-source/tests/setup"
-  - name: google/cloud-sdk:261.0.0
+  - name: google/cloud-sdk
     entrypoint: "bash"
     args:
       - '-c'
@@ -449,7 +449,7 @@ steps:
     volumes:
       - name: 'ssh'
         path: /root/.ssh
-  - name: google/cloud-sdk:261.0.0
+  - name: google/cloud-sdk
     entrypoint: "bash"
     dir: "build-source/tests"
     args:
@@ -515,7 +515,7 @@ steps:
               "iam.gke.io/gcp-service-account": "$${GSA_NAME}@$${PROJECT_NAME}.iam.gserviceaccount.com"
         EOF
 
-  - name: google/cloud-sdk:261.0.0
+  - name: google/cloud-sdk
     entrypoint: "bash"
     dir: "build-source/tests"
     args:
@@ -547,7 +547,7 @@ steps:
         kubectl create secret tls my-secret --namespace $$K8S_NAMESPACE \
           --cert ingress.crt --key ingress.key
 
-  - name: google/cloud-sdk:261.0.0
+  - name: google/cloud-sdk
     entrypoint: "bash"
     args:
       - '-c'
@@ -616,7 +616,7 @@ steps:
 
     dir: "build-source/tests"
 
-  - name: google/cloud-sdk:261.0.0
+  - name: google/cloud-sdk
     entrypoint: "bash"
     args:
       - '-c'
@@ -659,7 +659,7 @@ steps:
     volumes:
       - name: 'ssh'
         path: /root/.ssh
-  - name: google/cloud-sdk:261.0.0
+  - name: google/cloud-sdk
     entrypoint: "bash"
     args:
       - '-c'
@@ -710,7 +710,7 @@ steps:
         sleep 60
 
     dir: "build-source/tests"
-  - name: google/cloud-sdk:261.0.0
+  - name: google/cloud-sdk
     entrypoint: "bash"
     args:
       - '-c'
@@ -769,7 +769,7 @@ steps:
         echo $$TEST_RESULTS_ALL_1 > /workspace/myenv/tests/_filetest-results-all-1_TAG.out
 
     dir: "build-source/tests/artifacts/drivers/simple_hello"
-  - name: google/cloud-sdk:261.0.0
+  - name: google/cloud-sdk
     entrypoint: "bash"
     args:
       - '-c'
