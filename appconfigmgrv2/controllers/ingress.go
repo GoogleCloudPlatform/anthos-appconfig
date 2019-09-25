@@ -70,6 +70,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) reconcileIngress(
 	return nil
 }
 
+// removeIngress if it exists.
 func (r *AppEnvConfigTemplateV2Reconciler) removeIngress(
 	ctx context.Context,
 	t *appconfig.AppEnvConfigTemplateV2,
@@ -93,6 +94,10 @@ func (r *AppEnvConfigTemplateV2Reconciler) removeIngress(
 	return nil
 }
 
+// ingress builds an ingress resource with rules derived from
+// from .spec.services[].ingress fields. TLS info is dervied from the
+// .spec.ingress.tls field.
+// NOTE: Returns nil if no ingress should be created.
 func ingress(t *appconfig.AppEnvConfigTemplateV2) *v1beta1.Ingress {
 	var rules []v1beta1.IngressRule
 	for i, s := range t.Spec.Services {
@@ -117,6 +122,7 @@ func ingress(t *appconfig.AppEnvConfigTemplateV2) *v1beta1.Ingress {
 		rules = append(rules, r)
 	}
 
+	// No ingress resource should be created.
 	if len(rules) == 0 {
 		return nil
 	}
