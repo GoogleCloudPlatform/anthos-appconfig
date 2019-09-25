@@ -45,7 +45,7 @@ import (
 
 var log = ctrl.Log.WithName("controller")
 
-// AppEnvConfigTemplateV2Reconciler reconciles a AppEnvConfigTemplateV2 object
+// AppEnvConfigTemplateV2Reconciler reconciles a AppEnvConfigTemplateV2 object.
 type AppEnvConfigTemplateV2Reconciler struct {
 	client.Client
 
@@ -96,6 +96,8 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 		return ctrl.Result{}, err
 	}
 
+	// If istio is enabled, we will light up certain features and use istio
+	// resources rather than native kubernetes resources for other features.
 	istioEnabled, err := r.istioAutoInjectEnabled(ctx, instance.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("checking for istio auto-inject label: %v", err)
@@ -148,7 +150,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 		}
 	}
 
-	// TODO: Reconcile istio/non-istio resources on namespace istio injection label update?
+	// TODO: Garbage collect istio/non-istio resources on namespace istio injection label update?
 	// i.e. NetworkPolicies vs istio Rules
 
 	vaultEnabled, err := r.vaultInjectEnabled(ctx, instance)
@@ -166,6 +168,8 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 }
 
 // SetupWithManager registers the reconciler with a manager.
+// The behavior is dependant on whether or not istio is installed.
+// This is determined by the presence of istio CRDs.
 func (r *AppEnvConfigTemplateV2Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	c := ctrl.NewControllerManagedBy(mgr).
 		For(&appconfigmgrv1alpha1.AppEnvConfigTemplateV2{}).
@@ -221,8 +225,8 @@ func gvkObject(gvk schema.GroupVersionKind) runtime.Object {
 }
 
 // getConfig currenly returns a hardcoded default configuration.
+// TODO: Consider pulling from a kube ConfigMap resources instead.
 func (r *AppEnvConfigTemplateV2Reconciler) getConfig() (Config, error) {
-	// TODO: Pull from kube config map.
 	return defaultConfig, nil
 }
 

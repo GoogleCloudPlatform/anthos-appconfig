@@ -22,7 +22,8 @@ import (
 	istiov1a3 "istio.io/api/networking/v1alpha3"
 )
 
-// Config for the controller.
+// Config for the controller. This encompasses all knobs that control controller
+// behavior outside of app configs.
 type Config struct {
 	// PolicyCachingInterval determines how long caches should be valid for
 	// istio policy decisions.

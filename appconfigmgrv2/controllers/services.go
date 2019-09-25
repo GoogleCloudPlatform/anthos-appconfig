@@ -115,6 +115,9 @@ func (r *AppEnvConfigTemplateV2Reconciler) garbageCollectServices(
 	return nil
 }
 
+// services returns a list of kube services that should exist.
+// The number of services corresponds 1:1 with the number of .spec.services[]
+// that are specified. Service selectors are based on `app` labels.
 func services(t *appconfig.AppEnvConfigTemplateV2) []*corev1.Service {
 	var list []*corev1.Service
 
@@ -147,6 +150,9 @@ func services(t *appconfig.AppEnvConfigTemplateV2) []*corev1.Service {
 	return list
 }
 
+// serviceName returns the name of a given service where i is the index
+// .spec.services[i] because the name is derived from the app config name
+// and the service name.
 func serviceName(t *appconfig.AppEnvConfigTemplateV2, i int) string {
 	return fmt.Sprintf("%v-%v", t.Name, t.Spec.Services[i].Name)
 }

@@ -88,6 +88,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Comment out to allow `make run` to work:
 	webhooks.SetupWebHooks(mgr)
 
 	// +kubebuilder:scaffold:builder
