@@ -310,6 +310,8 @@ steps:
       PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
 
+      for XI in {1..2}; do
+        echo "$$XI"
       echo $(gcloud container clusters list --filter=name=\'$$PARM_CLUSTER\' --format='table[no-heading](name)'  --project "$$PARM_PROJ")  > out_cluster_TAG.out
 
       PARM_SUBNET_MASTER_INC=$(gcloud container clusters list --format 'table[no-heading](name)'  --project "$$PARM_PROJ" | wc -l)
@@ -347,6 +349,14 @@ steps:
           --subnetwork "projects/$$PARM_PROJ/regions/$$PARM_REGION/subnetworks/default" \
           --identity-namespace "$$PARM_PROJ.svc.id.goog" \
           --zone "$$PARM_ZONE"
+
+        PARM_CLUSTER_CHECK_STATUS=$(gcloud container clusters list --filter=name=\'$$PARM_CLUSTER\' --format='table[no-heading](status)'  --project "$$PARM_PROJ")
+        if [ "$$PARM_CLUSTER_CHECK_STATUS" != "ERROR" ] ; then
+         break
+        fi
+        gcloud container clusters delete "$$PARM_CLUSTER" --zone "$$PARM_ZONE" --project "$$PARM_PROJ"   --quiet  || echo "Delete might have failed but OK"
+
+      done
 
       echo $(gcloud container clusters describe "$$PARM_CLUSTER" --zone "$$PARM_ZONE" --format="value(selfLink.basename())" --project "$$PARM_PROJ"  || echo "") > out2_cluster_TAG.out
       echo "CLUS2-$(cat out2_cluster_TAG.out)"
