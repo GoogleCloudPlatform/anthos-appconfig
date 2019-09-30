@@ -147,12 +147,10 @@ steps:
         sed -i'' -e '/CONTROLLER_BUILD/{N;s@value: .*@value: '\"$$PARM_BUILD_BRANCH_TS\"'@}' $$PATCH_PATH
         sed -i'' -e '/CONTROLLER_REGISTRY/{N;s@value: .*@value: '\"gcr.io/${_GS_PROJECT_ID}\"'@}' $$PATCH_PATH
         sed -i'' -e 's@image: .*@image: '"gcr.io/${_GS_PROJECT_ID}/appconfigtemplatev2_controller:$$PARM_BUILD_BRANCH_TS"'@' $$PATCH_PATH
-        cat ./config/crd/bases/appconfigmgr.cft.dev_appenvconfigtemplatev2s.yaml
-
+        sed  -i '/^status:$/,$d' ./config/crd/bases/appconfigmgr.cft.dev_appenvconfigtemplatev2s.yaml
         make kustomize || exit 1
         cat ./config/crd/bases/appconfigmgr.cft.dev_appenvconfigtemplatev2s.yaml
         exit 1
-
     dir: "build-source/appconfigmgrv2"
     volumes:
       - name: go-modules
