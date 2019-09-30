@@ -148,6 +148,9 @@ steps:
         sed -i'' -e '/CONTROLLER_REGISTRY/{N;s@value: .*@value: '\"gcr.io/${_GS_PROJECT_ID}\"'@}' $$PATCH_PATH
         sed -i'' -e 's@image: .*@image: '"gcr.io/${_GS_PROJECT_ID}/appconfigtemplatev2_controller:$$PARM_BUILD_BRANCH_TS"'@' $$PATCH_PATH
         make kustomize || exit 1
+        cat ./config/crd/bases/appconfigmgr.cft.dev_appenvconfigtemplatev2s.yaml
+        exit 1
+
     dir: "build-source/appconfigmgrv2"
     volumes:
       - name: go-modules
@@ -164,9 +167,6 @@ steps:
       - '-c'
       - |
         MYENV_DIR=$(cat /workspace/myenv/_rootdir_TAG.out)
-        cat appconfigmgrv2/config/generated/all-cluster.yaml anthos-config-management/acm-crd/config-management-root/cluster
-        cat appconfigmgrv2/config/generated/all-other.yaml anthos-config-management/acm-crd/config-management-root/namespaces/appconfigmgrv2-system
-
         cp appconfigmgrv2/config/generated/all-cluster.yaml anthos-config-management/acm-crd/config-management-root/cluster
         cp appconfigmgrv2/config/generated/all-other.yaml anthos-config-management/acm-crd/config-management-root/namespaces/appconfigmgrv2-system
         echo "" > placeholder.txt
