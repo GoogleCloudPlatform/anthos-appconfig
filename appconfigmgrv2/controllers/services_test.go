@@ -91,6 +91,7 @@ func TestNewServices(t *testing.T) {
 						Namespace: "my-meta-namespace",
 					},
 					Spec: corev1.ServiceSpec{
+						Type: corev1.ServiceTypeClusterIP,
 						Selector: map[string]string{
 							"app": "my-deployment-app",
 						},

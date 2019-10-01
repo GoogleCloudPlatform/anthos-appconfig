@@ -235,7 +235,7 @@ EOF
   cat > $fpath <<EOF
 # config-management.yaml
 
-apiVersion: addons.sigs.k8s.io/v1alpha1
+apiVersion: configmanagement.gke.io/v1
 kind: ConfigManagement
 metadata:
   name: config-management

@@ -310,11 +310,21 @@ steps:
       PARM_BUILD_BRANCH="$(cat /workspace/myenv/_fileappversion_TAG.out)"
 
 
+      for XI in {1..2}; do
+        echo "$$XI"
       echo $(gcloud container clusters list --filter=name=\'$$PARM_CLUSTER\' --format='table[no-heading](name)'  --project "$$PARM_PROJ")  > out_cluster_TAG.out
 
       PARM_SUBNET_MASTER_INC=$(gcloud container clusters list --format 'table[no-heading](name)'  --project "$$PARM_PROJ" | wc -l)
       PARM_SUBNET_MASTER="$((28 + $$PARM_SUBNET_MASTER_INC))"
       echo "CLUS-$(cat out_cluster_TAG.out)"
+
+      echo "PARM_CLUSTER=$$PARM_CLUSTER"
+      echo "PARM_SUBNET_MASTER=$$PARM_SUBNET_MASTER"
+      echo "PARM_PROJ=$$PARM_PROJ"
+      echo "PARM_REGION=$$PARM_REGION"
+      echo "PARM_ZONE=$$PARM_ZONE"
+      echo "PARM_SUBNET_MASTER=$$PARM_SUBNET_MASTER"
+
       [  ! -z  "$(cat out_cluster_TAG.out)" ] ||  gcloud beta container --project "$$PARM_PROJ" \
           clusters create "$$PARM_CLUSTER" \
           --disk-size "500" \
@@ -339,6 +349,14 @@ steps:
           --subnetwork "projects/$$PARM_PROJ/regions/$$PARM_REGION/subnetworks/default" \
           --identity-namespace "$$PARM_PROJ.svc.id.goog" \
           --zone "$$PARM_ZONE"
+
+        PARM_CLUSTER_CHECK_STATUS=$(gcloud container clusters list --filter=name=\'$$PARM_CLUSTER\' --format='table[no-heading](status)'  --project "$$PARM_PROJ")
+        if [ "$$PARM_CLUSTER_CHECK_STATUS" != "ERROR" ] ; then
+         break
+        fi
+        gcloud container clusters delete "$$PARM_CLUSTER" --zone "$$PARM_ZONE" --project "$$PARM_PROJ"   --quiet  || echo "Delete might have failed but OK"
+
+      done
 
       echo $(gcloud container clusters describe "$$PARM_CLUSTER" --zone "$$PARM_ZONE" --format="value(selfLink.basename())" --project "$$PARM_PROJ"  || echo "") > out2_cluster_TAG.out
       echo "CLUS2-$(cat out2_cluster_TAG.out)"
@@ -510,6 +528,38 @@ steps:
 
   - name: google/cloud-sdk
     entrypoint: "bash"
+    dir: "build-source/tests"
+    args:
+      - '-c'
+      - |
+        echo 'STEP-HTTPS-INGRESS'
+
+        export PARM_PROJ="$(cat /workspace/myenv/_fileproj_TAG.out)"
+        export CLOUDSDK_CORE_PROJECT="$$PARM_PROJ"
+        export K8S_NAMESPACE="uc-ingress-k8s-https"
+        
+        openssl genrsa -out ingress.key 2048
+
+        openssl req -new -key ingress.key -out ingress.csr \
+            -subj "/CN=example.com"
+
+        openssl x509 -req -days 365 -in ingress.csr -signkey ingress.key \
+            -out ingress.crt
+        
+        # Wait for namespace to exist.
+        n=0
+        until [ $n -ge 15 ]
+        do
+          kubectl get ns $$K8S_NAMESPACE && break
+          n=$[$n+1]
+          sleep 5
+        done
+
+        kubectl create secret tls my-secret --namespace $$K8S_NAMESPACE \
+          --cert ingress.crt --key ingress.key
+
+  - name: google/cloud-sdk
+    entrypoint: "bash"
     args:
       - '-c'
       - |
@@ -650,6 +700,8 @@ steps:
         gsutil cat  "$$PARM_PATH/uc-opa/deploy-apps.yaml" | kubectl delete -f -
         gsutil cat  "$$PARM_PATH/uc-secrets-vault-k8s/deploy-apps.yaml" | kubectl delete -f -
         gsutil cat  "$$PARM_PATH/uc-workload-identity/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-ingress-k8s/deploy-apps.yaml" | kubectl delete -f -
+        gsutil cat  "$$PARM_PATH/uc-ingress-k8s-https/deploy-apps.yaml" | kubectl delete -f -
 
         sleep 60
 
@@ -663,8 +715,10 @@ steps:
         bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-opa' "$$PARM_PATH"
         bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-firebase' "$$PARM_PATH"
         bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-workload-identity' "$$PARM_PATH"
+        bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-ingress-k8s' "$$PARM_PATH"
+        bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-ingress-k8s-https' "$$PARM_PATH"
 
-        sleep 60
+        sleep 360
 
     dir: "build-source/tests"
   - name: google/cloud-sdk

@@ -16,20 +16,16 @@
 # without warranty or representation for any use or purpose.#
 #
 
-
-
-# config-management.yaml
-
-apiVersion: configmanagement.gke.io/v1
-kind: ConfigManagement
+apiVersion: appconfigmgr.cft.dev/v1alpha1
+kind: AppEnvConfigTemplateV2
 metadata:
-  name: config-management
-  namespace: config-management-system
+  name: ingress-k8s
+  namespace: uc-ingress-k8s
 spec:
-  # clusterName is required and must be unique among all managed clusters
-  clusterName: "${ACM_CLUSTER_REGISTRY_NAME}"
-  git:
-    syncRepo: <customer repository url>
-    syncBranch: stage
-    secretType: ssh
-    policyDir: "${ACM_CONFIG_ROOT}/config-management-root"
+  services:
+  - name: my-server
+    deploymentApp: my-server
+    deploymentPort: 80
+    servicePort: 80
+    deploymentPortProtocol: TCP
+    ingress: {}

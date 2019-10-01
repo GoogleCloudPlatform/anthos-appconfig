@@ -46,6 +46,13 @@ type AppEnvConfigTemplateServiceInfo struct {
 	DisableAuth bool `json:"disableAuth,omitempty"`
 	// Attaches a kubernetes service account to created pods.
 	ServiceAccount string `json:"serviceAccount,omitempty"`
+	// Specifies the ingress policy for this service (external access).
+	Ingress *ServiceIngress `json:"ingress,omitempty"`
+}
+
+type ServiceIngress struct {
+	Host string `json:"host,omitempty"`
+	Path string `json:"path,omitempty"`
 }
 
 type AppEnvConfigTemplateRelatedClientInfo struct {
@@ -110,6 +117,18 @@ type AppEnvConfigTemplateV2Spec struct {
 	AllowedEgress []AppEnvConfigTemplateAllowedEgress `json:"allowedEgress,omitempty"`
 	// Application-wide authentication configuration.
 	Auth *AppEnvConfigTemplateAuth `json:"auth,omitempty"`
+	// Ingress configuration.
+	Ingress AppEnvConfigTemplateIngress `json:"ingress,omitempty"`
+}
+
+// AppEnvConfigTemplateIngress configures app-wide ingress policies.
+type AppEnvConfigTemplateIngress struct {
+	TLS AppEnvConfigTemplateIngressTLS `json:"tls,omitempty"`
+}
+
+// AppEnvConfigTemplateIngressTLS configures app-wide ingress TLS policy.
+type AppEnvConfigTemplateIngressTLS struct {
+	CertSecrets []string `json:"certSecrets,omitempty"`
 }
 
 // AppEnvConfigTemplateV2Status defines the observed state of AppEnvConfigTemplateV2
@@ -141,6 +160,8 @@ type AppEnvConfigTemplateV2 struct {
 
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=extensions,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=extensions,resources=ingresses/status,verbs=get;update;patch
 
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions/status,verbs=get;list
