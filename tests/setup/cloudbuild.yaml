@@ -718,7 +718,7 @@ steps:
         bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-ingress-k8s' "$$PARM_PATH"
         bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-ingress-k8s-https' "$$PARM_PATH"
 
-        sleep 60
+        sleep 360
 
     dir: "build-source/tests"
   - name: google/cloud-sdk
