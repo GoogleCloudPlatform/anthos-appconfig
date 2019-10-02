@@ -322,6 +322,8 @@ class SimpleHelloTestCase(unittest.TestCase):
     self.assertIn('Publish Success:', response, "Failed Test - Publish")
 
   def test_workload_identity_pubsub_ok(self):
+    # Assert that the pod with Google Cloud Workload Identity configured
+    # can access a pubsub topic that it would otherwise not be able to.
     retries = 5
     while retries > 0:
       try:

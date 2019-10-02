@@ -55,6 +55,8 @@ var k8sClient client.Client
 var testEnv *envtest.Environment
 var scheme = runtime.NewScheme()
 
+// TestMain spins up a local kubernetes control plane to run resource based
+// integration tests in.
 func TestMain(m *testing.M) {
 	if strings.ToLower(os.Getenv("TEST_LOGS")) == "enabled" {
 		logf.SetLogger(logf.ZapLogger(false))
@@ -113,6 +115,7 @@ func startTestReconciler(t *testing.T) (*AppEnvConfigTemplateV2Reconciler, func(
 	return r, startTestManager(t, mgr)
 }
 
+// startTestManager starts a manager or fails the given test case.
 func startTestManager(t *testing.T, mgr manager.Manager) func() {
 	stop := make(chan struct{})
 	wg := &sync.WaitGroup{}
@@ -130,11 +133,13 @@ func startTestManager(t *testing.T, mgr manager.Manager) func() {
 	}
 }
 
+// createTestNamespace creates a namespace with a name derived from the
+// test name.
 func createTestNamespace(t *testing.T, f testFeatureFlags) func() {
 	c, err := client.New(restConfig, client.Options{Scheme: scheme})
 	require.NoError(t, err)
 
-	namespace := testNamespace(t)
+	namespace := testNamespaceName(t)
 	name := types.NamespacedName{Name: namespace}
 
 	create := &corev1.Namespace{}
@@ -153,15 +158,20 @@ func createTestNamespace(t *testing.T, f testFeatureFlags) func() {
 	}
 }
 
-func testNamespace(t *testing.T) string {
+// testNamespaceName returns the name of the namespace to run the given test in.
+// It is derived from the name of the test itself to ensure uniqueness across
+// a test suite.
+func testNamespaceName(t *testing.T) string {
 	return strings.ToLower(t.Name())
 }
 
+// testFeatureFlags determine how a namespace is configured for a given test.
 type testFeatureFlags struct {
 	istio bool
 	vault bool
 }
 
+// createTestNamespace creates an example instance of an app config.
 func createTestInstance(t *testing.T, f testFeatureFlags) (*appconfig.AppEnvConfigTemplateV2, func()) {
 	c, err := client.New(restConfig, client.Options{Scheme: scheme})
 	require.NoError(t, err)
@@ -172,8 +182,9 @@ func createTestInstance(t *testing.T, f testFeatureFlags) (*appconfig.AppEnvConf
 	return in, deleteNS
 }
 
+// newTestInstance returns an example instance of an app config.
 func newTestInstance(t *testing.T, f testFeatureFlags) *appconfig.AppEnvConfigTemplateV2 {
-	namespace := testNamespace(t)
+	namespace := testNamespaceName(t)
 	in := &appconfig.AppEnvConfigTemplateV2{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-appconfig", Namespace: namespace},
 		Spec: appconfig.AppEnvConfigTemplateV2Spec{
@@ -222,6 +233,8 @@ func newTestInstance(t *testing.T, f testFeatureFlags) *appconfig.AppEnvConfigTe
 	return in
 }
 
+// unstructuredShouldExist asserts that a kubernetes object exists with a given
+// GroupVersionResource.
 func unstructuredShouldExist(t *testing.T, dyn dynamic.Interface, gvr schema.GroupVersionResource, obj *unstructured.Unstructured) {
 	c := dyn.Resource(gvr).Namespace(obj.GetNamespace())
 	retryTest(t, func() error {
@@ -230,6 +243,8 @@ func unstructuredShouldExist(t *testing.T, dyn dynamic.Interface, gvr schema.Gro
 	})
 }
 
+// unstructuredShouldExist asserts that a kubernetes object does NOT exist
+// with a given GroupVersionResource.
 func unstructuredShouldNotExist(t *testing.T, dyn dynamic.Interface, gvr schema.GroupVersionResource, obj *unstructured.Unstructured) {
 	c := dyn.Resource(gvr).Namespace(obj.GetNamespace())
 	retryTest(t, func() error {
@@ -238,6 +253,8 @@ func unstructuredShouldNotExist(t *testing.T, dyn dynamic.Interface, gvr schema.
 	})
 }
 
+// shouldBeNotFound returns and error if the provided error is not of kind
+// NotFound.
 func shouldBeNotFound(err error) error {
 	if err == nil || !errors.IsNotFound(err) {
 		return fmt.Errorf("expected error NotFound, got %v", err)
@@ -245,18 +262,21 @@ func shouldBeNotFound(err error) error {
 	return nil
 }
 
+// removeServiceFromSpec slices an app config .spec.services[] array.
 func removeServiceFromSpec(t *testing.T, c client.Client, in *appconfig.AppEnvConfigTemplateV2, i int) {
 	in = in.DeepCopy()
 	in.Spec.Services = append(in.Spec.Services[:i], in.Spec.Services[i+1:]...)
 	require.NoError(t, c.Update(context.Background(), in))
 }
 
+// removeAllowedEgressFromSpec slices an app config .spec.allowedEgress[] array.
 func removeAllowedEgressFromSpec(t *testing.T, c client.Client, in *appconfig.AppEnvConfigTemplateV2, i int) {
 	in = in.DeepCopy()
 	in.Spec.AllowedEgress = append(in.Spec.AllowedEgress[:i], in.Spec.AllowedEgress[i+1:]...)
 	require.NoError(t, c.Update(context.Background(), in))
 }
 
+// retryTest retries a given function up to 10 times.
 func retryTest(t *testing.T, fn func() error) {
 	const n = 10
 	if err := retry(n, fn); err != nil {

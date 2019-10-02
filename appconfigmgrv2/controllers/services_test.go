@@ -38,6 +38,7 @@ func TestReconcileServices(t *testing.T) {
 	in, cleanup := createTestInstance(t, testFeatureFlags{})
 	defer cleanup()
 
+	// Get a list of expected services.
 	svcs := services(in)
 	require.Len(t, svcs, len(in.Spec.Services))
 
@@ -51,12 +52,14 @@ func TestReconcileServices(t *testing.T) {
 		ctx := context.Background()
 		retryTest(t, func() error { return r.Client.Get(ctx, key, obj) })
 
-		// Test garbage collection by removing service.
+		// Test garbage collection by removing service from the spec..
 		removeServiceFromSpec(t, r.Client, in, i)
 		retryTest(t, func() error { return shouldBeNotFound(r.Client.Get(ctx, key, obj)) })
 	}
 }
 
+// TestNewServices tests the generation of service specs from a given
+// app config spec.
 func TestNewServices(t *testing.T) {
 	cases := []struct {
 		name             string

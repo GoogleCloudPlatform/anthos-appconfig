@@ -23,9 +23,6 @@ import unittest
 import subprocess
 import time
 
-# sys.path.append(os.path.abspath('../simple_hello'))
-# from auth_helper import GCPAuthHelper
-
 from kubernetes import client, config
 from pprint import pprint
 
@@ -36,12 +33,16 @@ namespace = "uc-opa"
 class OpaTestCase(unittest.TestCase):
 
   def test_pod_creation(self):
+    # Assert that gatekeeper has blocked the creation of pods
+    # that are missing required labels.
     should_exist = core_v1.list_namespaced_pod(namespace, label_selector="app=satisfies-labels")
     should_not_exist = core_v1.list_namespaced_pod(namespace, label_selector="app=missing-version-label-on-pods")
     self.assertEqual(len(should_exist.items), 3)
     self.assertEqual(len(should_not_exist.items), 0)
 
   def test_appconfig_ns_limit(self):
+    # Assert that no more than one app config can be created in a single
+    # namespace.
     time.sleep(300)
 
     # Should succeed.
