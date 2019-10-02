@@ -33,6 +33,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/api/extensions/v1beta1"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,7 +58,9 @@ var scheme = runtime.NewScheme()
 // TestMain spins up a local kubernetes control plane to run resource based
 // integration tests in.
 func TestMain(m *testing.M) {
-	logf.SetLogger(logf.ZapLogger(false))
+	if strings.ToLower(os.Getenv("TEST_LOGS")) == "enabled" {
+		logf.SetLogger(logf.ZapLogger(false))
+	}
 
 	const istioVersion = "1.1.7"
 	t := &envtest.Environment{}
@@ -65,6 +68,7 @@ func TestMain(m *testing.M) {
 	corev1.AddToScheme(scheme)
 	netv1.AddToScheme(scheme)
 	appconfig.AddToScheme(scheme)
+	v1beta1.AddToScheme(scheme)
 
 	var err error
 	if restConfig, err = t.Start(); err != nil {
@@ -194,6 +198,10 @@ func newTestInstance(t *testing.T, f testFeatureFlags) *appconfig.AppEnvConfigTe
 					DeploymentPortProtocol: "TCP",
 					AllowedClients: []appconfig.AppEnvConfigTemplateRelatedClientInfo{
 						{Name: "my-allowed-service-name-0"},
+					},
+					Ingress: &appconfig.ServiceIngress{
+						Host: "my-host",
+						Path: "/my-path",
 					},
 				},
 			},

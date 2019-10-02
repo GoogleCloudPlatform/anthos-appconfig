@@ -1,0 +1,49 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: my-server
+  namespace: uc-ingress-k8s
+  labels:
+    app: my-server
+    version: v1.0.0
+  annotations:
+    appconfigmgr.cft.dev/application: "my-server"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: my-server
+        version: v1.0.0
+      annotations:
+        appconfigmgr.cft.dev/application: "my-server"
+    spec:
+      containers:
+      - name: my-server
+        image: docker.io/nstogner/itsallok
+        imagePullPolicy: Always
+        tty: true
+        env:
+        - name: ADDR
+          value: ":80"
+        ports:
+        - containerPort: 80
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /get
+            port: 80

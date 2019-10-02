@@ -25,11 +25,13 @@ from unittest import TestLoader, TestSuite
 import HtmlTestRunner
 from test.test_simple_hello import SimpleHelloTestCase
 from test.test_opa import OpaTestCase
+from test.test_ingress import IngressTestCase
 
 the_testing_list = []
 
 the_testing_list.append(TestLoader().loadTestsFromTestCase(SimpleHelloTestCase))
 the_testing_list.append(TestLoader().loadTestsFromTestCase(OpaTestCase))
+the_testing_list.append(TestLoader().loadTestsFromTestCase(IngressTestCase))
 
 
 suite = TestSuite(the_testing_list)

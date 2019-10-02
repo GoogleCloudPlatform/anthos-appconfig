@@ -24,6 +24,7 @@ import (
 	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/api/extensions/v1beta1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -113,6 +114,11 @@ func (r *AppEnvConfigTemplateV2Reconciler) Reconcile(req ctrl.Request) (ctrl.Res
 		return ctrl.Result{}, fmt.Errorf("reconciling services: %v", err)
 	}
 
+	log.Info("Reconciling", "resource", "ingress")
+	if err := r.reconcileIngress(ctx, instance); err != nil {
+		return ctrl.Result{}, fmt.Errorf("reconciling ingress: %v", err)
+	}
+
 	if istioEnabled {
 		log.Info("Reconciling", "resource", "virtualservices")
 		if err := r.reconcileIstioVirtualServices(ctx, instance); err != nil {
@@ -176,6 +182,7 @@ func (r *AppEnvConfigTemplateV2Reconciler) SetupWithManager(mgr ctrl.Manager) er
 		// Watch namespaces for enforcing opa constraints.
 		Watches(&source.Kind{Type: &corev1.Namespace{}}, &handler.EnqueueRequestForObject{}).
 		Owns(&corev1.Service{}).
+		Owns(&v1beta1.Ingress{}).
 		Owns(&netv1.NetworkPolicy{})
 
 	istioInstalled := true

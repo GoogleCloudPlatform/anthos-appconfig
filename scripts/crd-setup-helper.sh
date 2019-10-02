@@ -29,7 +29,7 @@ set -e
 GATEKEEPER_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/${RELEASE_NAME}/gatekeeper-config"
 TEMPLATE_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/${RELEASE_NAME}/acm-crd/config-management-root"
 EXAMPLES_BUCKET="gs://anthos-appconfig_public/acm/anthos-config-management/${RELEASE_NAME}/acm-crd-examples/config-management-root"
-CM_OPERATOR_BUCKET="gs://config-management-release/released/latest/config-management-operator.yaml"
+CM_OPERATOR_BUCKET="gs://config-management-release/released/1.1.0/config-management-operator.yaml"
 HELM_IMAGE="alpine/helm:2.13.1"
 CM_CRD_COUNT=8
 
@@ -235,7 +235,7 @@ EOF
   cat > $fpath <<EOF
 # config-management.yaml
 
-apiVersion: addons.sigs.k8s.io/v1alpha1
+apiVersion: configmanagement.gke.io/v1
 kind: ConfigManagement
 metadata:
   name: config-management
@@ -513,8 +513,6 @@ pre-install() {
 
 install_operator() {
   _output "installing config management operator to cluster"
-  gsutil ls ${CM_OPERATOR_BUCKET} || gsutil cat "gs://anthos-appconfig_build/sw/acm/config-management-operator.yaml"  | kubectl \
-    apply -f - || _errexit "No access to config management operator, whitelisted?"
   gsutil ls ${CM_OPERATOR_BUCKET} && gsutil cat ${CM_OPERATOR_BUCKET} | kubectl apply -f -
 }
 
