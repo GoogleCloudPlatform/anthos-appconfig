@@ -718,7 +718,12 @@ steps:
         bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-ingress-k8s' "$$PARM_PATH"
         bash $${MYENV_TEST_DIR}/deploy_helper.sh 'uc-ingress-k8s-https' "$$PARM_PATH"
 
+        kubectl get svc --all-namespaces | grep -v ClusterIP
+
         sleep 360
+
+        kubectl get svc --all-namespaces | grep -v ClusterIP
+
 
     dir: "build-source/tests"
   - name: google/cloud-sdk
@@ -786,6 +791,7 @@ steps:
       - '-c'
       - |
         echo 'STEP-TEST-RESULTS'
+        # set -x
 
         MYENV_TEST_DIR=$(cat /workspace/myenv/_testdir_TAG.out)
         PARM_AT_SEC=$(cat /workspace/myenv/_fileat_TAG.out)
@@ -802,6 +808,7 @@ steps:
         PARM_BUILD_SHA_LONG="$(cat /workspace/myenv/_fileappsha1_long_TAG.out)"
         TEST_RESULTS_ALL_1=$(cat /workspace/myenv/tests/_filetest-results-all-1_TAG.out)
 
+        echo "" > placeholder.txt
         TEST_RESULTS_DIR='fail'
 
         echo "TEST_RESULTS_ALL_1-$$TEST_RESULTS_ALL_1"
@@ -818,6 +825,7 @@ steps:
 
         TEST_RESULTS_FULL_DIR="gs://${_GS_PROJECT_ID}_build_reports/build_test/$${PARM_BUILD_BRANCH}/$${TEST_RESULTS_DIR}/$${PARM_AT_SEC}-sha-$${PARM_BUILD_SHA}"
         gsutil cp '/workspace/myenv/tests/build_info.html' "$${TEST_RESULTS_FULL_DIR}/build_info.html"
+        gsutil cp placeholder.txt "$${TEST_RESULTS_FULL_DIR}/reports/placeholder.txt"
         gsutil cp  -R "../tests/artifacts/drivers/simple_hello/reports/temp/*" "$${TEST_RESULTS_FULL_DIR}/reports/"
 
         gsutil cp gs://${_GS_PROJECT_ID}_build_reports/build_test/all_include.inc $${MYENV_TEST_DIR}/all_include.inc
